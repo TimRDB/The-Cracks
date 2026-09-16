@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>The Cracks - Apartment</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="preload" as="image" href="assets/bedroom_bg.png" />
+  <link rel="preload" as="image" href="assets/bedroom_bg_lamp_off.png" />
+  <link rel="preload" as="image" href="assets/bedroom_player.png" />
+  <link rel="preload" as="image" href="assets/living_bg.png" />
+  <link rel="preload" as="image" href="assets/bathroom_bg.png" />
+</head>
+<body>
+  <svg width="0" height="0" class="sprite-filters" aria-hidden="true">
+    <defs>
+      <filter id="sprite-green-key" color-interpolation-filters="sRGB" x="0" y="0" width="100%" height="100%">
+        <feColorMatrix type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  4 -8 4 1 0" />
+        <feComponentTransfer><feFuncA type="discrete" tableValues="0 1" /></feComponentTransfer>
+      </filter>
+    </defs>
+  </svg>
+  <main id="game">
+    <div id="sceneViewport">
+      <section id="scene" class="curtains-closed" data-room="bedroom" aria-label="Bedroom">
+        <div id="room-art" aria-hidden="true">
+          <div id="room-background"></div>
+          <div id="curtains">
+            <div class="curtain-panel curtain-left"></div>
+            <div class="curtain-panel curtain-right"></div>
+          </div>
+          <div id="tv-screen"></div>
+          <div id="living-tv"></div>
+          <div id="doorway" class="hidden"><div id="door-face"><div id="door-surface"></div></div></div>
+        </div>
+        <div id="room-dimmer" aria-hidden="true"></div>
+        <div id="lamp-constant" aria-hidden="true"></div>
+        <div id="lamp-halo" aria-hidden="true"></div>
+        <div id="statusText">Walk to</div>
+        <div id="hotspots"></div>
+        <div id="player" class="sprite" data-facing="down" aria-label="Player character">
+          <div class="player-frame"></div>
+        </div>
+        <div id="foreground" aria-hidden="true"></div>
+        <div id="messageBox" class="hidden" role="status" aria-live="polite"></div>
+        <div id="scene-fade" aria-hidden="true"></div>
+      </section>
+    </div>
+    <section id="interface" aria-label="Game controls">
+      <div id="verbs" aria-label="Action verbs">
+        <button data-verb="walk">Walk to</button>
+        <button data-verb="look">Look at</button>
+        <button data-verb="open">Open</button>
+        <button data-verb="close">Close</button>
+        <button data-verb="use">Use</button>
+      </div>
+      <div id="roomControls">
+        <span id="roomLight">Curtains closed</span>
+        <button id="curtainToggle" aria-controls="curtains" aria-expanded="false">Open curtains</button>
+      </div>
+      <div id="controls">
+        <button id="saveBtn">Save</button>
+        <button id="loadBtn">Load</button>
+        <button id="resetBtn">Reset</button>
+      </div>
+    </section>
+  </main>
+  <script src="rooms.js"></script>
+  <script src="game.js"></script>
+</body>
+</html>
