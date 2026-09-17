@@ -97,6 +97,43 @@ const sprite = {
     [[148, 308], [142, 309], [151, 309], [160, 309], [167, 309]]
   ]
 };
+// Each room has measured perspective anchors. Widths are percentages of the
+// 16:9 scene and already account for the sprite sheet's transparent padding.
+// Door thresholds are explicit anchors, so every door has the same believable
+// character-to-door ratio even when several doors sit at different depths.
+const playerPerspectiveProfiles = Object.freeze({
+  bedroom: Object.freeze({ anchors: Object.freeze([
+    Object.freeze({ y: 56.5, width: 24.7, reference: 'bedroom door threshold' }),
+    Object.freeze({ y: 94, width: 34.3, reference: 'bedroom foreground' })
+  ]) }),
+  living: Object.freeze({ anchors: Object.freeze([
+    Object.freeze({ y: 39.6, width: 12.0, reference: 'recessed front door threshold' }),
+    Object.freeze({ y: 52.5, width: 22.1, reference: 'bedroom and bathroom door thresholds' }),
+    Object.freeze({ y: 94, width: 31.0, reference: 'living-room foreground' })
+  ]) }),
+  bathroom: Object.freeze({ anchors: Object.freeze([
+    Object.freeze({ y: 67.5, width: 23.8, reference: 'bathroom door threshold' }),
+    Object.freeze({ y: 82, width: 28.0, reference: 'bathroom foreground' })
+  ]) }),
+  outside: Object.freeze({ anchors: Object.freeze([
+    Object.freeze({ y: 37.4, width: 10.2, reference: 'exterior door thresholds and patios' }),
+    // At car depth the visible body is 1.8 / 1.4 times the cars' painted height.
+    Object.freeze({ y: 92, width: 22.4, reference: '1.8 m player beside 1.4 m cars' })
+  ]) })
+});
+function playerPerspective(roomId, y) {
+  const profile = playerPerspectiveProfiles[roomId] || playerPerspectiveProfiles.living;
+  const anchors = profile.anchors;
+  if (y <= anchors[0].y) return { width: anchors[0].width, depth: 1, progress: 0, reference: anchors[0].reference };
+  const last = anchors[anchors.length - 1];
+  if (y >= last.y) return { width: last.width, depth: last.width / anchors[0].width, progress: 1, reference: last.reference };
+  const upperIndex = anchors.findIndex(anchor => anchor.y >= y);
+  const lower = anchors[upperIndex - 1], upper = anchors[upperIndex];
+  const segmentProgress = (y - lower.y) / (upper.y - lower.y);
+  const width = lower.width + (upper.width - lower.width) * segmentProgress;
+  const progress = (y - anchors[0].y) / (last.y - anchors[0].y);
+  return { width, depth: width / anchors[0].width, progress, reference: `${lower.reference} ? ${upper.reference}` };
+}
 
 function setVerb(verb) {
   gameState.selectedVerb = verbNames[verb] ? verb : 'walk';
@@ -155,6 +192,7 @@ function movementFacing(dx, dy) {
 
 function renderPlayer(walking = false) {
   const outdoors = gameState.currentRoom === 'outside';
+  const perspective = playerPerspective(gameState.currentRoom, movement.y);
   const stairProgress = movement.stairProgress || 0;
   player.style.setProperty('--step-lift', outdoors && walking && movement.destination?.stairs ? (-Math.sin(stairProgress * Math.PI) * 1.8) + '%' : '0%');
   player.style.setProperty('--stair-lean', outdoors && walking && movement.destination?.stairs ? (movement.facing === 'up' ? '-1deg' : '1deg') : '0deg');
@@ -171,7 +209,9 @@ function renderPlayer(walking = false) {
   }
   player.style.left = `${movement.x}%`;
   player.style.top = `${movement.y}%`;
-  player.style.setProperty('--depth', outdoors ? 1 + (movement.y - 37.4) * .005 : 1 + (movement.y - 80) * 0.009);
+  player.style.setProperty('--sprite-width', `${perspective.width}%`);
+  player.style.setProperty('--depth', perspective.depth);
+  scene.classList.toggle('player-behind-cars', outdoors && movement.y < 88);
   player.style.zIndex = Math.round(movement.y);
 }
 
@@ -256,7 +296,7 @@ function advanceWalk(time) {
   movement.facing = movementFacing(dx, dy);
   movement.x += dx / distance * step;
   movement.y += dy / distance * step / ratio;
-  const depth = 1 + (movement.y - 80) * 0.009;
+  const depth = playerPerspective(gameState.currentRoom, movement.y).depth;
   const width = player.offsetWidth / scene.clientWidth * 100;
   movement.phase = (movement.phase + step / (width * depth * 0.65)) % 1;
   if (target.stairs) {

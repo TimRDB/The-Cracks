@@ -60,9 +60,8 @@ body.game-started #game { opacity: 1; }
 #statusText { position: absolute; z-index: 140; left: 50%; top: 6px; transform: translateX(-50%); max-width: 90%; padding: 4px 10px; text-align: center; background: #0a0c10d9; border: 1px solid #837763; color: #f2e3c5; font-size: 13px; pointer-events: none; }
 .hotspot { position: absolute; z-index: 15; padding: 0; border: 0; background: transparent; opacity: 0; }
 .hotspot:hover, .hotspot:focus-visible { opacity: 0; background: transparent; outline: none; }
-.sprite { position: absolute; width: 27.5%; aspect-ratio: 1; pointer-events: none; transform-origin: center bottom; transform: translate(-50%, -100%) scaleX(var(--facing, 1)) scale(var(--depth, 1)); filter: brightness(.64) drop-shadow(2px 3px 1px #0007); transition: filter 1.4s ease-in-out; }
-#scene[data-room="bedroom"] .sprite { width: 30.5%; }
-#scene[data-room="outside"] .sprite { width: 12%; filter: brightness(.88) drop-shadow(2px 3px 1px #0006); }
+.sprite { position: absolute; width: var(--sprite-width, 27.5%); aspect-ratio: 1; pointer-events: none; transform-origin: center bottom; transform: translate(-50%, -100%) scaleX(var(--facing, 1)); filter: brightness(.64) drop-shadow(2px 3px 1px #0007); transition: filter 1.4s ease-in-out, width .08s linear; }
+#scene[data-room="outside"] .sprite { filter: brightness(.88) drop-shadow(2px 3px 1px #0006); }
 #scene[data-room="outside"] .player-frame { translate: 0 var(--step-lift, 0%); rotate: var(--stair-lean, 0deg); }
 .curtains-open .sprite { filter: brightness(1) drop-shadow(2px 3px 1px #0007); }
 .player-frame { position: absolute; inset: 0; background: url('assets/bedroom_player.png') no-repeat; background-size: 500% 300%; filter: url(#sprite-green-key); }
@@ -94,8 +93,18 @@ body.game-started #game { opacity: 1; }
 #doorway[data-motion="closing"] #door-face { filter: brightness(.96); }
 #scene-fade { position: absolute; inset: 0; z-index: 130; background: #08090b; opacity: 0; pointer-events: none; }
 #scene[aria-busy="true"] { cursor: wait; }
-#foreground { display: none; position: absolute; inset: 0; z-index: 110; pointer-events: none; background: var(--room-image) center / 100% 100%; filter: brightness(.88) saturate(.9); }
+#foreground { display: none; position: absolute; inset: 0; z-index: 110; pointer-events: none; }
 #scene[data-room="living"] #foreground { display: block; clip-path: polygon(28% 73%, 31% 67%, 36% 64%, 48% 66%, 55% 64%, 69% 66%, 73% 72%, 73% 94%, 28% 94%); }
+#scene[data-room="living"] #foreground { background: var(--room-image) center / 100% 100%; filter: brightness(.88) saturate(.9); }
+#scene[data-room="outside"].player-behind-cars #foreground { display: block; }
+.outside-car-foreground { display: none; position: absolute; inset: 0; background: var(--room-image) center / 100% 100% no-repeat; }
+#scene[data-room="outside"].player-behind-cars .outside-car-foreground { display: block; }
+/* These silhouettes closely trace each painted vehicle rather than masking a
+   broad rectangle of road. Extra points preserve the roof, mirrors, quarter
+   panels, bumper corners and wheel-level outline at every responsive size. */
+.outside-car-foreground.burgundy { clip-path: polygon(1.9% 74.8%, 2.5% 71.1%, 3.8% 67.1%, 5.3% 61.5%, 6.7% 58.7%, 8.3% 57.2%, 11.1% 56.6%, 16.9% 56.7%, 19.1% 57.7%, 20.7% 59.7%, 21.5% 62.1%, 22.6% 61.1%, 23.4% 61.6%, 23.8% 63.1%, 23.3% 64.3%, 22.5% 64.8%, 23.2% 68.6%, 23.7% 73.3%, 23.7% 78.8%, 23.1% 82.7%, 21.8% 85.1%, 19.8% 86.0%, 5.4% 86.1%, 3.6% 84.5%, 2.3% 81.5%); }
+.outside-car-foreground.silver { clip-path: polygon(52.1% 63.8%, 52.3% 62.4%, 52.9% 61.4%, 53.7% 61.2%, 54.4% 61.8%, 55.1% 59.0%, 56.2% 57.2%, 58.0% 56.4%, 65.4% 56.5%, 66.8% 57.5%, 67.7% 59.4%, 68.4% 61.8%, 69.1% 61.2%, 69.8% 61.8%, 70.1% 63.1%, 69.7% 64.1%, 69.0% 64.5%, 69.5% 68.0%, 70.2% 72.1%, 70.4% 77.2%, 70.1% 81.8%, 69.2% 84.5%, 67.9% 85.8%, 54.9% 85.9%, 53.5% 84.3%, 52.7% 81.3%, 52.6% 74.0%); }
+.outside-car-foreground.blue { clip-path: polygon(75.7% 64.1%, 75.9% 62.6%, 76.6% 61.5%, 77.3% 61.3%, 78.1% 61.9%, 78.8% 59.3%, 80.1% 57.5%, 81.9% 56.7%, 90.8% 56.7%, 92.3% 57.6%, 93.6% 59.6%, 94.4% 62.3%, 95.3% 61.6%, 96.0% 62.0%, 96.5% 63.3%, 96.2% 64.4%, 95.5% 64.9%, 96.2% 68.5%, 96.8% 73.1%, 97.0% 78.3%, 96.6% 82.3%, 95.4% 84.7%, 93.8% 85.8%, 79.4% 85.9%, 77.7% 84.4%, 76.6% 81.4%, 76.1% 75.5%); }
 #interface { flex: 0 0 auto; display: grid; grid-template-columns: minmax(0, 1.5fr) auto auto; align-items: center; gap: 8px; padding: 6px 8px; max-height: 50%; overflow-y: auto; font-size: 12px; background: linear-gradient(#2d2b29, #1a1a1d); border-top: 2px solid #554f44; }
 #verbs { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; }
 #interface button { min-height: 32px; padding: 5px 8px; white-space: nowrap; border: 1px solid #736653; background: linear-gradient(#393631, #222226); }

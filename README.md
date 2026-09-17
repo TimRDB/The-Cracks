@@ -14,7 +14,8 @@ The title screen's New Game button leads into the bedroom, with closed curtains 
 - The lit lamp and its embedded painted glow are kept above the curtain-controlled room dimmer using an exactly aligned copy of the original bedroom pixels with a broad feathered edge. This keeps their brightness constant without a visible mask boundary. A small neutral brightness lift sits above the dimmer too. Switching the lamp off hides both layers and swaps to the genuine lamp-off background.
 - **Use** the living room TV to toggle power and its channel box to cycle three channels. Explore the appliances, plant, key hooks, entry drawers and other furnishings with the action verbs.
 - The apartment exit leads onto the right-hand concrete patio in the exterior forecourt. Click its front door to return inside. The two neighbouring apartments to the left are reachable but locked.
-- Exterior walking follows the patios, five stair treads, shared footpath and empty parking bay. Stair travel slows down and adds a small footfall lift and lean. Cars block direct crossing; routes reach them using the clear lane behind the bays.
+- Exterior walking follows the patios and five stair treads, then becomes free-form across the shared footpath, empty parking bay, all three visible gaps between cars, and the clear foreground asphalt. Clicked positions on open ground are retained exactly, while routes automatically avoid the occupied parking spaces. Stair travel slows down and adds a small footfall lift and lean. Parked-car foreground masks place the character behind the cars at the rear depth plane and in front of them near the camera.
+- Character size is controlled by one multi-anchor perspective table for every room. Every painted door has a measured threshold anchor, so the bedroom, bathroom, living-room doors, recessed hallway entrance and exterior doors all produce the same believable character-to-door ratio. Outdoors he grows continuously from 10.2% scene width at the patios to 22.4% at car depth. That foreground anchor makes his painted height approximately `1.8 / 1.4` times a car's height, matching a 1.8-metre person beside a 1.4-metre car. Both ends are clamped.
 - Four parking spaces contain three locked cars: a blue Lonza Experience hatchback, burgundy Arven Vale sedan and silver Veyra Solis estate. The game makes no claim about who owns them. A young tree and a mature tree stand beside the lawn.
 - Saves also support the exterior, including positions partway along a staircase.
 - **Save** and **Load** preserve the current room, player position, bedroom lighting and apartment interaction state. Old bedroom saves remain supported. **Reset** and fresh launches start in the dark bedroom; loading is explicit.
@@ -27,7 +28,7 @@ The title screen's New Game button leads into the bedroom, with closed curtains 
 
 - `game.js`: movement, door animations, room interactions, and save/load
 - `rooms.js`: living room/kitchen, bathroom and exterior objects and door connections
-- `outside.js`: artwork-aligned walking paths, stair treads and shortest-route selection
+- `outside.js`: artwork-aligned paths, stair treads, free parking-lot regions and obstacle-avoiding route selection
 - `assets/outside_bg.png`: exterior background; generation prompt in `assets/outside-art-notes.md`
 - `tests/outside-browser.cjs`: optional headless Chrome smoke check; captures patio and stairs into `output/`
 - `style.css`: responsive layout, curtains, lighting, and sprite rendering

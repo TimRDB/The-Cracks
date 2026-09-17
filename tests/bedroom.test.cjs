@@ -111,7 +111,7 @@ test('one sheet supplies idle and walking in all directions without per-pose bri
     assert.equal(g.get('player').child.style.filter, undefined);
   }
 });
-test('vertical travel uses corrected walking frames and the bedroom character is larger', () => {
+test('vertical travel uses corrected walking frames and profile-driven sizing', () => {
   const g = game();
   g.run('movement.facing="down"; movement.phase=0; renderPlayer(true);');
   assert.equal(g.get('player').child.style.backgroundPosition, '25% 50%');
@@ -121,16 +121,28 @@ test('vertical travel uses corrected walking frames and the bedroom character is
   assert.equal(g.get('player').child.style.backgroundPosition, '100% 100%');
   g.run('renderPlayer(false);');
   assert.equal(g.get('player').child.style.backgroundPosition, '0% 100%');
-  assert.match(styles, /data-room="bedroom"[^}]*\.sprite\s*\{\s*width:\s*30\.5%/);
+  assert.match(styles, /width:\s*var\(--sprite-width,\s*27\.5%\)/);
+  assert.equal(g.get('player').style['--sprite-width'], `${g.run("playerPerspective('bedroom',84).width")}%`);
 });
-test('player scale reads as an adult against the apartment doors', () => {
-  assert.match(styles, /\.sprite\s*\{[^}]*width:\s*27\.5%/);
-  const backgroundHeight = 941;
-  const spriteWidth = 1672 * 0.275;
+test('every room profile keeps the player consistent with its painted doors', () => {
+  const g = game();
   const visibleBodyRatio = 314 / (971 / 3);
-  const rearRoomDepth = 1 + (71 - 80) * 0.009;
-  const renderedBodyHeight = spriteWidth * visibleBodyRatio * rearRoomDepth;
-  assert.ok(renderedBodyHeight / backgroundHeight > 0.43);
+  const aspect = 1672 / 941;
+  const references = [
+    ['bedroom', 56.5, 42.5],
+    ['living', 39.6, 21.2],
+    ['living', 52.5, 38],
+    ['living', 52.5, 37.5],
+    ['bathroom', 67.5, 41.1],
+    ['outside', 36.1, 18.7]
+  ];
+  for (const [room, y, doorHeight] of references) {
+    const width = g.run(`playerPerspective('${room}',${y}).width`);
+    const bodyHeight = width / 100 * aspect * visibleBodyRatio * 100;
+    assert.ok(bodyHeight / doorHeight > .9 && bodyHeight / doorHeight < 1.15, `${room} is not door-calibrated`);
+    assert.ok(g.run(`playerPerspectiveProfiles.${room}.anchors.at(-1).width > playerPerspectiveProfiles.${room}.anchors[0].width`));
+  }
+  assert.equal(g.run('JSON.stringify(apartmentRooms.living.objects.exit.portal)'), '[91.7,39.6]');
 });
 test('bedroom objects respond, with independent lamp and TV toggles', () => {
   const g = game();
@@ -313,10 +325,10 @@ test('living TV channels, saves, bathroom and exit preserve apartment state', ()
   assert.equal(g.run('gameState.currentRoom'), 'living');
 });
 
-test('outside paths descend stairs and route around cars to the rear lane', () => {
+test('outside paths descend stairs and use the gap beside the blue car', () => {
   const g = game();
   g.run('showRoom("outside"); movement.x=73; movement.y=37.4; handleTarget("blueCar");');
-  let stairs = 0, bay = false, lift = false;
+  let stairs = 0, passage = false, lift = false;
   for (let i=0; i<2200 && g.run('movement.destination !== null'); i++) {
     g.tick();
     const x = g.run('movement.x'), y = g.run('movement.y');
@@ -325,14 +337,68 @@ test('outside paths descend stairs and route around cars to the rear lane', () =
       assert.ok(x >= 73 && x <= 74);
       lift ||= parseFloat(g.get('player').style['--step-lift']) < -.2;
     }
-    if (y > 56 && y < 91) { assert.ok(Math.abs(x-36) < .01); bay = true; }
+    if (y > 56 && y < 91) { assert.ok(Math.abs(x-72.7) < .01); passage = true; }
   }
-  assert.ok(stairs > 10 && lift && bay);
+  assert.ok(stairs > 10 && lift && passage);
   assert.equal(g.run('movement.destination'), null);
   assert.equal(g.run('movement.x'), 87);
   assert.equal(g.run('movement.y'), 92);
   assert.doesNotMatch(g.get('messageBox').textContent, /your car|belongs to you/i);
   assert.match(g.get('messageBox').textContent, /Lonza Experience/);
+});
+
+test('all painted gaps between parked cars are walkable', () => {
+  const g = game();
+  for (const x of [24, 50, 72.7]) {
+    const route = g.run(`outsideRoute({x:${x},y:55},{x:${x},y:92})`);
+    assert.ok(route.length > 0);
+    assert.ok(route.filter(point => point.y > 55).every(point => Math.abs(point.x - x) < .001));
+    assert.ok(route.some(point => Math.abs(point.x - x) < .001 && point.y === 92));
+    assert.equal(route.at(-1).y, 92);
+  }
+});
+
+test('clear parking-lot ground supports free movement without crossing parked cars', () => {
+  const g = game();
+  for (const [x, y] of [[9,94], [42,72], [31,84], [66,94], [91,90]]) {
+    const projected = g.run(`outsideProjection(${x},${y})`);
+    assert.deepEqual([projected.x, projected.y], [x, y]);
+    assert.equal(projected.free, true);
+  }
+  const route = g.run('outsideRoute({x:9,y:94},{x:91,y:90})');
+  assert.deepEqual([route.at(-1).x, route.at(-1).y], [91, 90]);
+  assert.ok(route.every((point, index) => {
+    const prior = index ? route[index-1] : { x: 9, y: 94 };
+    return g.run(`outsideFreeSegment({x:${prior.x},y:${prior.y}},{x:${point.x},y:${point.y}})`);
+  }));
+  const onCar = g.run('outsideProjection(61,70)');
+  assert.notDeepEqual([onCar.x, onCar.y], [61, 70]);
+});
+
+test('car foreground masks use tightly traced vehicle silhouettes', () => {
+  for (const car of ['burgundy', 'silver', 'blue']) {
+    const rule = styles.match(new RegExp(`\\.outside-car-foreground\\.${car} \\{ clip-path: polygon\\(([^;]+)\\); \\}`));
+    assert.ok(rule, `${car} foreground mask must exist`);
+    assert.ok(rule[1].split(',').length >= 25, `${car} mask must closely trace the painted silhouette`);
+  }
+});
+
+test('outside perspective is calibrated to doors and parked cars', () => {
+  const g = game();
+  assert.equal(g.run("playerPerspective('outside',0).width"), 10.2);
+  assert.equal(g.run("playerPerspective('outside',37.4).width"), 10.2);
+  assert.equal(g.run("playerPerspective('outside',92).width"), 22.4);
+  assert.equal(g.run("playerPerspective('outside',100).width"), 22.4);
+  g.run('showRoom("outside"); movement.y=37.4; renderPlayer();');
+  assert.equal(g.get('player').style['--sprite-width'], '10.2%');
+  assert.equal(g.get('player').style['--depth'], 1);
+  g.run('movement.y=92; renderPlayer();');
+  assert.equal(g.get('player').style['--sprite-width'], '22.4%');
+  assert.ok(Math.abs(g.get('player').style['--depth'] - 22.4 / 10.2) < 1e-12);
+  const rearBodyHeight = .102 * (1672 / 941) * (314 / (971 / 3));
+  const frontBodyHeight = .224 * (1672 / 941) * (314 / (971 / 3));
+  assert.ok(rearBodyHeight / .187 > .9 && rearBodyHeight / .187 < 1);
+  assert.ok(Math.abs(frontBodyHeight / .30 - 1.8 / 1.4) < .02);
 });
 
 test('both neighbouring patios are reachable but locked, even with keys', () => {
