@@ -30,6 +30,8 @@ Use case: precise-object-edit. Correct only the legs in the middle-row and botto
 
 The built-in ImageGen edit workflow created `bedroom_bg_lamp_off.png`, a 1672 x 941 alternate background that retains the room layout and ambient window lighting while removing the lamp's baked wall glow and lampshade illumination. The game swaps between this asset and `bedroom_bg.png` at the moment the lamp state changes, replacing the earlier CSS darkening mask.
 
+The current `bedroom_bg_reversed_door.png` and `bedroom_bg_lamp_off_reversed_door.png` keep those two lighting states while moving the bedroom-side door handle to the left and hinges to the right. The reciprocal living-room face has its handle on the right. The bathroom door artwork is unchanged.
+
 ### Lamp-off edit prompt
 
 Use case: lighting-weather. Create an otherwise identical lamp-off version of the bedroom. Remove only the warm illumination projected onto the wall and the light within the complete lampshade, bulb area and edges. Render the same lamp switched off under the room's existing cool ambient light, reconstructing the worn wall texture and nearby furniture naturally. Preserve the exact 1672 x 941 canvas, camera, crop, object placement, window light and every other room element. No masking, global relighting, people, text or new objects.

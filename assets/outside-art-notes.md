@@ -1,0 +1,15 @@
+# Apartment exterior
+
+Current game asset: `assets/outside_bg.png`. Generated using the built-in image-generation tool, with the user's Screenshot 2026-09-17 170559.png as a style reference. No existing room image was replaced.
+
+The rightmost exterior front door matches the neighbouring doors: hinges on the left and handle on the right, with its centered mail slot unchanged. Its reciprocal living-room face has hinges on the right and handle on the left. Both faces use an explicit inward swing so the exterior closing animation stays inside the apartment.
+
+## Final generation prompt
+
+Use case: stylized-concept. Generate a NEW 16:9 point-and-click game exterior background, image 1 is STYLE REFERENCE ONLY: match its detailed painterly pixel-edged adventure-game look, weathered surfaces, muted grey daylight and realistic proportions. No people, no UI. A modest attached apartment building spans the upper half, with EXACTLY THREE closed front doors: player's at right, two neighbours to left. Each door has a small raised concrete patio with black metal railings and its own short straight flight of 5 concrete steps descending toward camera to a shared footpath and small curbside lawn. Camera elevated slightly and facing facade mostly straight on, all doors and stair treads clearly visible. Door centres roughly x=20%, 48%, 76%; thresholds y=37%, patio front y=45%, stair feet y=59%. Shared unobstructed horizontal walking path at y=64%, thin lawn with paths between stairs and curb. Foreground EXACTLY FOUR side-by-side marked parking spaces, occupying y=72-96%: from left a muted burgundy compact sedan (fictional Arven Vale), EMPTY parking bay, silver small estate car (fictional Veyra Solis), blue hatchback (fictional Lonza Experience). All three cars closed, parked facing building, clearly distinguishable, no real car logos, tiny badges optional. Leave walking access along rear of cars at bottom and clear connecting empty bay. One small young tree at far left on lawn and one larger mature tree at far right with crown above edge and trunk off walking paths. Overcast quiet morning, worn brick/stucco, subtle damp concrete. Entire scene in focus with crisp geometry, usable traversable ground, no text overlays, no characters, no additional doors, no extra cars. Wide full bleed game background.
+
+## Implementation alignment
+
+Generated geometry was inspected and navigation aligned to the actual artwork rather than the prompt's proposed percentages. Patio centres are (23.5,37.4), (48,37.4), (73,37.4); stairs end at y=49; the shared footpath is y=55; the open parking bay is x=36; the rear lane is y=92. Coordinates are percentages of the uncropped image. Each staircase uses five segments. The existing directional sprite is reused with slower travel, footfall lift and a slight lean on stairs. Car make/model descriptions are supplied as game text, not dependent on tiny generated badges.
+
+Validation: 22 game tests plus headless Chrome exit/stairs/return smoke check. Preview images: `output/outside-patio-preview.png` and `output/outside-stairs-preview.png`.

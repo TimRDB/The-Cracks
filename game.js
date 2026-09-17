@@ -7,6 +7,53 @@ const statusText = document.getElementById('statusText');
 const messageBox = document.getElementById('messageBox');
 const curtainToggle = document.getElementById('curtainToggle');
 const roomLight = document.getElementById('roomLight');
+const titleScreen = document.getElementById('titleScreen');
+const titleContent = titleScreen.querySelector('.title-content');
+const game = document.getElementById('game');
+const newGameBtn = document.getElementById('newGameBtn');
+const optionsBtn = document.getElementById('optionsBtn');
+const optionsDialog = document.getElementById('optionsDialog');
+const goBackBtn = document.getElementById('goBackBtn');
+
+function openOptions() {
+  titleScreen.classList.add('options-open');
+  titleContent.inert = true;
+  optionsDialog.hidden = false;
+  requestAnimationFrame(() => optionsDialog.classList.add('is-visible'));
+  optionsBtn.setAttribute('aria-expanded', 'true');
+  goBackBtn.focus();
+}
+
+function closeOptions() {
+  optionsDialog.classList.remove('is-visible');
+  titleScreen.classList.remove('options-open');
+  optionsBtn.setAttribute('aria-expanded', 'false');
+  setTimeout(() => {
+    optionsDialog.hidden = true;
+    titleContent.inert = false;
+    optionsBtn.focus();
+  }, 350);
+}
+
+function startNewGame() {
+  if (titleScreen.classList.contains('is-leaving')) return;
+  titleScreen.classList.add('is-leaving');
+  titleScreen.setAttribute('aria-busy', 'true');
+  setTimeout(() => {
+    game.inert = false;
+    game.setAttribute('aria-hidden', 'false');
+    document.body.classList.add('game-started');
+    titleScreen.hidden = true;
+    showMessage('A quiet morning. Click the curtains to let in some light, or explore the room.', 4500);
+  }, 760);
+}
+
+newGameBtn.addEventListener('click', startNewGame);
+optionsBtn.addEventListener('click', openOptions);
+goBackBtn.addEventListener('click', closeOptions);
+document.addEventListener?.('keydown', event => {
+  if (event.key === 'Escape' && !optionsDialog.hidden) closeOptions();
+});
 
 const gameState = {
   selectedVerb: 'walk', currentRoom: 'bedroom', livingTvOn: false, channel: 0, plantWatered: false, keysTaken: false,
@@ -22,7 +69,7 @@ const bedroomObjects = {
   bed: { name: 'bed', area: [8, 40, 36, 24], walk: [28, 72], description: 'A single bed, an unmade duvet, and a pillow that has seen better mornings.' },
   drawers: { name: 'chest of drawers', area: [44.5, 31, 11, 30], walk: [49, 69], description: 'The drawers at the foot of the bed hold T-shirts, socks, and the odd forgotten cable.' },
   cupboard: { name: 'cupboard', area: [56, 12, 12, 49], walk: [61, 69], description: 'Shirts hang from mismatched hangers. Folded clothes and shoes fill the shelves below.' },
-  door: { ...door('living room door', [72.8,14,9.5,42.5], [68,69], 'living', 'bedroomDoor'), hinge: 'left' },
+  door: { ...door('living room door', [72.8,14,9.5,42.5], [68,69], 'living', 'bedroomDoor'), hinge: 'right' },
   couch: { name: 'couch', area: [70.5, 61, 29, 31], walk: [67, 81], description: 'A well-worn couch facing the TV. The blanket has claimed one end.' },
   tv: { name: 'TV', area: [89.8, 29, 10, 23], walk: [67, 76], description: 'The TV sits against the right wall, within easy reach of the couch.' },
   console: { name: 'gaming console', area: [87, 52, 12, 9], walk: [67, 76], description: 'A console, a controller, and several games you keep meaning to finish.' },
@@ -33,7 +80,7 @@ const bedroomObjects = {
   alarm: { name: 'alarm clock', area: [8, 48.3, 2, 3.5], walk: [12, 73], description: 'The alarm clock is beside the lamp. At least the snooze button is easy to find.' },
   curtains: { name: 'curtains', area: [18.8, 8, 23.8, 33], walk: [32, 68] }
 };
-apartmentRooms.bedroom = { name: 'Bedroom', image: 'assets/bedroom_bg.png', imageOff: 'assets/bedroom_bg_lamp_off.png', floor: [10,68,66,94], objects: bedroomObjects };
+apartmentRooms.bedroom = { name: 'Bedroom', image: 'assets/bedroom_bg_reversed_door.png', imageOff: 'assets/bedroom_bg_lamp_off_reversed_door.png', floor: [10,68,66,94], objects: bedroomObjects };
 let roomObjects = bedroomObjects;
 let transition = null;
 const channels = ['Weather: another grey morning', 'Cooking: something better than toast', 'Films: an old black-and-white favourite'];
@@ -107,6 +154,10 @@ function movementFacing(dx, dy) {
 }
 
 function renderPlayer(walking = false) {
+  const outdoors = gameState.currentRoom === 'outside';
+  const stairProgress = movement.stairProgress || 0;
+  player.style.setProperty('--step-lift', outdoors && walking && movement.destination?.stairs ? (-Math.sin(stairProgress * Math.PI) * 1.8) + '%' : '0%');
+  player.style.setProperty('--stair-lean', outdoors && walking && movement.destination?.stairs ? (movement.facing === 'up' ? '-1deg' : '1deg') : '0deg');
   const row = movement.facing === 'up' ? 2 : movement.facing === 'down' ? 1 : 0;
   const column = walking ? 1 + Math.floor(movement.phase * 4) % 4 : 0;
   const key = `${row}:${column}`;
@@ -120,11 +171,15 @@ function renderPlayer(walking = false) {
   }
   player.style.left = `${movement.x}%`;
   player.style.top = `${movement.y}%`;
-  player.style.setProperty('--depth', 1 + (movement.y - 80) * 0.009);
+  player.style.setProperty('--depth', outdoors ? 1 + (movement.y - 37.4) * .005 : 1 + (movement.y - 80) * 0.009);
   player.style.zIndex = Math.round(movement.y);
 }
 
 function floorPosition(x, y) {
+  if (gameState.currentRoom === 'outside') {
+    const point = outsideProjection(x, y);
+    return { x: point.x, y: point.y };
+  }
   const [left, right, top, bottom] = apartmentRooms[gameState.currentRoom].floor;
   const point = { x: Math.max(left, Math.min(right, x)), y: Math.max(top, Math.min(bottom, y)) };
   for (const [obstacleX, obstacleY, width, height] of apartmentRooms[gameState.currentRoom].obstacles || []) {
@@ -143,6 +198,8 @@ function floorPosition(x, y) {
 }
 
 function stopWalking() {
+  movement.route = null;
+  movement.stairProgress = 0;
   if (movement.frame !== null) cancelAnimationFrame(movement.frame);
   movement.frame = null;
   movement.destination = null;
@@ -152,7 +209,15 @@ function stopWalking() {
 
 function movePlayerTo(x, y, callback) {
   if (transition) return;
+  if (gameState.currentRoom === 'outside') {
+    movement.route = outsideRoute(movement, { x, y });
+    if (!movement.route.length) { stopWalking(); if (callback) callback(); return; }
+    movement.route[movement.route.length-1].callback = callback;
+    movement.destination = movement.route.shift();
+    movement.segmentStart = { x: movement.x, y: movement.y };
+  } else {
   movement.destination = { ...floorPosition(x, y), callback };
+  }
   const dx = (movement.destination.x - movement.x) * scene.clientWidth;
   const dy = (movement.destination.y - movement.y) * scene.clientHeight;
   movement.facing = movementFacing(dx, dy);
@@ -172,10 +237,18 @@ function advanceWalk(time) {
   const dx = target.x - movement.x;
   const dy = (target.y - movement.y) * ratio;
   const distance = Math.hypot(dx, dy);
-  const step = 18 * elapsed;
+  const step = (target.stairs ? 5 : gameState.currentRoom === 'outside' ? 14 : 18) * elapsed;
   if (distance <= step || distance < 0.001) {
     movement.x = target.x;
     movement.y = target.y;
+    if (movement.route?.length) {
+      movement.destination = movement.route.shift();
+      movement.segmentStart = { x: movement.x, y: movement.y };
+      movement.stairProgress = 0;
+      renderPlayer(true);
+      movement.frame = requestAnimationFrame(advanceWalk);
+      return;
+    }
     stopWalking();
     if (target.callback) target.callback();
     return;
@@ -186,6 +259,11 @@ function advanceWalk(time) {
   const depth = 1 + (movement.y - 80) * 0.009;
   const width = player.offsetWidth / scene.clientWidth * 100;
   movement.phase = (movement.phase + step / (width * depth * 0.65)) % 1;
+  if (target.stairs) {
+    const total = Math.hypot(target.x-movement.segmentStart.x, (target.y-movement.segmentStart.y)*ratio);
+    movement.stairProgress = Math.min(1, 1-Math.max(0,distance-step)/total);
+    movement.phase = (movement.phase + elapsed * 1.2) % 1;
+  }
   renderPlayer(true);
   movement.frame = requestAnimationFrame(advanceWalk);
 }
@@ -197,6 +275,10 @@ function walkTo(target, callback) {
 function interact(target, verb) {
   if (transition) return;
   const object = roomObjects[target];
+  if (object.locked) {
+    showMessage(verb === 'look' || verb === 'walk' ? object.description : 'It is locked.');
+    return;
+  }
   if (object.portal) {
     if (verb === 'look') showMessage(object.description);
     else if (verb === 'close') showMessage('The door is already closed.');
@@ -386,7 +468,7 @@ function animateDoor(time) {
   const fade = document.getElementById('scene-fade');
   const clamp = n => Math.max(0, Math.min(1,n));
   if (t.peek) {
-    const direction = t.object.hinge === 'right' ? 1 : -1;
+    const direction = t.object.swing ?? (t.object.hinge === 'right' ? 1 : -1);
     document.getElementById('doorway').dataset.motion = e < 1.35 ? 'opening' : 'closing';
     face.style.transform = `rotateY(${direction * 78 * Math.min(clamp(e/.45),clamp((1.8-e)/.45))}deg)`;
     if (e >= 1.8) { cancelTransition(); showMessage('The door opens onto the apartment corridor. Exploring outside will come later. You close it again.'); return; }
@@ -402,7 +484,7 @@ function animateDoor(time) {
     }
     const incoming = t.switched;
     const object = incoming ? t.incoming : t.object;
-    const direction = t.object.hinge === 'right' ? 1 : -1;
+    const direction = t.object.swing ?? (t.object.hinge === 'right' ? 1 : -1);
     const progress = incoming ? clamp((e-1.7)/.7) : clamp((e-.4)/.75);
     const start = incoming ? object.portal : t.start;
     const end = incoming ? object.walk : object.portal;

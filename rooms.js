@@ -2,12 +2,30 @@
 const item = (name, area, walk, description, response) => ({ name, area, walk, description, response });
 const door = (name, area, walk, to, entry) => ({ name, area, walk, to, entry, description: `The ${name}.`, portal: [area[0] + area[2] / 2, area[1] + area[3]] });
 const apartmentRooms = {
-  living: {
-    name: 'Living room & kitchen', image: 'assets/living_bg.png', floor: [8, 95, 57, 94], obstacles: [[28, 64, 45, 30], [80, 55, 19, 31]],
+  outside: {
+    name: 'Apartment forecourt', image: 'assets/outside_bg.png', floor: [5, 96, 36, 96],
     objects: {
-      bedroomDoor: { ...door('bedroom door', [18.4,14.5,8.5,38], [29,60], 'bedroom', 'door'), hinge: 'right' },
+      frontDoor: { ...door('front door', [70.2,17.4,5,18.7], [73,37.4], 'living', 'exit'), hinge: 'left', swing: 1, description: 'The front door opens inward into the apartment.' },
+      neighbourLeft: { ...item('left apartment door', [21,17.3,5,19], [23.5,37.4], 'A dark green front door. The neighbouring apartment is locked.'), locked: true },
+      neighbourMiddle: { ...item('middle apartment door', [45.6,17.4,5,19], [48,37.4], 'A burgundy front door. This neighbouring apartment is locked too.'), locked: true },
+      blueCar: { ...item('blue hatchback', [75.5,56,22,30], [87,92], 'A blue Lonza Experience hatchback. Rain beads on its windows. The doors are locked.'), locked: true },
+      burgundyCar: { ...item('burgundy sedan', [2,56,21,30], [13,92], 'A burgundy Arven Vale sedan, with faded paint around the boot. Its doors are locked.'), locked: true },
+      silverCar: { ...item('silver estate', [52,56,18,30], [61,92], 'A silver Veyra Solis estate. A folded blanket sits behind the rear seats. The doors are locked.'), locked: true },
+      emptyBay: item('empty parking space', [25,65,23,24], [36,80], 'One of the four marked parking spaces is empty.'),
+      smallTree: item('young tree', [0,9,10,49], [8,55], 'A young tree, supported by wooden stakes, stands beside the curbside lawn.'),
+      largeTree: item('mature tree', [94,2,6,51], [94,55], 'A mature tree spreads its branches over the forecourt.'),
+      lawn: item('curbside lawn', [53,48,15,5], [60,55], 'A narrow lawn separates the raised patios from the parking spaces.'),
+      leftSteps: item('left concrete steps', [17.7,37,9,12], [22,49], 'Concrete steps with weathered metal railings lead to the left apartment.'),
+      middleSteps: item('middle concrete steps', [43.5,37,8.4,12], [47.5,49], 'A short flight of concrete steps leads to the middle apartment.'),
+      steps: item('patio steps', [69,37,9,12], [74,49], 'Five concrete steps descend from the patio between black metal railings.')
+    }
+  },
+  living: {
+    name: 'Living room & kitchen', image: 'assets/living_bg_hallway_glass_reversed.png', floor: [8, 95, 57, 94], obstacles: [[28, 64, 45, 30], [80, 55, 19, 31]],
+    objects: {
+      bedroomDoor: { ...door('bedroom door', [18.4,14.5,8.5,38], [29,60], 'bedroom', 'door'), hinge: 'left' },
       bathroomDoor: { ...door('bathroom door', [67.5,12.5,10.1,39.7], [72.5,61], 'bathroom', 'livingDoor'), panel: [68.6,14.1,8,37.5], appearance: 'glass', hinge: 'right' },
-      exit: { ...door('apartment exit', [87,14.5,9.3,37], [91,54]), hinge: 'left', description: 'The apartment exit. The corridor beyond is quiet.' },
+      exit: { ...door('apartment exit at the end of the hallway', [85.5,7,13.5,47], [91.5,55], 'outside', 'frontDoor'), panel: [89.1,18.4,5.2,21.2], hinge: 'right', swing: 1, description: 'A short recessed hallway leads to the front door and the concrete patio outside.' },
       tv: item('living room TV', [80.8,41.5,18,44], [77,80], 'The TV stands to the right of the couch, angled left toward the seating area.'),
       channelBox: item('channel switching box', [84.8,62.5,9,8], [77,75], 'The set-top box switches between three channels. Use it to change channel.'),
       couch: item('couch', [28,64,45,30], [76,80], 'The sagging couch sits in the middle of the room facing the TV.', 'You straighten the blanket and test a cushion.'),
@@ -28,16 +46,17 @@ const apartmentRooms = {
     }
   },
   bathroom: {
-    name: 'Bathroom', image: 'assets/bathroom_bg.png', floor: [23, 77, 65, 82],
+    name: 'Bathroom', image: 'assets/bathroom_bg_reversed_master.png', floor: [23, 77, 65, 82],
     objects: {
-      livingDoor: { ...door('living room door', [62.5,23.5,11,44], [67.5,77], 'living', 'bathroomDoor'), panel: [63.7,25.9,8.8,41.1], appearance: 'glass', hinge: 'left' },
-      bath: item('bath and shower', [22,18,15.5,60], [38,76], 'A compact bathtub, shower and lightly worn curtain.', 'You straighten the shower curtain.'),
-      toilet: item('toilet', [38.5,45,7.7,23], [47,76], 'A small toilet on the left side of the bathroom.', 'You flush the toilet.'),
-      sink: item('basin and cupboard', [47.3,45,10.8,23], [54,76], 'A washbasin with a worn wooden cupboard beneath it.'),
-      mirror: item('mirrored medicine cabinet', [48.5,24,8.3,22], [54,76], 'A mirrored medicine cabinet above the basin. Short hair, a little stubble, and a very early morning.'),
-      laundry: item('laundry basket', [57.4,52,5.8,16], [60,76], 'The laundry basket is almost full.'),
-      towels: item('towel', [58,36,3.5,14], [60,76], 'A dark towel hangs beside the mirrored cabinet.'),
-      bathMat: item('bath mat', [43.5,66,16,10], [51,78], 'A dark bath mat lies on the worn white linoleum floor.')
+      livingDoor: { ...door('living room door', [26.5,23.5,11,44], [32.5,77], 'living', 'bathroomDoor'), panel: [27.5,25.9,8.8,41.1], appearance: 'glass', hinge: 'left' },
+      laundry: item('laundry basket', [36.8,52,5.8,16], [40,76], 'A woven laundry basket sits just inside the bathroom.'),
+      towels: item('towel', [38.5,36,3.5,14], [40,76], 'A dark towel hangs between the entrance and the basin.'),
+      sink: item('basin and storage cabinet', [41.9,45,10.8,23], [47,76], 'A ceramic basin has a roomy, worn wooden storage cabinet beneath it.'),
+      mirror: item('bathroom mirror', [43.2,24,8.3,22], [47,76], 'The old mirror hangs directly above the basin. Short hair, a little stubble, and a very early morning.'),
+      toilet: item('toilet', [53.8,45,7.7,23], [58,76], 'The toilet sits between the vanity and the bath.', 'You flush the toilet.'),
+      picture: item('framed city picture', [53,28,7,14], [58,76], 'A small faded city picture hangs above the toilet.'),
+      bath: item('bath and shower', [62.5,18,15.5,60], [62,76], 'A tiled bathtub and shower fill the right end of the room behind a dark curtain.', 'You straighten the shower curtain.'),
+      bathMat: item('bath mat', [40.5,66,16,10], [49,78], 'A dark bath mat lies on the old tiled floor.')
     }
   }
 };

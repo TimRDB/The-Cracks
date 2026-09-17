@@ -2,6 +2,10 @@
 
 Generated with built-in ImageGen using `bedroom_bg.png` as the style reference. Final copied assets: `living_bg.png` and `bathroom_bg.png`, both 1672 x 941. No new player sheet: all three rooms share the existing ordinary-man idle and directional walking sheet.
 
+## Interior front-door mail slot
+
+The built-in ImageGen edit workflow added an aged brass mail slot to the inside face of the far-right apartment exit. To keep every established hotspot and animated door sample aligned, only the generated mail-slot region was feather-composited onto the unchanged source artwork. The aligned version places the plate at the same normalized lintel-to-threshold position as the exterior slot. `living_bg_reciprocal_doors.png` gives the far-left bedroom door a right-side handle and the former flush front door a left-side handle, while leaving the middle bathroom door unchanged. It is also the high-fidelity base for the current hallway scene.
+
 The doors are painted closed in the backgrounds. The game copies the corresponding image rectangle onto a hinged CSS panel with a dark opening behind it. A cancellable animation opens the panel, walks the character to the threshold, fades to the connected room, and walks the character out exactly as before. The closing overlay uses the destination door's tightly cropped artwork but retains the departing side's swing direction, so it reads as closing on the far side without mirrored glass, handle jumps, or surrounding furniture being sampled onto the panel. The living room foreground masks the character behind the chair beside the bedroom door. TV channel content is a separate overlay. Hit areas follow the final artwork, rather than the requested prompt coordinates.
 
 ## Living room final prompt
@@ -73,3 +77,37 @@ The built-in ImageGen edit workflow replaced `living_bg.png` while preserving it
 ### Door handedness edit prompt
 
 Use case: precise-object-edit. Reverse the hinge and handle side of all three living-room doors while preserving the complete room. Put the left bedroom door and middle two-panel fogged-glass bathroom door handles on the left with hinges on the right. Put the far-right apartment-exit handle on the right with hinges on the left. Change only handles, hinges, latches and minimal door-edge details; preserve every other object, the crop, lighting and style exactly. No character, UI or text.
+
+## Recessed entrance hallway and left-entry bathroom
+
+The bathroom now runs left-to-right as entrance, basket/towel, sink cabinet and mirror, toilet and picture, then bath/shower and curtain. Its reciprocal frosted-glass door is on the far left. The living room now has a short recessed hallway at the far right, with the front door at its far end, so the bathroom volume no longer overlaps the front entrance in the apartment plan.
+
+The first full hallway generation softened details across the whole living room because generative editing resynthesized pixels outside the requested change. The shipping `living_bg_hallway_master.png` therefore starts from the earliest untouched `living_bg.png`, keeps its composition through the first 80% of the frame, feather-blends between 80% and 84.5%, and uses the generated hallway only in the far-right architectural zone. A restrained deterministic edge-restoration pass is applied once to the derived output. The source master is never overwritten.
+
+Approved background masters are recorded by SHA-256 hash and dimensions in `background-masters.json`; the Node tests fail if any are overwritten. Future changes must create a same-size patch and a newly named derived asset using `scripts/build-background-patch.ps1` instead of sending the full approved scene through another generative edit.
+
+### Recessed hallway prompt
+
+Use case: precise-object-edit. Remodel only the far-right entrance zone so the apartment front door is no longer flush with the living-room back wall. Replace that far-right door recess and the tiny adjacent entry area with a short, narrow hallway that visibly runs backward into the image, with converging side walls and a little floor leading to the front door at the far end. The cream four-panel front door is closed, smaller with depth but readable and clickable, with its brass lever handle on the left edge, hinges on the right, centered peephole, and horizontal brass mail slot. Preserve the far-left bedroom door, central frosted-glass bathroom door, kitchen, furniture, TV, couch, table, rug, bookshelf, lighting, perspective, framing and resolution. Match the painterly pixel-edged adventure-game look. No people, text or extra doors.
+
+### Left-entry bathroom prompt
+
+Create a compact 16:9 apartment bathroom in the same painterly pixel-edged adventure-game style, with muted blue-grey walls, off-white tile, worn pale vinyl floor and warm dim lighting. In exact left-to-right order: one closed two-panel frosted-glass entrance door at the far left with its handle on the right and hinges on the left; a woven laundry basket and towel; a ceramic sink with cabinet storage below and mirror above; a toilet with a small framed landscape; and a bathtub/shower with a partly open curtain at the far right. Keep a continuous clear walking strip across the foreground. Exactly one of each fixture, no people, labels, windows, UI or extra doors.
+
+## Original-style bathroom restoration
+
+`bathroom_bg_restored_left_entry.png` replaces the compact interim bathroom. It restores the original spacious tiled-floor composition, peeling blue-grey wall, warm ceiling light, dark shower curtain, worn fixtures and detailed painterly finish while reversing the room flow. The player now enters at the left, followed by the laundry basket/towel, wooden sink cabinet and mirror, toilet and picture, with the bath/shower at the right. The generated candidate's door hardware was mirrored in a tightly bounded door-leaf rectangle so the bathroom face has hinges on the left and its handle on the right; no other pixels were reprocessed in that correction.
+
+The active `bathroom_bg_restored_compact.png` retains that corrected artwork but crops and scales it into a 960 x 650 near-square room stage centered at `(356, 145)` on the unchanged 1672 x 941 canvas. Black surrounds the room, and a 28-pixel rounded mask gives the boundary the slightly softened diorama shape shown in the later reference. This framing step is deterministic and does not regenerate the bathroom.
+
+### Final restored bathroom prompt
+
+Use case: precise-object-edit. Asset type: 16:9 point-and-click adventure game bathroom background matching the supplied original screenshot. Restore the exact original bathroom aesthetic and reverse the room's functional direction so the player enters from the left. Required left-to-right layout: one closed return door on the left; immediately after it a woven laundry basket and hanging towels; then the same wooden sink vanity with storage below and large mirror above; then the toilet with framed picture; finally the bathtub and shower with tiled surround and dark curtain at the far right. Preserve the screenshot's crisp detailed painterly rendering, worn grey tile, peeling blue-grey wall, warm ceiling light, deep shadows, large tiled foreground, muted palette and elevated straight-on camera. Keep the reciprocal door face physically correct with hinges left and handle right. Background only: no player, UI, labels, borders or text; exactly one of each fixture; no plants, windows, extra fixtures, compact black-box staging, soft focus or simplified textures.
+
+## Exact reversed bathroom master
+
+The active `bathroom_bg_reversed_master.png` is built directly from the user-selected `bathroom_bg.png`, superseding the generated reconstruction. The complete source bitmap is reversed horizontally, producing the exact requested order: left door, laundry and towel, basin cabinet and mirror, toilet and picture, then bath/shower at the right. The door rectangle alone is reversed a second time in place so its handle remains on the right and hinges on the left, matching the reciprocal doorway. No generative repainting, resampling, scaling, cropping or compression is applied; the original 1672 x 941 pixels, compact rounded stage and black surround are preserved.
+
+## Living-room bathroom-door glass reversal
+
+`living_bg_hallway_glass_reversed.png` derives directly from `living_bg_hallway_master.png`. Only the interiors of the upper pane `(1164,155,93,158)` and lower pane `(1164,339,93,113)` are reversed horizontally. The door frame, rails, handle, hinges and all other room pixels remain unchanged. A pixel-level comparison recorded 24,914 changed pixels inside those two rectangles and zero changes outside them. No generative model, resampling or full-frame render was used.
