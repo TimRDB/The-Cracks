@@ -80,7 +80,7 @@ const bedroomObjects = {
   bed: { name: 'bed', area: [8, 40, 36, 24], walk: [28, 72], description: 'A single bed, an unmade duvet, and a pillow that has seen better mornings.' },
   drawers: { name: 'chest of drawers', area: [44.5, 31, 11, 30], walk: [49, 69], description: 'The drawers at the foot of the bed hold T-shirts, socks, and the odd forgotten cable.' },
   cupboard: { name: 'cupboard', area: [56, 12, 12, 49], walk: [61, 69], description: 'Shirts hang from mismatched hangers. Folded clothes and shoes fill the shelves below.' },
-  door: { ...door('living room door', [72.8,14,9.5,42.5], [68,69], 'living', 'bedroomDoor'), panel: [72.9665,13.9214,9.5096,42.8268], hinge: 'right', foreground: 'bedroom-couch' },
+  door: { ...door('living room door', [72.8,14,9.5,42.5], [68,69], 'living', 'bedroomDoor'), panel: [72.9067,13.9214,9.4498,42.6142], hinge: 'right', foreground: 'bedroom-couch' },
   couch: { name: 'couch', area: [70.5, 61, 29, 31], walk: [67, 81], description: 'A well-worn couch facing the TV. The blanket has claimed one end.' },
   tv: { name: 'TV', area: [89.8, 29, 10, 23], walk: [67, 76], description: 'The TV sits against the right wall, within easy reach of the couch.' },
   console: { name: 'gaming console', area: [87, 52, 12, 9], walk: [67, 76], description: 'A console, a controller, and several games you keep meaning to finish.' },
@@ -220,7 +220,7 @@ function curtainLightLevel(roomId = gameState.currentRoom) {
 
 function roomImageForState(roomId = gameState.currentRoom, state = gameState) {
   const bit = value => value ? 1 : 0;
-  if (roomId === 'bedroom') return `assets/lighting/bedroom-states-v11/bedroom-c${bit(state.curtainsOpen)}-l${bit(state.lampOn)}-m${bit(state.bedroomMainLightOn)}.png`;
+  if (roomId === 'bedroom') return `assets/lighting/bedroom-states-v12/bedroom-c${bit(state.curtainsOpen)}-l${bit(state.lampOn)}-m${bit(state.bedroomMainLightOn)}.png`;
   if (roomId === 'living') return `assets/lighting/hard-states-v7/living-c${bit(state.livingCurtainsOpen)}-m${bit(state.livingMainLightOn)}-b${bit(state.kitchenLightsOn)}-h${bit(state.hallwayLightOn)}.png`;
   if (roomId === 'bathroom') return `assets/lighting/hard-states-v7/bathroom-c${bit(state.bathroomCurtainsOpen)}-m${bit(state.bathroomMainLightOn)}.png`;
   return apartmentRooms[roomId].image;
@@ -267,7 +267,7 @@ function preloadRoomImage(path) {
 }
 
 let activeRoomBackgroundLayer = 0;
-let displayedRoomImage = 'assets/lighting/bedroom-states-v11/bedroom-c0-l1-m0.png';
+let displayedRoomImage = 'assets/lighting/bedroom-states-v12/bedroom-c0-l1-m0.png';
 let activeToasterStateLayer = 0;
 let displayedToasterImage = '';
 const FAST_LIGHT_TRANSITION_MS = 220;

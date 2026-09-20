@@ -41,7 +41,7 @@ The title screen's New Game button leads into the bedroom, with closed curtains 
 - `assets/apartment-art-notes.md`: new room artwork prompts and implementation notes
 - `assets/lighting/hard-states-v7/`: 28 versioned, native-resolution hard-rendered room backgrounds and a SHA-256 manifest; the versioned path prevents stale browser-cached lighting art
 - `assets/lighting/bedroom-source-states/`: four full-frame bedroom paintings for every bedside-lamp/main-light combination, with the ceiling fixture and left-of-door switch baked into the artwork
-- `assets/lighting/bedroom-states-v11/`: eight corrected native bedroom backgrounds using the generated door-and-frame reference, cropped at the bedroom threshold without changing its top alignment or proportions
+- `assets/lighting/bedroom-states-v12/`: eight freshly rebuilt native bedroom backgrounds sharing one canonical, newly rendered door-and-frame assembly; all non-door pixels and the foreground couch/chair geometry remain identical across the lighting states
 - `assets/lighting/bedroom-door-states/`: eight lighting-matched native 1672-by-941 clean plates used to sample the inner door with exactly the same full-canvas mapping as the correctly aligned living-room side; only the couch-concealed leaf pixels differ
 - `assets/lighting/living-master-v2.png`: the fresh, sharp, floor-lamp-free living-room master shared by every circuit state
 - `assets/lighting/living-light-fields-v2/`: three averaged low-frequency illumination fields for the main, bench and hallway circuits

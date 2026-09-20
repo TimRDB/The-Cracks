@@ -38,8 +38,8 @@ body.game-started #game { opacity: 1; }
 #sceneViewport { flex: 1; min-height: 0; display: grid; place-items: center; container-type: size; background: #101113; }
 #scene { position: relative; width: min(100cqw, calc(100cqh * 16 / 9)); aspect-ratio: 16 / 9; overflow: hidden; image-rendering: pixelated; cursor: crosshair; }
 #room-art { position: absolute; inset: 0; pointer-events: none; }
-#room-background { position: absolute; inset: 0; z-index: 0; background: #08090b var(--room-image, url('assets/lighting/bedroom-states-v11/bedroom-c0-l1-m0.png')) center / 100% 100% no-repeat; }
-.room-background-layer { position: absolute; inset: 0; background: url('assets/lighting/bedroom-states-v11/bedroom-c0-l1-m0.png') center / 100% 100% no-repeat; opacity: 0; transition: opacity 1.4s cubic-bezier(.45,0,.2,1); will-change: opacity; }
+#room-background { position: absolute; inset: 0; z-index: 0; background: #08090b var(--room-image, url('assets/lighting/bedroom-states-v12/bedroom-c0-l1-m0.png')) center / 100% 100% no-repeat; }
+.room-background-layer { position: absolute; inset: 0; background: url('assets/lighting/bedroom-states-v12/bedroom-c0-l1-m0.png') center / 100% 100% no-repeat; opacity: 0; transition: opacity 1.4s cubic-bezier(.45,0,.2,1); will-change: opacity; }
 .room-background-layer.is-visible { opacity: 1; }
 #living-toaster { display: none; position: absolute; z-index: 2; left: 44.378%; top: 29.331%; width: 4.904%; height: 8.714%; }
 #scene[data-room="living"] #living-toaster:not(.is-taken) { display: block; }

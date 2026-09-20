@@ -5,10 +5,10 @@ param(
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.Drawing
 
-$sourceRoot = Join-Path $ProjectRoot 'assets\lighting\hard-states-v7'
-$correctedRoot = Join-Path $ProjectRoot 'assets\lighting\bedroom-states-v11'
+$sourceRoot = Join-Path $ProjectRoot 'assets\lighting\bedroom-states-v11'
+$correctedRoot = Join-Path $ProjectRoot 'assets\lighting\bedroom-states-v12'
 $outputRoot = Join-Path $ProjectRoot 'assets\lighting\bedroom-door-states'
-$referencePath = Join-Path $ProjectRoot 'assets\lighting\bedroom-door-clean-reference-v9.png'
+$referencePath = Join-Path $ProjectRoot 'assets\lighting\bedroom-door-fresh-reference-v12.png'
 [IO.Directory]::CreateDirectory($correctedRoot) | Out-Null
 [IO.Directory]::CreateDirectory($outputRoot) | Out-Null
 if (-not (Test-Path -LiteralPath $referencePath)) { throw "Missing clean door reference: $referencePath" }
@@ -16,25 +16,21 @@ if (-not (Test-Path -LiteralPath $referencePath)) { throw "Missing clean door re
 # Place the complete generated door and its matching frame as one nearly
 # uniformly scaled assembly. The source and destination ratios differ by less
 # than one tenth of one percent, so neither the hinges nor the leaf are warped.
-# The original sideways-step repair was documented to cover y=132..533, but
-# this assembly's height (401) only reached y=512, leaving the lower hinge
-# band's three-pixel step unrepaired in bedroom-states-v11 itself -- visible
-# as a seam right at y=512 once the door's usable height was corrected to
-# reach the floor. Extending the assembly to its originally intended height
-# finishes that repair; every pixel outside the doorframe rectangle, and any
-# pixel still below the couch boundary, is copied unchanged as before.
-$frameSource = [Drawing.Rectangle]::new(24, 32, 818, 1795)
+# The crop and destination have matching proportions, keeping the leaf,
+# panels, jambs, and hinges undistorted. Its final row is the existing
+# bedroom threshold, so no generated floor or plinth enters the scene.
+$frameSource = [Drawing.Rectangle]::new(16, 0, 775, 1668)
 $frameX = 1200
 $frameY = 111
 $frameWidth = 196
-$frameHeight = 430
+$frameHeight = 422
 
 # Exact leaf inside that placed assembly. The animation samples these same
 # pixels, rather than independently scaling a second door or hinge strip.
-$panelX = 1220
+$panelX = 1219
 $panelY = 131
-$panelWidth = 159
-$panelHeight = 403
+$panelWidth = 158
+$panelHeight = 401
 
 # Immediately right of the frame, the source photography has a plinth block
 # sitting flush against the wall with a hard, unfeathered rectangular edge
@@ -154,7 +150,6 @@ foreach ($curtains in 0,1) {
       $source = [Drawing.Bitmap]::FromFile($sourcePath)
       $corrected = New-Object Drawing.Bitmap $source
       Apply-Patch $corrected $source $referenceState $framePatch $frameX $frameY $true
-      Merge-PlinthIntoFloor $corrected
       $corrected.Save((Join-Path $correctedRoot $name), [Drawing.Imaging.ImageFormat]::Png)
 
       $panel = New-Object Drawing.Bitmap $corrected
