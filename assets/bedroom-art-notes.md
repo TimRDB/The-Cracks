@@ -35,3 +35,7 @@ The current `bedroom_bg_reversed_door.png` and `bedroom_bg_lamp_off_reversed_doo
 ### Lamp-off edit prompt
 
 Use case: lighting-weather. Create an otherwise identical lamp-off version of the bedroom. Remove only the warm illumination projected onto the wall and the light within the complete lampshade, bulb area and edges. Render the same lamp switched off under the room's existing cool ambient light, reconstructing the worn wall texture and nearby furniture naturally. Preserve the exact 1672 x 941 canvas, camera, crop, object placement, window light and every other room element. No masking, global relighting, people, text or new objects.
+
+## Bedroom stool
+
+The four protected bedroom circuit paintings remain unchanged. `assets/lighting/bedroom-stool.png` is composited at build time immediately left of the couch, before the curtain-dependent room illumination is baked, so the same compact worn stool appears consistently in all eight bedroom lighting states without regenerating or shifting the existing room.

@@ -111,3 +111,7 @@ The active `bathroom_bg_reversed_master.png` is built directly from the user-sel
 ## Living-room bathroom-door glass reversal
 
 `living_bg_hallway_glass_reversed.png` derives directly from `living_bg_hallway_master.png`. Only the interiors of the upper pane `(1164,155,93,158)` and lower pane `(1164,339,93,113)` are reversed horizontally. The door frame, rails, handle, hinges and all other room pixels remain unchanged. A pixel-level comparison recorded 24,914 changed pixels inside those two rectangles and zero changes outside them. No generative model, resampling or full-frame render was used.
+
+## High-fidelity living-room restoration
+
+`living_bg_hallway_fidelity.png` is a fresh full-frame 1672 x 941 render made with the built-in image-generation tool. The active hallway scene was the exact composition and geometry target, while the untouched `living_bg.png` supplied the sharper painterly detail and material reference. The render preserves the established three-door layout, recessed entrance hallway, kitchen, seating group, television, rug and walkable floor closely enough to retain the existing hotspots, obstacles, perspective anchors and door-panel rectangles without changing game behavior. The earlier approved assets remain untouched, and the new active render is checksum-protected in `background-masters.json`.

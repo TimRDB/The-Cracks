@@ -49,23 +49,259 @@ test('new launches always start in the dark bedroom, even with a saved open-curt
   assert.ok(fresh.get('scene').classList.contains('curtains-closed'));
   assert.equal(fresh.get('curtainToggle').textContent, 'Open curtains');
   assert.equal(fresh.run('movement.facing'), 'down');
-  assert.equal(fresh.get('hotspots').children.length, 13);
+  assert.equal(fresh.get('hotspots').children.length, 14);
 });
-test('bedroom lighting is correct on first paint and snaps behind room fades', () => {
+test('bedroom lighting uses complete pre-rendered states without runtime masks', () => {
   assert.match(markup, /id="scene"[^>]*class="curtains-closed"[^>]*data-room="bedroom"/);
-  assert.match(markup, /id="room-dimmer"/);
-  assert.match(styles, /#scene\.lighting-snap #room-dimmer[^}]*transition:\s*none/);
-  assert.match(styles, /#room-dimmer\s*\{[^}]*opacity:\s*\.52[^}]*transition:\s*opacity/);
-  assert.match(styles, /\.curtains-open #room-dimmer\s*\{\s*opacity:\s*0/);
+  assert.match(source, /function roomImageForState/);
+  assert.doesNotMatch(markup, /room-dimmer|lighting-effects|light-effect|lamp-halo|lamp-constant/);
+  assert.doesNotMatch(styles, /#room-dimmer|\.light-effect|mix-blend-mode/);
   assert.doesNotMatch(styles, /#room-art\s*\{[^}]*(?:filter|transition)/);
   const g = game();
   assert.equal(g.get('scene').dataset.room, 'bedroom');
-  assert.equal(g.get('scene').classList.contains('lighting-snap'), false);
+  assert.match(g.get('scene').style['--room-image'], /bedroom-c0-l1-m0\.png/);
   g.run('showRoom("living"); showRoom("bedroom");');
-  assert.equal(g.get('scene').classList.contains('lighting-snap'), false);
+  assert.match(g.get('scene').style['--room-image'], /bedroom-c0-l1-m0\.png/);
   g.run('setCurtains(true);');
   assert.equal(g.get('scene').classList.contains('curtains-open'), true);
-  assert.equal(g.get('scene').classList.contains('lighting-snap'), false);
+  assert.match(g.get('scene').style['--room-image'], /bedroom-c1-l1-m0\.png/);
+});
+
+test('independent light circuits select the matching complete background', () => {
+  const g = game();
+  g.run('interact("mainLightSwitch","use")');
+  assert.equal(g.run('gameState.bedroomMainLightOn'), true);
+  assert.match(g.get('scene').style['--room-image'], /bedroom-c0-l1-m1\.png/);
+
+  g.run('showRoom("living")');
+  for (const [target, key] of [
+    ['mainLightSwitch', 'livingMainLightOn'],
+    ['kitchenLightSwitch', 'kitchenLightsOn'],
+    ['hallwayLightSwitch', 'hallwayLightOn']
+  ]) {
+    g.run(`interact('${target}','use')`);
+    assert.equal(g.run(`gameState.${key}`), true);
+  }
+  assert.match(g.get('scene').style['--room-image'], /living-c0-m1-b1-h1\.png/);
+  assert.equal(g.run('Object.hasOwn(gameState,"livingLampOn")'), false);
+  assert.equal(g.run('Object.hasOwn(apartmentRooms.living.objects,"floorLamp")'), false);
+
+  g.run('showRoom("bathroom"); interact("mainLightSwitch","use")');
+  assert.equal(g.run('gameState.bathroomMainLightOn'), true);
+  assert.match(g.get('scene').style['--room-image'], /bathroom-c0-m1\.png/);
+});
+
+test('light switches rapidly update room, fixture and character illumination', () => {
+  assert.match(source, /const FAST_LIGHT_TRANSITION_MS = 220/);
+  assert.match(source, /syncRoom\(\{ fastLight: true \}\)/);
+  assert.match(styles, /#scene\.light-switching \.room-background-layer,[\s\S]*?transition-duration:\s*\.22s/);
+  assert.match(styles, /#scene\.light-switching \.curtain-panel[^}]*transition-duration:\s*1\.4s, \.22s/);
+  assert.match(styles, /#scene\.light-switching \.sprite[^}]*transition-duration:\s*\.20s, \.08s/);
+
+  const g = game();
+  g.get('room-background-a').classList.add('is-visible');
+  g.run('toggleLight("bedroomMain")');
+  assert.ok(g.get('scene').classList.contains('light-switching'));
+  assert.equal(g.run('gameState.bedroomMainLightOn'), true);
+  assert.ok(g.get('room-background-a').classList.contains('is-visible'));
+  assert.ok(g.get('room-background-b').classList.contains('is-visible'));
+  assert.match(source, /setLayerVisibilityImmediately\(current, false\)/);
+});
+
+test('living room represents all 16 curtain and three-circuit combinations', () => {
+  const g = game(); g.run('showRoom("living")');
+  const images = new Set();
+  for (let bits = 0; bits < 16; bits++) {
+    g.run(`Object.assign(gameState,{livingCurtainsOpen:${!!(bits&1)},livingMainLightOn:${!!(bits&2)},kitchenLightsOn:${!!(bits&4)},hallwayLightOn:${!!(bits&8)}});syncRoom()`);
+    images.add(g.get('scene').style['--room-image']);
+    assert.match(g.get('scene').style['--room-image'], /assets\/lighting\/hard-states-v7\/living-c[01]-m[01]-b[01]-h[01]\.png/);
+  }
+  assert.equal(images.size, 16);
+  assert.doesNotMatch(markup, /lighting-effects|light-effect/);
+});
+
+test('bathroom off-screen curtains change daylight and the mirror reflection without fabric animation', () => {
+  const g = game(); g.run('showRoom("bathroom")');
+  assert.equal(g.run('gameState.bathroomCurtainsOpen'), false);
+  assert.match(g.get('scene').style['--room-image'], /bathroom-c0-m0\.png/);
+  g.run('setVerb("walk");updateStatus("bathroomCurtains")');
+  assert.equal(g.get('statusText').textContent, 'Open bathroom curtains');
+  g.run('handleTarget("bathroomCurtains")'); g.finish();
+  assert.equal(g.run('gameState.bathroomCurtainsOpen'), true);
+  assert.ok(g.get('scene').classList.contains('curtains-open'));
+  assert.equal(g.run('movement.frame'), null);
+  assert.doesNotMatch(markup, /id="bathroom-window-reflection"/);
+  assert.match(g.get('scene').style['--room-image'], /bathroom-c1-m0\.png/);
+});
+
+test('lighting state is saved, loaded and reset with backwards-compatible defaults', () => {
+  const g = game();
+  g.run('Object.assign(gameState,{bedroomMainLightOn:true,livingCurtainsOpen:true,livingMainLightOn:true,kitchenLightsOn:true,hallwayLightOn:true,bathroomCurtainsOpen:true,bathroomMainLightOn:true});saveGame()');
+  const saved = JSON.parse(g.storage.get('theCracksBedroomSave'));
+  assert.equal(saved.version, 5);
+  g.run('Object.assign(gameState,{bedroomMainLightOn:false,livingCurtainsOpen:false,livingMainLightOn:false,kitchenLightsOn:false,hallwayLightOn:false,bathroomCurtainsOpen:false,bathroomMainLightOn:false});loadGame()');
+  for (const key of ['bedroomMainLightOn','livingCurtainsOpen','livingMainLightOn','kitchenLightsOn','hallwayLightOn','bathroomCurtainsOpen','bathroomMainLightOn']) assert.equal(g.run(`gameState.${key}`), true);
+  g.run('resetGame()');
+  for (const key of ['bedroomMainLightOn','livingCurtainsOpen','livingMainLightOn','kitchenLightsOn','hallwayLightOn','bathroomCurtainsOpen','bathroomMainLightOn']) assert.equal(g.run(`gameState.${key}`), false);
+});
+
+test('all 28 pre-rendered lighting states are native-size PNGs with verified hashes', () => {
+  const directory = path.join(__dirname, '..', 'assets', 'lighting', 'hard-states-v7');
+  const manifest = JSON.parse(fs.readFileSync(path.join(directory, 'manifest.json'), 'utf8'));
+  assert.equal(Object.keys(manifest.files).length, 28);
+  for (const [file, expectedHash] of Object.entries(manifest.files)) {
+    const bytes = fs.readFileSync(path.join(directory, file));
+    assert.equal(bytes.subarray(1, 4).toString('ascii'), 'PNG');
+    assert.equal(bytes.readUInt32BE(16), 1672);
+    assert.equal(bytes.readUInt32BE(20), 941);
+    assert.equal(crypto.createHash('sha256').update(bytes).digest('hex'), expectedHash);
+  }
+  assert.doesNotMatch(markup, /switch-sprite|room-fixtures/);
+});
+
+test('living circuits share one fixed high-detail master and deterministic lighting fields', () => {
+  const lightingDirectory = path.join(__dirname, '..', 'assets', 'lighting');
+  const sourceDirectory = path.join(__dirname, '..', 'assets', 'lighting', 'living-source-states-v2');
+  const sourceFiles = fs.readdirSync(sourceDirectory).filter(file => file.endsWith('.png')).sort();
+  assert.deepEqual(sourceFiles, ['living-m0-b0-h0.png','living-m0-b0-h1.png','living-m0-b1-h0.png','living-m0-b1-h1.png','living-m1-b0-h0.png','living-m1-b0-h1.png','living-m1-b1-h0.png','living-m1-b1-h1.png']);
+  for (const file of sourceFiles) {
+    const bytes = fs.readFileSync(path.join(sourceDirectory, file));
+    assert.equal(bytes.readUInt32BE(16), 1672);
+    assert.equal(bytes.readUInt32BE(20), 941);
+  }
+  const builder = fs.readFileSync(path.join(__dirname, '..', 'scripts', 'build-lighting-states.ps1'), 'utf8');
+  const sourceBuilder = fs.readFileSync(path.join(__dirname, '..', 'scripts', 'build-living-v2-sources.ps1'), 'utf8');
+  const master = fs.readFileSync(path.join(lightingDirectory, 'living-master-v2.png'));
+  assert.equal(master.readUInt32BE(16), 1672);
+  assert.equal(master.readUInt32BE(20), 941);
+  assert.equal(fs.existsSync(path.join(lightingDirectory, 'living-floor-lamp.png')), false);
+  for (const oldVersion of ['hard-states-v3','hard-states-v4','hard-states-v5','hard-states-v6']) {
+    assert.equal(fs.existsSync(path.join(lightingDirectory, oldVersion)), false);
+  }
+  assert.match(builder, /\$livingSources\s*=\s*@\{/);
+  assert.match(sourceBuilder, /Relight\(\$master, \$fields\)/);
+  assert.match(sourceBuilder, /living-master-v2\.png/);
+  assert.doesNotMatch(sourceBuilder, /living-floor-lamp/);
+  assert.doesNotMatch(builder, /switchSprite|\$switch|kitchenReflectionSurface|hallwayInterior|benchFixtures|hallwayFixture/);
+  assert.doesNotMatch(builder, /livingLamp|living-floor-lamp|room == "living"\) DrawPercent/);
+});
+
+test('all lights advertise their current action and toggle immediately on click', () => {
+  const g = game();
+  for (const [room, target, state, label] of [
+    ['bedroom', 'lamp', 'lampOn', 'lamp'],
+    ['bedroom', 'mainLightSwitch', 'bedroomMainLightOn', 'bedroom light'],
+    ['living', 'mainLightSwitch', 'livingMainLightOn', 'living room light'],
+    ['living', 'kitchenLightSwitch', 'kitchenLightsOn', 'bench lights'],
+    ['living', 'hallwayLightSwitch', 'hallwayLightOn', 'hallway light'],
+    ['bathroom', 'mainLightSwitch', 'bathroomMainLightOn', 'bathroom light']
+  ]) {
+    g.run(`showRoom('${room}');setVerb('look');`);
+    const wasOn = g.run(`gameState.${state}`);
+    g.run(`updateStatus('${target}')`);
+    assert.equal(g.get('statusText').textContent, `Turn ${wasOn ? 'off' : 'on'} ${label}`);
+    g.run(`handleTarget('${target}')`);
+    assert.equal(g.run(`gameState.${state}`), !wasOn);
+    assert.equal(g.run('movement.destination'), null);
+    assert.equal(g.get('statusText').textContent, `Turn ${wasOn ? 'on' : 'off'} ${label}`);
+  }
+});
+
+test('bedroom lamp and main circuits use four complete paintings with no fixture or switch overlays', () => {
+  const sourceDirectory = path.join(__dirname, '..', 'assets', 'lighting', 'bedroom-source-states');
+  const sourceFiles = fs.readdirSync(sourceDirectory).filter(file => file.endsWith('.png')).sort();
+  assert.deepEqual(sourceFiles, ['bedroom-l0-m0.png', 'bedroom-l0-m1.png', 'bedroom-l1-m0.png', 'bedroom-l1-m1.png']);
+  for (const file of sourceFiles) {
+    const bytes = fs.readFileSync(path.join(sourceDirectory, file));
+    assert.equal(bytes.readUInt32BE(16), 1672);
+    assert.equal(bytes.readUInt32BE(20), 941);
+  }
+  const builder = fs.readFileSync(path.join(__dirname, '..', 'scripts', 'build-lighting-states.ps1'), 'utf8');
+  assert.match(builder, /\$bedroomSources\s*=\s*@\{/);
+  assert.doesNotMatch(builder, /bedroomFixture/);
+  assert.match(builder, /\$bedroomStool\s*=.*bedroom-stool\.png/);
+  assert.match(builder, /room == "bedroom"\) DrawPercent\(graphics, fixture/);
+  assert.match(source, /area: \[69\.6, 28\.5, 2\.5, 7\]/);
+});
+
+test('bathroom light uses two complete paintings with no circular mask or switch overlay', () => {
+  const sourceDirectory = path.join(__dirname, '..', 'assets', 'lighting', 'bathroom-source-states');
+  const sourceFiles = fs.readdirSync(sourceDirectory).filter(file => file.endsWith('.png')).sort();
+  assert.deepEqual(sourceFiles, ['bathroom-m0.png', 'bathroom-m1.png']);
+  for (const file of sourceFiles) {
+    const bytes = fs.readFileSync(path.join(sourceDirectory, file));
+    assert.equal(bytes.readUInt32BE(16), 1672);
+    assert.equal(bytes.readUInt32BE(20), 941);
+  }
+  const builder = fs.readFileSync(path.join(__dirname, '..', 'scripts', 'build-lighting-states.ps1'), 'utf8');
+  assert.match(builder, /\$bathroomSources\s*=\s*@\{/);
+  assert.doesNotMatch(builder, /Ellipse\(|fixtureCore|bakedGlow|fixtureSilhouette|double repair|double emitter/);
+  assert.doesNotMatch(builder, /room == "bathroom"\) DrawPercent/);
+  assert.match(source, /bathroom light switch', \[37\.4,35,2,6\.5\]/);
+});
+
+test('room backgrounds remain visible until the next state is decoded', () => {
+  assert.match(source, /function preloadRoomImage/);
+  assert.match(source, /await image\.decode\(\)/);
+  assert.match(source, /function applyRoomImage/);
+  assert.match(source, /loaded\.every\(Boolean\) && roomImageForState\(\) === path/);
+  assert.match(source, /warmAdjacentRoomImages\(gameState\.currentRoom\)/);
+  assert.match(markup, /id="room-background-a"[^>]*is-visible/);
+  assert.match(markup, /id="room-background-b"/);
+  assert.match(source, /function commitRoomImage/);
+  assert.match(source, /syncRoom\(\{ immediate: true \}\)/);
+  assert.match(styles, /\.room-background-layer[^}]*transition:\s*opacity 1\.4s/);
+});
+
+test('the toaster is a persistent state-matched prop over clean living-room plates', () => {
+  const patchDirectory = path.join(__dirname, '..', 'assets', 'lighting', 'toaster-clean-patches-v2');
+  const patchFiles = fs.readdirSync(patchDirectory).filter(file => file.endsWith('.png')).sort();
+  assert.deepEqual(patchFiles, ['living-m0-b0-h0.png','living-m0-b0-h1.png','living-m0-b1-h0.png','living-m0-b1-h1.png','living-m1-b0-h0.png','living-m1-b0-h1.png','living-m1-b1-h0.png','living-m1-b1-h1.png']);
+  for (const file of patchFiles) {
+    const bytes = fs.readFileSync(path.join(patchDirectory, file));
+    assert.equal(bytes.readUInt32BE(16), 82);
+    assert.equal(bytes.readUInt32BE(20), 82);
+  }
+
+  const toasterDirectory = path.join(__dirname, '..', 'assets', 'lighting', 'toaster-states-v2');
+  const toasterFiles = fs.readdirSync(toasterDirectory).filter(file => file.endsWith('.png')).sort();
+  assert.equal(toasterFiles.length, 16);
+  for (const file of toasterFiles) {
+    const bytes = fs.readFileSync(path.join(toasterDirectory, file));
+    assert.equal(bytes.readUInt32BE(16), 82);
+    assert.equal(bytes.readUInt32BE(20), 82);
+  }
+
+  const builder = fs.readFileSync(path.join(__dirname, '..', 'scripts', 'build-lighting-states.ps1'), 'utf8');
+  assert.match(builder, /PreparePatched\([^\n]+742, 276, 4\)/);
+  assert.match(builder, /Crop\(\$originalRendered, 742, 276, 82, 82\)/);
+  assert.match(markup, /id="living-toaster-a"[^>]*is-visible/);
+  assert.match(markup, /id="living-toaster-b"/);
+  assert.match(styles, /\.toaster-state-layer[^}]*transition:\s*opacity 1\.4s/);
+
+  const g = game();
+  g.run('showRoom("living");setVerb("use");updateStatus("toaster")');
+  assert.equal(g.get('statusText').textContent, 'Pick up toaster');
+  g.run('handleTarget("toaster")'); g.finish();
+  assert.equal(g.run('gameState.toasterTaken'), true);
+  assert.ok(g.get('living-toaster').classList.contains('is-taken'));
+  assert.equal(g.get('statusText').textContent, 'Put back toaster');
+  g.run('saveGame();gameState.toasterTaken=false;loadGame()');
+  assert.equal(g.run('gameState.toasterTaken'), true);
+  g.run('resetGame()');
+  assert.equal(g.run('gameState.toasterTaken'), false);
+});
+test('bedroom curtain fabric follows room lighting with the same smooth transition', () => {
+  const g = game();
+  assert.equal(g.get('scene').style['--curtain-light'], .82);
+  g.run('gameState.lampOn=false;syncRoom()');
+  assert.equal(g.get('scene').style['--curtain-light'], .55);
+  g.run('gameState.bedroomMainLightOn=true;syncRoom()');
+  assert.equal(g.get('scene').style['--curtain-light'], 1.04);
+  g.run('gameState.bedroomMainLightOn=false;setCurtains(true)');
+  assert.equal(g.get('scene').style['--curtain-light'], .9);
+  assert.match(styles, /filter:\s*brightness\(var\(--curtain-light/);
+  assert.match(styles, /filter 1\.4s/);
 });
 test('curtains open, close, and reverse without delayed stale state', () => {
   const g = game();
@@ -147,19 +383,11 @@ test('every room profile keeps the player consistent with its painted doors', ()
 test('bedroom objects respond, with independent lamp and TV toggles', () => {
   const g = game();
   for (const target of g.run('Object.keys(roomObjects).filter(k => k !== "door")')) for (const verb of ['look','open','close','use']) g.run(`interact('${target}','${verb}');`);
-  g.run('gameState.lampOn=true;interact("lamp","use");'); assert.ok(g.get('scene').classList.contains('lamp-off'));
-  assert.equal(g.get('scene').style['--room-image'], "url('assets/bedroom_bg_lamp_off_reversed_door.png')");
-  assert.match(markup, /rel="preload" as="image" href="assets\/bedroom_bg_lamp_off_reversed_door\.png"/);
-  assert.doesNotMatch(markup, /id="lamp-wall-off"|id="lamp-shade"/);
-  assert.doesNotMatch(styles, /#lamp-wall-off|#lamp-shade/);
-  assert.match(markup, /id="room-dimmer"[^]*id="lamp-constant"[^]*id="lamp-halo"/);
-  assert.match(styles, /#lamp-constant\s*\{[^}]*z-index:\s*13[^}]*bedroom_bg\.png[^}]*mask-image:\s*radial-gradient/);
-  assert.match(styles, /\.lamp-off :is\(#lamp-constant, #lamp-halo\)\s*\{\s*opacity:\s*0/);
-  assert.doesNotMatch(styles, /\.curtains-open #lamp-halo/);
-  assert.match(styles, /#lamp-halo\s*\{[^}]*z-index:\s*14[^}]*background:\s*transparent[^}]*backdrop-filter:\s*brightness\(1\.12\)/);
-  assert.doesNotMatch(styles, /#lamp-halo\s*\{[^}]*(?:#ffd08f|#f5b85b|#d88930|mix-blend-mode)/);
-  g.run('interact("lamp","use");'); assert.equal(g.get('scene').classList.contains('lamp-off'), false);
-  assert.equal(g.get('scene').style['--room-image'], "url('assets/bedroom_bg_reversed_door.png')");
+  g.run('gameState.lampOn=true;interact("lamp","use");');
+  assert.match(g.get('scene').style['--room-image'], /bedroom-c1-l0-m1\.png/);
+  assert.doesNotMatch(markup, /lamp-constant|lamp-halo/);
+  g.run('interact("lamp","use");');
+  assert.match(g.get('scene').style['--room-image'], /bedroom-c1-l1-m1\.png/);
   g.run('gameState.tvOn=false;interact("console","use");'); assert.ok(g.get('scene').classList.contains('tv-on'));
 });
 test('save/load restores the room and direction; reset restores closed curtains', () => {
@@ -186,7 +414,7 @@ test('doors animate before switching rooms and all interior routes are reciproca
   g.run('handleTarget("bedroomDoor");'); g.finish();
   assert.equal(g.run('gameState.currentRoom'), 'bedroom');
   assert.equal(g.run('gameState.curtainsOpen'), true);
-  assert.equal(g.get('hotspots').children.length, 13);
+  assert.equal(g.get('hotspots').children.length, 14);
 });
 
 test('the restored bathroom runs from its left entrance to the right-side bath and closes on the source side', () => {
@@ -225,7 +453,7 @@ test('the restored bathroom runs from its left entrance to the right-side bath a
   assert.equal(g.get('doorway').dataset.motion, 'closing');
   assert.equal(g.get('doorway').dataset.swingSide, 'source');
   assert.equal(g.get('doorway').dataset.visualRoom, 'bathroom');
-  assert.match(g.get('door-surface').style.backgroundImage, /bathroom_bg_reversed_master\.png/);
+  assert.match(g.get('door-surface').style.backgroundImage, /bathroom-c0-m0\.png/);
   assert.equal(g.run('movement.facing'), 'down');
   assert.match(g.get('player').child.style.backgroundPosition, /^(25|50|75|100)% 50%$/);
   for (let i = 0; i < 12; i++) g.tick(50);
@@ -248,7 +476,7 @@ test('bedroom travel keeps the original arrival walk but closes with the departi
   assert.equal(g.get('doorway').dataset.hinge, 'left');
   assert.equal(g.get('doorway').dataset.swingSide, 'source');
   assert.equal(g.get('doorway').dataset.visualRoom, 'living');
-  assert.match(g.get('door-surface').style.backgroundImage, /living_bg_hallway_glass_reversed\.png/);
+  assert.match(g.get('door-surface').style.backgroundImage, /living-c0-m0-b0-h0\.png/);
   for (let i = 0; i < 12; i++) g.tick(50);
   assert.match(g.get('door-face').style.transform, /rotateY\([1-9]/);
   g.finish();
@@ -264,10 +492,51 @@ test('bedroom travel keeps the original arrival walk but closes with the departi
   assert.equal(g.get('doorway').dataset.hinge, 'right');
   assert.equal(g.get('doorway').dataset.swingSide, 'source');
   assert.equal(g.get('doorway').dataset.visualRoom, 'bedroom');
-  assert.match(g.get('door-surface').style.backgroundImage, /bedroom_bg_reversed_door\.png/);
+  assert.match(g.get('door-surface').style.backgroundImage, /bedroom-c0-l1-m0\.png/);
   for (let i = 0; i < 12; i++) g.tick(50);
   assert.match(g.get('door-face').style.transform, /rotateY\(-/);
   g.finish();
+});
+
+test('the full bedroom door leaf animates behind an unchanged foreground couch', () => {
+  const panelDirectory = path.join(__dirname, '..', 'assets', 'lighting', 'bedroom-door-states');
+  const correctedDirectory = path.join(__dirname, '..', 'assets', 'lighting', 'bedroom-states-v11');
+  const panelFiles = fs.readdirSync(panelDirectory).filter(file => file.endsWith('.png')).sort();
+  const correctedFiles = fs.readdirSync(correctedDirectory).filter(file => file.endsWith('.png')).sort();
+  assert.equal(panelFiles.length, 8);
+  assert.deepEqual(correctedFiles, panelFiles);
+  for (const file of panelFiles) {
+    for (const directory of [panelDirectory, correctedDirectory]) {
+      const bytes = fs.readFileSync(path.join(directory, file));
+      assert.equal(bytes.readUInt32BE(16), 1672);
+      assert.equal(bytes.readUInt32BE(20), 941);
+    }
+  }
+  assert.match(source, /if \(bedroom\) preloadRoomImage\(bedroomDoorImageForState\(\)\)/);
+  assert.match(source, /assets\/lighting\/bedroom-states-v11\/bedroom-c/);
+  const builder = fs.readFileSync(path.join(__dirname, '..', 'scripts', 'build-bedroom-door-states.ps1'), 'utf8');
+  assert.match(builder, /\$frameX = 1200/);
+  assert.match(builder, /\$panelX = 1220/);
+  assert.match(builder, /\$panelY = 131/);
+  assert.match(builder, /neither the hinges nor the leaf are warped/);
+
+  const g = game();
+  assert.equal(g.run('JSON.stringify(apartmentRooms.bedroom.objects.door.area)'), '[72.8,14,9.5,42.5]');
+  assert.equal(g.run('JSON.stringify(apartmentRooms.bedroom.objects.door.panel)'), '[72.9665,13.9214,9.5096,40.4888]');
+  assert.equal(g.run('apartmentRooms.bedroom.objects.door.foreground'), 'bedroom-couch');
+  g.run('interact("door", "use");');
+  assert.equal(g.get('doorway').style.left, '72.9665%');
+  assert.equal(g.get('doorway').style.top, '13.9214%');
+  assert.equal(g.get('doorway').style.width, '9.5096%');
+  assert.equal(g.get('doorway').style.height, '40.4888%');
+  assert.equal(g.get('door-face').style.transformOrigin, 'right center');
+  assert.equal(g.get('doorway').dataset.foreground, 'bedroom-couch');
+  assert.match(g.get('door-surface').style.backgroundImage, /bedroom-door-states\/bedroom-c0-l1-m0\.png/);
+  assert.match(g.get('door-surface').style.backgroundSize, /^[\d.]+% [\d.]+%$/);
+  assert.notEqual(g.get('door-surface').style.backgroundSize, '100% 100%');
+  assert.match(markup, /id="bedroom-door-foreground"/);
+  assert.match(styles, /#bedroom-door-foreground[^}]*z-index:\s*4/);
+  assert.match(styles, /#doorway\[data-foreground="bedroom-couch"\]:not\(\.hidden\) ~ #bedroom-door-foreground/);
 });
 
 test('living-room doors have reversed artwork handedness and hotspots stay invisible', () => {
@@ -320,7 +589,7 @@ test('living TV channels, saves, bathroom and exit preserve apartment state', ()
   assert.equal(g.run('gameState.currentRoom'), 'living');
   assert.equal(g.get('doorway').dataset.hinge, 'right');
   assert.match(g.get('door-face').style.transform, /rotateY\([1-9]/);
-  assert.match(g.get('door-surface').style.backgroundImage, /living_bg_hallway_glass_reversed\.png/);
+  assert.match(g.get('door-surface').style.backgroundImage, /living-c0-m0-b0-h0\.png/);
   g.finish();
   assert.equal(g.run('gameState.currentRoom'), 'living');
 });

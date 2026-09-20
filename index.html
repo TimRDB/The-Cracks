@@ -6,12 +6,11 @@
   <title>The Cracks - Apartment</title>
   <link rel="stylesheet" href="style.css" />
   <link rel="preload" as="image" href="assets/title-screen-bg.png" />
-  <link rel="preload" as="image" href="assets/bedroom_bg_reversed_door.png" />
-  <link rel="preload" as="image" href="assets/bedroom_bg_lamp_off_reversed_door.png" />
   <link rel="preload" as="image" href="assets/bedroom_player.png" />
-  <link rel="preload" as="image" href="assets/living_bg_hallway_glass_reversed.png" />
-  <link rel="preload" as="image" href="assets/bathroom_bg_reversed_master.png" />
   <link rel="preload" as="image" href="assets/outside_bg.png" />
+  <link rel="preload" as="image" href="assets/lighting/bedroom-states-v11/bedroom-c0-l1-m0.png" />
+  <link rel="preload" as="image" href="assets/lighting/hard-states-v7/living-c0-m0-b0-h0.png" />
+  <link rel="preload" as="image" href="assets/lighting/hard-states-v7/bathroom-c0-m0.png" />
 </head>
 <body>
   <section id="titleScreen" class="title-screen" aria-label="The Cracks main menu">
@@ -44,7 +43,14 @@
     <div id="sceneViewport">
       <section id="scene" class="curtains-closed" data-room="bedroom" aria-label="Bedroom">
         <div id="room-art" aria-hidden="true">
-          <div id="room-background"></div>
+          <div id="room-background">
+            <div id="room-background-a" class="room-background-layer is-visible"></div>
+            <div id="room-background-b" class="room-background-layer"></div>
+          </div>
+          <div id="living-toaster">
+            <div id="living-toaster-a" class="toaster-state-layer is-visible"></div>
+            <div id="living-toaster-b" class="toaster-state-layer"></div>
+          </div>
           <div id="curtains">
             <div class="curtain-panel curtain-left"></div>
             <div class="curtain-panel curtain-right"></div>
@@ -52,10 +58,8 @@
           <div id="tv-screen"></div>
           <div id="living-tv"></div>
           <div id="doorway" class="hidden"><div id="door-face"><div id="door-surface"></div></div></div>
+          <div id="bedroom-door-foreground"></div>
         </div>
-        <div id="room-dimmer" aria-hidden="true"></div>
-        <div id="lamp-constant" aria-hidden="true"></div>
-        <div id="lamp-halo" aria-hidden="true"></div>
         <div id="statusText">Walk to</div>
         <div id="hotspots"></div>
         <div id="player" class="sprite" data-facing="down" aria-label="Player character">

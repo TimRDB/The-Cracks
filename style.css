@@ -38,45 +38,44 @@ body.game-started #game { opacity: 1; }
 #sceneViewport { flex: 1; min-height: 0; display: grid; place-items: center; container-type: size; background: #101113; }
 #scene { position: relative; width: min(100cqw, calc(100cqh * 16 / 9)); aspect-ratio: 16 / 9; overflow: hidden; image-rendering: pixelated; cursor: crosshair; }
 #room-art { position: absolute; inset: 0; pointer-events: none; }
-#room-dimmer { position: absolute; inset: 0; z-index: 12; pointer-events: none; background: #05070a; opacity: .52; transition: opacity 1.4s ease-in-out; }
-#scene.lighting-snap #room-dimmer, #scene.lighting-snap .sprite { transition: none; }
-#room-background { position: absolute; inset: 0; background: var(--room-image, url('assets/bedroom_bg.png')) center / 100% 100% no-repeat; }
-.curtains-open #room-dimmer { opacity: 0; }
+#room-background { position: absolute; inset: 0; z-index: 0; background: #08090b var(--room-image, url('assets/lighting/bedroom-states-v11/bedroom-c0-l1-m0.png')) center / 100% 100% no-repeat; }
+.room-background-layer { position: absolute; inset: 0; background: url('assets/lighting/bedroom-states-v11/bedroom-c0-l1-m0.png') center / 100% 100% no-repeat; opacity: 0; transition: opacity 1.4s cubic-bezier(.45,0,.2,1); will-change: opacity; }
+.room-background-layer.is-visible { opacity: 1; }
+#living-toaster { display: none; position: absolute; z-index: 2; left: 44.378%; top: 29.331%; width: 4.904%; height: 8.714%; }
+#scene[data-room="living"] #living-toaster:not(.is-taken) { display: block; }
+.toaster-state-layer { position: absolute; inset: 0; background: center / 100% 100% no-repeat; opacity: 0; transition: opacity 1.4s cubic-bezier(.45,0,.2,1); will-change: opacity; }
+.toaster-state-layer.is-visible { opacity: 1; }
+#scene.light-switching .room-background-layer,
+#scene.light-switching .toaster-state-layer { transition-duration: .22s; transition-timing-function: ease-out; }
+#scene.light-switching .curtain-panel { transition-duration: 1.4s, .22s; transition-timing-function: cubic-bezier(.45,0,.2,1), ease-out; }
+#scene.light-switching .sprite { transition-duration: .20s, .08s; transition-timing-function: ease-out, linear; }
 #scene::after { content: ""; position: absolute; inset: 0; pointer-events: none; box-shadow: inset 0 0 70px #090c1655; }
 /* The image has bare window glass; these independent cloth panels cover it. */
 #curtains { position: absolute; left: 18.9%; top: 8.9%; width: 23.5%; height: 31.8%; overflow: hidden; }
-.curtain-panel { position: absolute; top: 0; bottom: 0; width: 50.5%; border-top: 4px solid #343038; border-bottom: 4px solid #25212b; background: repeating-linear-gradient(90deg, #373240 0%, #4d4656 8%, #282631 15%, #524a5b 22%, #393441 29%); box-shadow: inset 0 -12px 18px #16131c66, 2px 0 5px #0008; transition: transform 1.4s cubic-bezier(.45,0,.2,1); }
+.curtain-panel { position: absolute; top: 0; bottom: 0; width: 50.5%; border-top: 4px solid #343038; border-bottom: 4px solid #25212b; background: repeating-linear-gradient(90deg, #373240 0%, #4d4656 8%, #282631 15%, #524a5b 22%, #393441 29%); box-shadow: inset 0 -12px 18px #16131c66, 2px 0 5px #0008; filter: brightness(var(--curtain-light, .82)); transition: transform 1.4s cubic-bezier(.45,0,.2,1), filter 1.4s cubic-bezier(.45,0,.2,1); will-change: transform, filter; }
 .curtain-left { left: 0; transform-origin: left top; }
 .curtain-right { right: 0; transform-origin: right top; }
 .curtains-open .curtain-panel { transform: scaleX(0.16); }
-/* These layers sit above the room dimmer. The first reuses the exact lit pixels
-   from the bedroom art with a very broad feather, so no painted mask edge is
-   introduced; the second provides the small neutral gameplay brightness lift. */
-#lamp-constant { position: absolute; inset: 0; z-index: 13; pointer-events: none; background: url('assets/bedroom_bg.png') center / 100% 100% no-repeat; mask-image: radial-gradient(ellipse 12% 19% at 5.2% 44.5%, #000 0 24%, #000e 42%, #0009 63%, transparent 100%); -webkit-mask-image: radial-gradient(ellipse 12% 19% at 5.2% 44.5%, #000 0 24%, #000e 42%, #0009 63%, transparent 100%); }
-#lamp-halo { position: absolute; left: 0; top: 32%; z-index: 14; width: 15%; height: 27%; opacity: 1; pointer-events: none; background: transparent; backdrop-filter: brightness(1.12); -webkit-backdrop-filter: brightness(1.12); mask-image: radial-gradient(ellipse at 34% 48%, #000 0 16%, #000d 34%, #0008 50%, transparent 70%); -webkit-mask-image: radial-gradient(ellipse at 34% 48%, #000 0 16%, #000d 34%, #0008 50%, transparent 70%); transition: opacity .18s; }
-.lamp-off :is(#lamp-constant, #lamp-halo) { opacity: 0; }
 #tv-screen { position: absolute; left: 90.3%; top: 30.3%; width: 9.3%; height: 20.4%; clip-path: polygon(0 7%, 100% 0, 100% 100%, 0 89%); background: repeating-linear-gradient(0deg, #253d5966 0 2px, transparent 2px 4px), radial-gradient(ellipse at center, #4a7291, #101e3c); opacity: 0; transition: opacity .3s; }
 .tv-on #tv-screen { opacity: .9; }
 #statusText { position: absolute; z-index: 140; left: 50%; top: 6px; transform: translateX(-50%); max-width: 90%; padding: 4px 10px; text-align: center; background: #0a0c10d9; border: 1px solid #837763; color: #f2e3c5; font-size: 13px; pointer-events: none; }
 .hotspot { position: absolute; z-index: 15; padding: 0; border: 0; background: transparent; opacity: 0; }
 .hotspot:hover, .hotspot:focus-visible { opacity: 0; background: transparent; outline: none; }
-.sprite { position: absolute; width: var(--sprite-width, 27.5%); aspect-ratio: 1; pointer-events: none; transform-origin: center bottom; transform: translate(-50%, -100%) scaleX(var(--facing, 1)); filter: brightness(.64) drop-shadow(2px 3px 1px #0007); transition: filter 1.4s ease-in-out, width .08s linear; }
-#scene[data-room="outside"] .sprite { filter: brightness(.88) drop-shadow(2px 3px 1px #0006); }
+.sprite { position: absolute; width: var(--sprite-width, 27.5%); aspect-ratio: 1; pointer-events: none; transform-origin: center bottom; transform: translate(-50%, -100%) scaleX(var(--facing, 1)); filter: brightness(var(--player-light, .64)) drop-shadow(2px 3px 1px #0007); transition: filter .65s ease-in-out, width .08s linear; }
 #scene[data-room="outside"] .player-frame { translate: 0 var(--step-lift, 0%); rotate: var(--stair-lean, 0deg); }
-.curtains-open .sprite { filter: brightness(1) drop-shadow(2px 3px 1px #0007); }
 .player-frame { position: absolute; inset: 0; background: url('assets/bedroom_player.png') no-repeat; background-size: 500% 300%; filter: url(#sprite-green-key); }
 .sprite-filters { position: absolute; pointer-events: none; }
 #messageBox { position: absolute; z-index: 150; left: 50%; bottom: 3%; transform: translateX(-50%); width: min(700px, 88%); max-height: calc(100% - 44px); overflow-y: auto; padding: 9px 12px; border: 2px solid #a89675; background: #0a0c10ed; text-align: center; font-size: 14px; line-height: 1.4; }
 .hidden { display: none; }
 [hidden] { display: none !important; }
-#scene:not([data-room="bedroom"]) #room-dimmer { opacity: 0; }
-#scene:not([data-room="bedroom"]) .sprite { filter: brightness(.88) drop-shadow(2px 3px 1px #0007); }
-#scene:not([data-room="bedroom"]) :is(#curtains, #lamp-constant, #lamp-halo, #tv-screen) { display: none; }
+#scene:not([data-room="bedroom"]) #curtains { display: none; }
 #living-tv { display: none; position: absolute; left: 84.1%; top: 41.5%; width: 11.1%; height: 22.5%; background: repeating-linear-gradient(0deg, #ffffff10 0 1px, transparent 1px 3px), var(--channel-color); color: #eee; font-size: clamp(5px, .7vw, 11px); align-items: center; justify-content: center; clip-path: polygon(0 0, 100% 16%, 100% 100%, 0 72%); }
 #scene[data-room="living"] #living-tv { display: flex; }
-#doorway { position: absolute; background: #09090c; perspective: 600px; box-shadow: inset 5px 0 14px #000; }
+#doorway { position: absolute; z-index: 3; background: #09090c; perspective: 600px; box-shadow: inset 5px 0 14px #000; }
 #door-face { position: absolute; inset: 0; transform-origin: left center; backface-visibility: hidden; will-change: transform; }
 #door-surface { position: absolute; inset: 0; background-image: var(--room-image); background-repeat: no-repeat; backface-visibility: hidden; }
+#bedroom-door-foreground { display: none; position: absolute; inset: 0; z-index: 4; pointer-events: none; background: var(--room-image) center / 100% 100% no-repeat; clip-path: polygon(72.9665% 53.56%, 73.9833% 53.56%, 75.1794% 54.4102%, 72.9665% 54.4102%); }
+#doorway[data-foreground="bedroom-couch"]:not(.hidden) ~ #bedroom-door-foreground { display: block; }
 /* The bathroom portal is painted into both room backgrounds. This restrained
    sheen stays attached to that sampled panel while it swings open and closed. */
 #doorway[data-appearance="glass"] #door-surface::after {
@@ -117,4 +116,4 @@ body.game-started #game { opacity: 1; }
 @media (max-width: 600px) { #roomLight { display: none; } #interface { padding: 5px; } #interface button { padding: 5px; font-size: 11px; } #statusText, #messageBox { font-size: 12px; } }
 @media (max-height: 500px) { body { padding: 4px; } #interface { padding: 4px 6px; gap: 4px; } }
 @media (max-height: 560px) { .title-content { gap: 1.4rem; } .game-title { font-size: clamp(3.7rem, 17vh, 6rem); } .title-menu { gap: .6rem; } .title-choice { min-height: 45px; font-size: 1rem; } .options-panel { min-height: 82vh; } }
-@media (prefers-reduced-motion: reduce) { #room-dimmer, .curtain-panel, .sprite, #game, .title-fade, .title-backdrop, .title-content, .options-overlay, .options-panel { transition-duration: .15s; } }
+@media (prefers-reduced-motion: reduce) { .curtain-panel, .room-background-layer, .toaster-state-layer, .sprite, #game, .title-fade, .title-backdrop, .title-content, .options-overlay, .options-panel { transition-duration: .15s; } }
