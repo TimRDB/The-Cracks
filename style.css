@@ -74,7 +74,7 @@ body.game-started #game { opacity: 1; }
 #doorway { position: absolute; z-index: 3; background: #09090c; perspective: 600px; box-shadow: inset 5px 0 14px #000; }
 #door-face { position: absolute; inset: 0; transform-origin: left center; backface-visibility: hidden; will-change: transform; }
 #door-surface { position: absolute; inset: 0; background-image: var(--room-image); background-repeat: no-repeat; backface-visibility: hidden; }
-#bedroom-door-foreground { display: none; position: absolute; inset: 0; z-index: 4; pointer-events: none; background: var(--room-image) center / 100% 100% no-repeat; clip-path: polygon(72.9665% 53.56%, 73.9833% 53.56%, 75.1794% 54.4102%, 72.9665% 54.4102%); }
+#bedroom-door-foreground { display: none; position: absolute; inset: 0; z-index: 4; pointer-events: none; background: var(--room-image) center / 100% 100% no-repeat; clip-path: polygon(71.7703% 53.5600%, 73.9833% 53.5600%, 75.1794% 54.4102%, 76.3756% 54.8353%, 77.5718% 55.6854%, 78.7679% 56.1105%, 79.9641% 56.5356%, 81.1603% 56.5356%, 82.4163% 56.7481%, 71.7703% 56.7481%); }
 #doorway[data-foreground="bedroom-couch"]:not(.hidden) ~ #bedroom-door-foreground { display: block; }
 /* The bathroom portal is painted into both room backgrounds. This restrained
    sheen stays attached to that sampled panel while it swings open and closed. */

@@ -16,18 +16,50 @@ if (-not (Test-Path -LiteralPath $referencePath)) { throw "Missing clean door re
 # Place the complete generated door and its matching frame as one nearly
 # uniformly scaled assembly. The source and destination ratios differ by less
 # than one tenth of one percent, so neither the hinges nor the leaf are warped.
-$frameSource = [Drawing.Rectangle]::new(24, 32, 818, 1674)
+# The original sideways-step repair was documented to cover y=132..533, but
+# this assembly's height (401) only reached y=512, leaving the lower hinge
+# band's three-pixel step unrepaired in bedroom-states-v11 itself -- visible
+# as a seam right at y=512 once the door's usable height was corrected to
+# reach the floor. Extending the assembly to its originally intended height
+# finishes that repair; every pixel outside the doorframe rectangle, and any
+# pixel still below the couch boundary, is copied unchanged as before.
+$frameSource = [Drawing.Rectangle]::new(24, 32, 818, 1795)
 $frameX = 1200
 $frameY = 111
 $frameWidth = 196
-$frameHeight = 401
+$frameHeight = 430
 
 # Exact leaf inside that placed assembly. The animation samples these same
 # pixels, rather than independently scaling a second door or hinge strip.
 $panelX = 1220
 $panelY = 131
 $panelWidth = 159
-$panelHeight = 381
+$panelHeight = 403
+
+# Immediately right of the frame, the source photography has a plinth block
+# sitting flush against the wall with a hard, unfeathered rectangular edge
+# where it meets the floor -- it reads as the doorframe overshooting onto the
+# carpet. Feathering its lowest rows into the real floor pixels just below
+# lets the floor read as sitting over the trim instead.
+$plinthX = 1396
+$plinthWidth = 16
+$plinthBlendStart = 527
+$plinthBottom = 534
+$plinthFloorDonorY = 540
+
+function Merge-PlinthIntoFloor([Drawing.Bitmap]$bitmap) {
+  for ($x = $plinthX; $x -lt ($plinthX + $plinthWidth); $x++) {
+    $floorPixel = $bitmap.GetPixel($x, $plinthFloorDonorY)
+    for ($y = $plinthBlendStart; $y -lt $plinthBottom; $y++) {
+      $blockPixel = $bitmap.GetPixel($x, $y)
+      $t = ($y - $plinthBlendStart + 1) / [double]($plinthBottom - $plinthBlendStart + 1)
+      $red = Clamp-Channel ($blockPixel.R + ($floorPixel.R - $blockPixel.R) * $t)
+      $green = Clamp-Channel ($blockPixel.G + ($floorPixel.G - $blockPixel.G) * $t)
+      $blue = Clamp-Channel ($blockPixel.B + ($floorPixel.B - $blockPixel.B) * $t)
+      $bitmap.SetPixel($x, $y, [Drawing.Color]::FromArgb(255, $red, $green, $blue))
+    }
+  }
+}
 
 $couchBoundaryPoints = @(
   @(1200, 504), @(1237, 504), @(1257, 512), @(1277, 516),
@@ -100,16 +132,15 @@ $cleanLeaf = $framePatch.Clone(
   [Drawing.Imaging.PixelFormat]::Format32bppArgb
 )
 
-# The reference screenshot contains the foreground couch. Reconstruct only the
-# concealed bottom of the moving leaf; the real couch remains untouched in all
-# room backgrounds and is layered in front during the animation.
-for ($px = 0; $px -lt $panelWidth; $px++) {
-  $boundary = [Math]::Min($panelHeight, (Get-CouchBoundary ($panelX + $px)) - $panelY)
-  for ($py = $boundary; $py -lt $panelHeight; $py++) {
-    $sourceY = [Math]::Max(0, $boundary - 8 - [int](($py - $boundary) / 2))
-    $cleanLeaf.SetPixel($px, $py, $cleanLeaf.GetPixel($px, $sourceY))
-  }
-}
+# The reference screenshot contains the foreground couch. Substituting a clean
+# patch pixel there is not enough on its own: Apply-Patch also reads the real
+# per-state background at that same absolute position to work out how much
+# darker or lighter to make the clean pixel, and the real background there is
+# the couch, not a door, so its own lighting swing bleeds through as a ghost
+# regardless of what the clean patch contains. The fix has to happen after
+# relighting, using an already-lit, verified-clean donor row (destination
+# y=420) instead.
+$safeBandCenter = 420
 
 $referenceState = [Drawing.Bitmap]::FromFile((Join-Path $sourceRoot 'bedroom-c0-l1-m0.png'))
 
@@ -123,10 +154,43 @@ foreach ($curtains in 0,1) {
       $source = [Drawing.Bitmap]::FromFile($sourcePath)
       $corrected = New-Object Drawing.Bitmap $source
       Apply-Patch $corrected $source $referenceState $framePatch $frameX $frameY $true
+      Merge-PlinthIntoFloor $corrected
       $corrected.Save((Join-Path $correctedRoot $name), [Drawing.Imaging.ImageFormat]::Png)
 
       $panel = New-Object Drawing.Bitmap $corrected
       Apply-Patch $panel $source $referenceState $cleanLeaf $panelX $panelY $false
+
+      # A per-column edge sample rides the diagonal boundary line, so natural
+      # film-grain noise differs row-to-row across neighbouring columns and a
+      # per-column blend reads as vertical streaking. Average both the edge
+      # tone and the fill tone across the whole width instead, so every
+      # column eases into the exact same flat, grain-free color and no
+      # streaking or ghosting can appear.
+      $edgeTotal = @(0.0, 0.0, 0.0)
+      $fillTotal = @(0.0, 0.0, 0.0)
+      for ($px = 0; $px -lt $panelWidth; $px++) {
+        $absoluteX = $panelX + $px
+        $boundaryY = [Math]::Min($panelY + $panelHeight, (Get-CouchBoundary $absoluteX))
+        $edgeSample = $panel.GetPixel($absoluteX, [Math]::Max($panelY, $boundaryY - 1))
+        $fillSample = $panel.GetPixel($absoluteX, $safeBandCenter)
+        $edgeTotal[0] += $edgeSample.R; $edgeTotal[1] += $edgeSample.G; $edgeTotal[2] += $edgeSample.B
+        $fillTotal[0] += $fillSample.R; $fillTotal[1] += $fillSample.G; $fillTotal[2] += $fillSample.B
+      }
+      $edgeColor = [Drawing.Color]::FromArgb(255, [int]($edgeTotal[0]/$panelWidth), [int]($edgeTotal[1]/$panelWidth), [int]($edgeTotal[2]/$panelWidth))
+      $fillColor = [Drawing.Color]::FromArgb(255, [int]($fillTotal[0]/$panelWidth), [int]($fillTotal[1]/$panelWidth), [int]($fillTotal[2]/$panelWidth))
+      $fadeLength = 16
+      for ($px = 0; $px -lt $panelWidth; $px++) {
+        $absoluteX = $panelX + $px
+        $boundaryY = [Math]::Min($panelY + $panelHeight, (Get-CouchBoundary $absoluteX))
+        for ($absoluteY = $boundaryY; $absoluteY -lt ($panelY + $panelHeight); $absoluteY++) {
+          $depth = $absoluteY - $boundaryY
+          $t = [Math]::Min(1.0, ($depth + 1) / [double]($fadeLength + 1))
+          $red = Clamp-Channel ($edgeColor.R + ($fillColor.R - $edgeColor.R) * $t)
+          $green = Clamp-Channel ($edgeColor.G + ($fillColor.G - $edgeColor.G) * $t)
+          $blue = Clamp-Channel ($edgeColor.B + ($fillColor.B - $edgeColor.B) * $t)
+          $panel.SetPixel($absoluteX, $absoluteY, [Drawing.Color]::FromArgb(255, $red, $green, $blue))
+        }
+      }
       $panel.Save((Join-Path $outputRoot $name), [Drawing.Imaging.ImageFormat]::Png)
 
       $panel.Dispose()

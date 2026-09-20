@@ -62,7 +62,7 @@ child.stderr.on('data', chunk => { log += chunk; });
     assert.match(await evaluate("getComputedStyle(document.getElementById('room-background')).backgroundImage"), /bedroom-c0-l0-m1/);
     await capture('lighting-bedroom-main.png');
     await evaluate("positionDoor(apartmentRooms.bedroom.objects.door);document.getElementById('doorway').dataset.motion='opening';document.getElementById('door-face').style.transform='rotateY(55deg)'");
-    assert.deepEqual(await evaluate("['left','top','width','height'].map(key => document.getElementById('doorway').style[key])"), ['72.9665%','13.9214%','9.5096%','40.4888%']);
+    assert.deepEqual(await evaluate("['left','top','width','height'].map(key => document.getElementById('doorway').style[key])"), ['72.9665%','13.9214%','9.5096%','42.8268%']);
     assert.equal(await evaluate("getComputedStyle(document.getElementById('bedroom-door-foreground')).display"), 'block');
     assert.match(await evaluate("document.getElementById('door-surface').style.backgroundImage"), /bedroom-door-states\/bedroom-c0-l0-m1\.png/);
     await capture('bedroom-door-opening-preview.png');
