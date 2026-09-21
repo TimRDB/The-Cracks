@@ -41,7 +41,8 @@ The title screen's New Game button leads into the bedroom, with closed curtains 
 - `assets/apartment-art-notes.md`: new room artwork prompts and implementation notes
 - `assets/lighting/hard-states-v7/`: 28 versioned, native-resolution hard-rendered room backgrounds and a SHA-256 manifest; the versioned path prevents stale browser-cached lighting art
 - `assets/lighting/bedroom-source-states/`: four full-frame bedroom paintings for every bedside-lamp/main-light combination, with the ceiling fixture and left-of-door switch baked into the artwork
-- `assets/lighting/bedroom-states-v12/`: eight freshly rebuilt native bedroom backgrounds sharing one canonical, newly rendered door-and-frame assembly; all non-door pixels and the foreground couch/chair geometry remain identical across the lighting states
+- `assets/lighting/bedroom-source-v13/`: four native AI-regenerated open-curtain bedroom masters covering every lamp/main-light combination, based on `assets/bedroom_bg.png` with a reversed right-hinged door, integrated ceiling fixture, and shortened couch
+- `assets/lighting/bedroom-states-v13/`: eight native bedroom states derived from the regenerated masters, with the proven curtain layer and exact existing chair retained
 - `assets/lighting/bedroom-door-states/`: eight lighting-matched native 1672-by-941 clean plates used to sample the inner door with exactly the same full-canvas mapping as the correctly aligned living-room side; only the couch-concealed leaf pixels differ
 - `assets/lighting/living-master-v2.png`: the fresh, sharp, floor-lamp-free living-room master shared by every circuit state
 - `assets/lighting/living-light-fields-v2/`: three averaged low-frequency illumination fields for the main, bench and hallway circuits
@@ -51,6 +52,7 @@ The title screen's New Game button leads into the bedroom, with closed curtains 
 - `assets/lighting/bathroom-source-states/`: two full-frame bathroom paintings with the ceiling light genuinely off/on and one lower embedded switch
 - `scripts/build-lighting-states.ps1`: deterministically rebuilds every lighting state from the protected masters and isolated source fixtures without resampling the room art
 - `scripts/build-bedroom-door-states.ps1`: deterministically rebuilds the complete isolated bedroom-door leaves from the native lighting states
+- `scripts/build-bedroom-v13-states.ps1`: composites the existing chair and derives both curtain-light levels from the four regenerated bedroom masters
 - `scripts/build-living-v2-sources.ps1`: rebuilds all eight living circuit sources from the one fixed master and three illumination fields
 - `scripts/verify-toaster-pixels.ps1`: rebuilds and proves that every toaster-free background differs from its original render only inside the approved 82-by-82 counter rectangle
 - `assets/lighting/`: isolated source fixtures and generation notes in `assets/lighting-art-notes.md`

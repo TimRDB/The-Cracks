@@ -498,45 +498,41 @@ test('bedroom travel keeps the original arrival walk but closes with the departi
   g.finish();
 });
 
-test('the full bedroom door leaf animates behind an unchanged foreground couch', () => {
-  const panelDirectory = path.join(__dirname, '..', 'assets', 'lighting', 'bedroom-door-states');
-  const correctedDirectory = path.join(__dirname, '..', 'assets', 'lighting', 'bedroom-states-v12');
-  const panelFiles = fs.readdirSync(panelDirectory).filter(file => file.endsWith('.png')).sort();
-  const correctedFiles = fs.readdirSync(correctedDirectory).filter(file => file.endsWith('.png')).sort();
-  assert.equal(panelFiles.length, 8);
-  assert.deepEqual(correctedFiles, panelFiles);
-  for (const file of panelFiles) {
-    for (const directory of [panelDirectory, correctedDirectory]) {
-      const bytes = fs.readFileSync(path.join(directory, file));
-      assert.equal(bytes.readUInt32BE(16), 1672);
-      assert.equal(bytes.readUInt32BE(20), 941);
-    }
+test('the regenerated right-hinged bedroom door animates clear of the shortened couch', () => {
+  const stateDirectory = path.join(__dirname, '..', 'assets', 'lighting', 'bedroom-states-v13');
+  const sourceDirectory = path.join(__dirname, '..', 'assets', 'lighting', 'bedroom-source-v13');
+  const stateFiles = fs.readdirSync(stateDirectory).filter(file => file.endsWith('.png')).sort();
+  const sourceFiles = fs.readdirSync(sourceDirectory).filter(file => file.endsWith('.png')).sort();
+  assert.equal(stateFiles.length, 8);
+  assert.equal(sourceFiles.length, 4);
+  for (const file of stateFiles) {
+    const bytes = fs.readFileSync(path.join(stateDirectory, file));
+    assert.equal(bytes.readUInt32BE(16), 1672);
+    assert.equal(bytes.readUInt32BE(20), 941);
   }
   assert.match(source, /if \(bedroom\) preloadRoomImage\(bedroomDoorImageForState\(\)\)/);
-  assert.match(source, /assets\/lighting\/bedroom-states-v12\/bedroom-c/);
-  const builder = fs.readFileSync(path.join(__dirname, '..', 'scripts', 'build-bedroom-door-states.ps1'), 'utf8');
-  assert.match(builder, /\$frameX = 1200/);
-  assert.match(builder, /\$panelX = 1219/);
-  assert.match(builder, /\$panelY = 131/);
-  assert.match(builder, /neither the hinges nor the leaf are warped/);
+  assert.match(source, /assets\/lighting\/bedroom-states-v13\/bedroom-c/);
+  const builder = fs.readFileSync(path.join(__dirname, '..', 'scripts', 'build-bedroom-v13-states.ps1'), 'utf8');
+  assert.match(builder, /bedroom-source-v13/);
+  assert.match(builder, /bedroom-stool\.png/);
+  assert.match(builder, /ApplyClosedCurtainAmbient/);
 
   const g = game();
   assert.equal(g.run('JSON.stringify(apartmentRooms.bedroom.objects.door.area)'), '[72.8,14,9.5,42.5]');
   assert.equal(g.run('JSON.stringify(apartmentRooms.bedroom.objects.door.panel)'), '[72.9067,13.9214,9.4498,42.6142]');
-  assert.equal(g.run('apartmentRooms.bedroom.objects.door.foreground'), 'bedroom-couch');
+  assert.equal(g.run('apartmentRooms.bedroom.objects.door.foreground'), undefined);
+  assert.equal(g.run('JSON.stringify(apartmentRooms.bedroom.objects.couch.area)'), '[78.5,57,21.5,38]');
   g.run('interact("door", "use");');
   assert.equal(g.get('doorway').style.left, '72.9067%');
   assert.equal(g.get('doorway').style.top, '13.9214%');
   assert.equal(g.get('doorway').style.width, '9.4498%');
   assert.equal(g.get('doorway').style.height, '42.6142%');
   assert.equal(g.get('door-face').style.transformOrigin, 'right center');
-  assert.equal(g.get('doorway').dataset.foreground, 'bedroom-couch');
-  assert.match(g.get('door-surface').style.backgroundImage, /bedroom-door-states\/bedroom-c0-l1-m0\.png/);
+  assert.equal(g.get('doorway').dataset.foreground, '');
+  assert.match(g.get('door-surface').style.backgroundImage, /bedroom-states-v13\/bedroom-c0-l1-m0\.png/);
   assert.match(g.get('door-surface').style.backgroundSize, /^[\d.]+% [\d.]+%$/);
   assert.notEqual(g.get('door-surface').style.backgroundSize, '100% 100%');
-  assert.match(markup, /id="bedroom-door-foreground"/);
-  assert.match(styles, /#bedroom-door-foreground[^}]*z-index:\s*4/);
-  assert.match(styles, /#doorway\[data-foreground="bedroom-couch"\]:not\(\.hidden\) ~ #bedroom-door-foreground/);
+  assert.equal(g.get('bedroom-door-foreground').style.display, undefined);
 });
 
 test('living-room doors have reversed artwork handedness and hotspots stay invisible', () => {
