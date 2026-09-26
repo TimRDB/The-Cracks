@@ -1,3 +1,29 @@
+// Pausable timers for world/UI transitions outside the opening cinematic.
+const gameTimers=(()=>{
+  let paused=false,next=0;
+  const tasks=new Map();
+  const now=()=>globalThis.performance?.now?.()??Date.now();
+  function arm(id,task){
+    task.native=setTimeout(()=>{
+      if(paused)return;
+      tasks.delete(id);task.callback();
+    },Math.max(0,task.remaining));
+    task.started=now();
+  }
+  return {
+    get paused(){return paused;},
+    schedule(callback,delay=0){
+      const id=++next,task={callback,remaining:delay,native:null,started:0};
+      tasks.set(id,task);if(!paused)arm(id,task);return id;
+    },
+    clear(id){const task=tasks.get(id);if(task && task.native!==null)clearTimeout(task.native);tasks.delete(id);},
+    pause(){if(paused)return;paused=true;for(const task of tasks.values()){
+      if(task.native!==null){clearTimeout(task.native);task.remaining=Math.max(0,task.remaining-(now()-task.started));task.native=null;}
+    }},
+    resume(){if(!paused)return;paused=false;for(const [id,task] of tasks)arm(id,task);},
+    clearAll(){for(const id of [...tasks.keys()])this.clear(id);}
+  };
+})();
 const SAVE_KEY = 'theCracksBedroomSave';
 const VERTICAL_CONE_DEGREES = 30;
 const scene = document.getElementById('scene');
@@ -31,7 +57,7 @@ function closeOptions() {
   optionsDialog.classList.remove('is-visible');
   titleScreen.classList.remove('options-open');
   optionsBtn.setAttribute('aria-expanded', 'false');
-  setTimeout(() => {
+  gameTimers.schedule(() => {
     optionsDialog.hidden = true;
     titleContent.inert = false;
     optionsBtn.focus();
@@ -40,28 +66,37 @@ function closeOptions() {
 
 function startNewGame() {
   if (titleScreen.classList.contains('is-leaving')) return;
+  prepareWakeupAudio();
+  const ready = Promise.all([
+    preloadRoomImage('assets/bedroom-wakeup-v1.png'),
+    preloadRoomImage('assets/alarm-closeup-v1.png'),
+    preloadRoomImage('assets/lighting/bedroom-states-v14/bedroom-c0-l0-m0.png')
+  ]);
   titleScreen.classList.add('is-leaving');
   titleScreen.setAttribute('aria-busy', 'true');
-  setTimeout(() => {
+  gameTimers.schedule(async () => {
+    await ready;
+    beginWakeup();
     game.inert = false;
     game.setAttribute('aria-hidden', 'false');
     document.body.classList.add('game-started');
     titleScreen.hidden = true;
-    showMessage('A quiet morning. Click the curtains to let in some light, or explore the room.', 4500);
   }, 760);
 }
 
 newGameBtn.addEventListener('click', startNewGame);
+document.getElementById('skip-wakeup').addEventListener('click', finishWakeup);
 optionsBtn.addEventListener('click', openOptions);
 goBackBtn.addEventListener('click', closeOptions);
 document.addEventListener?.('keydown', event => {
+  if (event.key === 'Escape' && wakeup.active) { finishWakeup(); return; }
   if (event.key === 'Escape' && !optionsDialog.hidden) closeOptions();
 });
 
 const gameState = {
   selectedVerb: 'walk', currentRoom: 'bedroom', livingTvOn: false, channel: 0, plantWatered: false, keysTaken: false,
   curtainsOpen: false,
-  lampOn: true,
+  lampOn: false,
   bedroomMainLightOn: false,
   livingCurtainsOpen: false,
   livingMainLightOn: false,
@@ -72,15 +107,19 @@ const gameState = {
   bathroomMainLightOn: false,
   tvOn: false,
   drawersOpen: false,
-  alarmArmed: false
+  alarmArmed: false,
+  laundryDoorOpen: false,
+  alleyManSpoken: false,
+  alleyManCoffeeRequested: false
 };
+const initialWorldState = Object.freeze(Object.fromEntries(Object.entries(gameState).filter(([key]) => key !== 'currentRoom')));
 
 // Positions and hit areas are percentages of the uncropped 16:9 bedroom.
 const bedroomObjects = {
   bed: { name: 'bed', area: [8, 40, 36, 24], walk: [28, 72], description: 'A single bed, an unmade duvet, and a pillow that has seen better mornings.' },
   drawers: { name: 'chest of drawers', area: [44.5, 31, 11, 30], walk: [49, 69], description: 'The drawers at the foot of the bed hold T-shirts, socks, and the odd forgotten cable.' },
   cupboard: { name: 'cupboard', area: [56, 12, 12, 49], walk: [61, 69], description: 'Shirts hang from mismatched hangers. Folded clothes and shoes fill the shelves below.' },
-  door: { ...door('living room door', [72.8,14,9.5,42.5], [68,69], 'living', 'bedroomDoor'), panel: [72.9067,13.9214,9.4498,42.6142], hinge: 'right' },
+  door: { ...door('living room door', [72.8,14,9.5,42.5], [68,69], 'living', 'bedroomDoor'), panel: [72.9665,14.0276,9.2105,43.2519], hinge: 'right', destinationSwing: true },
   couch: { name: 'couch', area: [78.5, 57, 21.5, 38], walk: [72, 81], description: 'A shortened well-worn couch facing the TV. The blanket has claimed one end.' },
   tv: { name: 'TV', area: [89.8, 29, 10, 23], walk: [67, 76], description: 'The TV sits against the right wall, within easy reach of the couch.' },
   console: { name: 'gaming console', area: [87, 52, 12, 9], walk: [67, 76], description: 'A console, a controller, and several games you keep meaning to finish.' },
@@ -96,7 +135,7 @@ apartmentRooms.bedroom = { name: 'Bedroom', image: 'assets/bedroom_bg_reversed_d
 let roomObjects = bedroomObjects;
 let transition = null;
 const channels = ['Weather: another grey morning', 'Cooking: something better than toast', 'Films: an old black-and-white favourite'];
-const verbNames = { walk: 'Walk to', look: 'Look at', open: 'Open', close: 'Close', use: 'Use' };
+const verbNames = { walk: 'Walk to', look: 'Look at', open: 'Open', close: 'Close', use: 'Use', talk: 'Talk to' };
 const curtainStateKeys = Object.freeze({ bedroom: 'curtainsOpen', living: 'livingCurtainsOpen', bathroom: 'bathroomCurtainsOpen' });
 const lightCircuits = Object.freeze({
   bedroomLamp: Object.freeze({ state: 'lampOn', name: 'lamp' }),
@@ -136,12 +175,44 @@ const playerPerspectiveProfiles = Object.freeze({
     Object.freeze({ y: 67.5, width: 23.8, reference: 'bathroom door threshold' }),
     Object.freeze({ y: 82, width: 28.0, reference: 'bathroom foreground' })
   ]) }),
+  street: Object.freeze({ anchors: Object.freeze([
+    Object.freeze({ y: 57.5, width: 7.8, reference: 'alley depth' }),
+    Object.freeze({ y: 64.3, width: 8.5, reference: 'street shop thresholds' }),
+    Object.freeze({ y: 74, width: 10.0, reference: 'near footpath' })
+  ]) }),
+  // Painted height is width * 1.63 percent of the scene height. A 1.8 m player
+  // is 1.8 / 1.07 times the 107 px wheelie bins, about 1.85 times the seated
+  // man's 180 px, and 86% of the 470 px service door at the foot of its steps.
+  // A smooth curve joins the anchors so growth never changes rate abruptly.
+  // The alley's scale changes 3x, so its gait is size-relative: speed and
+  // stride are fractions of the painted width, giving a constant leg cadence
+  // that matches the bedroom's (about one walk cycle per second). Depth travel
+  // is foreshortened: moving toward or away from the camera covers screen
+  // height at depthPace of the lateral rate, so his size changes gradually
+  // while his legs keep the same cadence.
+  alley: Object.freeze({ smooth: true, gait: Object.freeze({ pace: .6, stride: .65, depthPace: .6 }), anchors: Object.freeze([
+    Object.freeze({ y: 48, width: 11.7, reference: 'street opening, fence and wheelie bins' }),
+    Object.freeze({ y: 58.5, width: 19.8, reference: 'seated man' }),
+    Object.freeze({ y: 68, width: 26.5, reference: 'foot of the service-door steps' }),
+    Object.freeze({ y: 90, width: 34.5, reference: 'alley foreground' })
+  ]) }),
   outside: Object.freeze({ anchors: Object.freeze([
     Object.freeze({ y: 37.4, width: 10.2, reference: 'exterior door thresholds and patios' }),
     // At car depth the visible body is 1.8 / 1.4 times the cars' painted height.
     Object.freeze({ y: 92, width: 22.4, reference: '1.8 m player beside 1.4 m cars' })
   ]) })
 });
+// Monotone cubic (Fritsch-Butland) interpolation: it passes through every
+// anchor with a continuous rate of growth and never overshoots between them.
+function smoothAnchorWidth(anchors, index, t) {
+  const slopes = anchors.slice(1).map((anchor, i) => (anchor.width - anchors[i].width) / (anchor.y - anchors[i].y));
+  const tangent = i => i === 0 ? slopes[0] : i === anchors.length - 1 ? slopes[i - 1]
+    : slopes[i - 1] * slopes[i] <= 0 ? 0 : 2 / (1 / slopes[i - 1] + 1 / slopes[i]);
+  const a = anchors[index], b = anchors[index + 1], h = b.y - a.y, t2 = t * t, t3 = t2 * t;
+  return (2*t3 - 3*t2 + 1) * a.width + (t3 - 2*t2 + t) * h * tangent(index)
+    + (3*t2 - 2*t3) * b.width + (t3 - t2) * h * tangent(index + 1);
+}
+
 function playerPerspective(roomId, y) {
   const profile = playerPerspectiveProfiles[roomId] || playerPerspectiveProfiles.living;
   const anchors = profile.anchors;
@@ -151,7 +222,8 @@ function playerPerspective(roomId, y) {
   const upperIndex = anchors.findIndex(anchor => anchor.y >= y);
   const lower = anchors[upperIndex - 1], upper = anchors[upperIndex];
   const segmentProgress = (y - lower.y) / (upper.y - lower.y);
-  const width = lower.width + (upper.width - lower.width) * segmentProgress;
+  const width = profile.smooth ? smoothAnchorWidth(anchors, upperIndex - 1, segmentProgress)
+    : lower.width + (upper.width - lower.width) * segmentProgress;
   const progress = (y - anchors[0].y) / (last.y - anchors[0].y);
   return { width, depth: width / anchors[0].width, progress, reference: `${lower.reference} ? ${upper.reference}` };
 }
@@ -185,10 +257,10 @@ function updateStatus(target) {
 }
 
 function showMessage(text, duration = 3200) {
-  clearTimeout(showMessage.timer);
+  gameTimers.clear(showMessage.timer);
   messageBox.textContent = text;
   messageBox.classList.remove('hidden');
-  showMessage.timer = setTimeout(() => messageBox.classList.add('hidden'), duration);
+  showMessage.timer = gameTimers.schedule(() => messageBox.classList.add('hidden'), duration);
 }
 
 function roomCurtainsOpen(roomId = gameState.currentRoom) {
@@ -197,7 +269,7 @@ function roomCurtainsOpen(roomId = gameState.currentRoom) {
 }
 
 function playerLightLevel(roomId = gameState.currentRoom, x = movement.x, y = movement.y) {
-  if (roomId === 'outside') return .88;
+  if (roomId === 'outside' || roomId === 'street' || roomId === 'alley') return .88;
   let level = roomCurtainsOpen(roomId) ? .96 : .58;
   if (roomId === 'bedroom') {
     if (gameState.bedroomMainLightOn) level = Math.max(level, 1.04);
@@ -220,7 +292,7 @@ function curtainLightLevel(roomId = gameState.currentRoom) {
 
 function roomImageForState(roomId = gameState.currentRoom, state = gameState) {
   const bit = value => value ? 1 : 0;
-  if (roomId === 'bedroom') return `assets/lighting/bedroom-states-v13/bedroom-c${bit(state.curtainsOpen)}-l${bit(state.lampOn)}-m${bit(state.bedroomMainLightOn)}.png`;
+  if (roomId === 'bedroom') return `assets/lighting/bedroom-states-v14/bedroom-c${bit(state.curtainsOpen)}-l${bit(state.lampOn)}-m${bit(state.bedroomMainLightOn)}.png`;
   if (roomId === 'living') return `assets/lighting/hard-states-v7/living-c${bit(state.livingCurtainsOpen)}-m${bit(state.livingMainLightOn)}-b${bit(state.kitchenLightsOn)}-h${bit(state.hallwayLightOn)}.png`;
   if (roomId === 'bathroom') return `assets/lighting/hard-states-v7/bathroom-c${bit(state.bathroomCurtainsOpen)}-m${bit(state.bathroomMainLightOn)}.png`;
   return apartmentRooms[roomId].image;
@@ -266,17 +338,18 @@ function preloadRoomImage(path) {
 }
 
 let activeRoomBackgroundLayer = 0;
-let displayedRoomImage = 'assets/lighting/bedroom-states-v13/bedroom-c0-l1-m0.png';
+let displayedRoomImage = 'assets/lighting/bedroom-states-v14/bedroom-c0-l0-m0.png';
 let activeToasterStateLayer = 0;
 let displayedToasterImage = '';
 const FAST_LIGHT_TRANSITION_MS = 220;
 let fastLightTransitionTimer = null;
 let roomLayerCleanupTimer = null;
+let toasterLayerCleanupTimer = null;
 
 function beginFastLightTransition() {
   scene.classList.add('light-switching');
-  clearTimeout(fastLightTransitionTimer);
-  fastLightTransitionTimer = setTimeout(() => {
+  gameTimers.clear(fastLightTransitionTimer);
+  fastLightTransitionTimer = gameTimers.schedule(() => {
     scene.classList.remove('light-switching');
     fastLightTransitionTimer = null;
   }, FAST_LIGHT_TRANSITION_MS + 50);
@@ -289,31 +362,49 @@ function setLayerVisibilityImmediately(layer, visible) {
   layer.style.transitionDuration = '';
 }
 
-function commitToasterImage(path, immediate = false) {
+function commitToasterImage(path, immediate = false, fastLight = false) {
   if (path === displayedToasterImage && !immediate) return;
+  gameTimers.clear(toasterLayerCleanupTimer);
   if (immediate) {
     toasterStateLayers.forEach((layer, index) => {
       layer.style.backgroundImage = `url('${path}')`;
-      layer.classList.toggle('is-visible', index === 0);
+      layer.style.zIndex = index === 0 ? 1 : 0;
+      setLayerVisibilityImmediately(layer, index === 0);
     });
     activeToasterStateLayer = 0;
     displayedToasterImage = path;
     return;
   }
   const nextIndex = 1 - activeToasterStateLayer;
-  toasterStateLayers[nextIndex].style.backgroundImage = `url('${path}')`;
-  toasterStateLayers[nextIndex].classList.add('is-visible');
-  toasterStateLayers[activeToasterStateLayer].classList.remove('is-visible');
+  const current = toasterStateLayers[activeToasterStateLayer];
+  const next = toasterStateLayers[nextIndex];
+  // Match the room-background swap: retain one fully opaque old state while
+  // the decoded replacement fades over it. Fading both opaque toaster patches
+  // at once makes their combined coverage dip and reads as a brief flash.
+  current.style.zIndex = 1;
+  setLayerVisibilityImmediately(current, true);
+  next.style.zIndex = 2;
+  setLayerVisibilityImmediately(next, false);
+  next.style.backgroundImage = `url('${path}')`;
+  void next.offsetWidth;
+  next.classList.add('is-visible');
   activeToasterStateLayer = nextIndex;
   displayedToasterImage = path;
+  const transitionMs = fastLight ? FAST_LIGHT_TRANSITION_MS : 1400;
+  toasterLayerCleanupTimer = gameTimers.schedule(() => {
+    setLayerVisibilityImmediately(current, false);
+    next.style.zIndex = 1;
+    current.style.zIndex = 0;
+    toasterLayerCleanupTimer = null;
+  }, transitionMs + 30);
 }
 
 function commitRoomImage(path, immediate = false, fastLight = false) {
   if (fastLight) beginFastLightTransition();
   scene.style.setProperty('--room-image', `url('${path}')`);
-  if (gameState.currentRoom === 'living') commitToasterImage(toasterImageForState(), immediate);
+  if (gameState.currentRoom === 'living') commitToasterImage(toasterImageForState(), immediate, fastLight);
   if (path === displayedRoomImage) return;
-  clearTimeout(roomLayerCleanupTimer);
+  gameTimers.clear(roomLayerCleanupTimer);
   if (immediate) {
     roomBackgroundLayers.forEach((layer, index) => {
       layer.style.backgroundImage = `url('${path}')`;
@@ -336,7 +427,7 @@ function commitRoomImage(path, immediate = false, fastLight = false) {
   activeRoomBackgroundLayer = nextIndex;
   displayedRoomImage = path;
   const transitionMs = fastLight ? FAST_LIGHT_TRANSITION_MS : 1400;
-  roomLayerCleanupTimer = setTimeout(() => {
+  roomLayerCleanupTimer = gameTimers.schedule(() => {
     setLayerVisibilityImmediately(current, false);
     next.style.zIndex = 1;
     current.style.zIndex = 0;
@@ -352,7 +443,10 @@ function applyRoomImage(path, immediate = false, fastLight = false) {
     return;
   }
   Promise.all([preloadRoomImage(path), toasterPath ? preloadRoomImage(toasterPath) : Promise.resolve(true)]).then(loaded => {
-    if (loaded.every(Boolean) && roomImageForState() === path) commitRoomImage(path, immediate, fastLight);
+    if (loaded.every(Boolean) && roomImageForState() === path) {
+      const commit=()=>{if(roomImageForState()===path)commitRoomImage(path,immediate,fastLight);};
+      if(gameTimers.paused)gameTimers.schedule(commit,0);else commit();
+    }
   });
 }
 
@@ -395,6 +489,7 @@ function syncRoom(options = {}) {
 }
 
 function setCurtains(open, roomId = gameState.currentRoom) {
+  if (wakeup.active) return;
   const key = curtainStateKeys[roomId];
   if (!key) return;
   gameState[key] = open;
@@ -406,6 +501,7 @@ function setCurtains(open, roomId = gameState.currentRoom) {
 }
 
 function toggleLight(circuit) {
+  if (wakeup.active) return;
   const definition = lightCircuits[circuit];
   if (!definition) return;
   gameState[definition.state] = !gameState[definition.state];
@@ -445,9 +541,18 @@ function renderPlayer(walking = false) {
   player.style.setProperty('--player-light', playerLightLevel());
   scene.classList.toggle('player-behind-cars', outdoors && movement.y < 88);
   player.style.zIndex = Math.round(movement.y);
+  syncStreetDoors();
 }
 
 function floorPosition(x, y) {
+  if (gameState.currentRoom === 'street') {
+    const point = streetProject(x, y);
+    return { x: point.x, y: point.y };
+  }
+  if (gameState.currentRoom === 'alley') {
+    const point = alleyProject(x, y);
+    return { x: point.x, y: point.y };
+  }
   if (gameState.currentRoom === 'outside') {
     const point = outsideProjection(x, y);
     return { x: point.x, y: point.y };
@@ -480,9 +585,13 @@ function stopWalking() {
 }
 
 function movePlayerTo(x, y, callback) {
+  if (wakeup.active) return;
   if (transition) return;
-  if (gameState.currentRoom === 'outside') {
-    movement.route = outsideRoute(movement, { x, y });
+  callback = streetArrival(x, y, callback);
+  if (gameState.currentRoom === 'outside' || gameState.currentRoom === 'street' || gameState.currentRoom === 'alley') {
+    movement.route = gameState.currentRoom === 'street' ? streetRoute(movement, { x, y })
+      : gameState.currentRoom === 'alley' ? alleyRoute(movement, { x, y })
+      : outsideRoute(movement, { x, y });
     if (!movement.route.length) { stopWalking(); if (callback) callback(); return; }
     movement.route[movement.route.length-1].callback = callback;
     movement.destination = movement.route.shift();
@@ -508,8 +617,11 @@ function advanceWalk(time) {
   const ratio = scene.clientHeight / scene.clientWidth;
   const dx = target.x - movement.x;
   const dy = (target.y - movement.y) * ratio;
-  const distance = Math.hypot(dx, dy);
-  const step = (target.stairs ? 5 : gameState.currentRoom === 'outside' ? 14 : 18) * elapsed;
+  const perspective = playerPerspective(gameState.currentRoom, movement.y);
+  const gait = playerPerspectiveProfiles[gameState.currentRoom]?.gait;
+  // Walked distance: vertical screen travel counts extra where depth is foreshortened.
+  const distance = Math.hypot(dx, dy / (gait?.depthPace || 1));
+  const step = (target.stairs ? 5 : gait ? perspective.width * gait.pace : gameState.currentRoom === 'street' ? 9 : gameState.currentRoom === 'outside' ? 14 : 18) * elapsed;
   if (distance <= step || distance < 0.001) {
     movement.x = target.x;
     movement.y = target.y;
@@ -528,9 +640,11 @@ function advanceWalk(time) {
   movement.facing = movementFacing(dx, dy);
   movement.x += dx / distance * step;
   movement.y += dy / distance * step / ratio;
-  const depth = playerPerspective(gameState.currentRoom, movement.y).depth;
-  const width = player.offsetWidth / scene.clientWidth * 100;
-  movement.phase = (movement.phase + step / (width * depth * 0.65)) % 1;
+  // Use the exact rendered size; the sprite no longer eases between widths,
+  // so its displayed scale always matches the current depth, even on stopping.
+  const { width, depth } = playerPerspective(gameState.currentRoom, movement.y);
+  const stride = gait ? width * gait.stride : width * depth * 0.65;
+  movement.phase = (movement.phase + step / stride) % 1;
   if (target.stairs) {
     const total = Math.hypot(target.x-movement.segmentStart.x, (target.y-movement.segmentStart.y)*ratio);
     movement.stairProgress = Math.min(1, 1-Math.max(0,distance-step)/total);
@@ -545,8 +659,11 @@ function walkTo(target, callback) {
 }
 
 function interact(target, verb) {
+  if (wakeup.active) return;
   if (transition) return;
   const object = roomObjects[target];
+  if (handleAlleyTarget(target, object, verb)) return;
+  if (handleStreetTarget(object, verb)) return;
   if (object.locked) {
     showMessage(verb === 'look' || verb === 'walk' ? object.description : 'It is locked.');
     return;
@@ -601,6 +718,7 @@ function interact(target, verb) {
 }
 
 function handleTarget(target) {
+  if (wakeup.active) return;
   if (transition) return;
   const object = roomObjects[target];
   if (object?.lightCircuit) {
@@ -610,10 +728,13 @@ function handleTarget(target) {
   }
   const verb = gameState.selectedVerb;
   updateStatus(target);
+  if (object?.alleyExit && handleAlleyTarget(target, object, verb)) return;
+  if (handleStreetTarget(object, verb)) return;
   walkTo(target, () => interact(target, verb));
 }
 
 function saveGame() {
+  if (wakeup.active) return;
   if (transition) { showMessage('Finish going through the doorway before saving.'); return; }
   try {
     localStorage.setItem(SAVE_KEY, JSON.stringify({ version: 5, state: gameState, player: { x: movement.x, y: movement.y, facing: movement.facing } }));
@@ -622,6 +743,7 @@ function saveGame() {
 }
 
 function loadGame() {
+  if (wakeup.active) return;
   try {
     const raw = localStorage.getItem(SAVE_KEY);
     if (!raw) { showMessage('No bedroom save found.'); return; }
@@ -629,7 +751,8 @@ function loadGame() {
     if (![1,2,3,4,5].includes(saved.version) || !saved.state || !saved.player) throw new Error('Invalid save');
     cancelTransition();
     stopWalking();
-    for (const key of ['curtainsOpen', 'lampOn', 'bedroomMainLightOn', 'livingCurtainsOpen', 'livingMainLightOn', 'kitchenLightsOn', 'hallwayLightOn', 'toasterTaken', 'bathroomCurtainsOpen', 'bathroomMainLightOn', 'tvOn', 'drawersOpen', 'alarmArmed', 'livingTvOn', 'plantWatered', 'keysTaken']) {
+    gameState.laundryDoorOpen = false; // Saves from before the street start with its door closed.
+    for (const key of ['curtainsOpen', 'lampOn', 'bedroomMainLightOn', 'livingCurtainsOpen', 'livingMainLightOn', 'kitchenLightsOn', 'hallwayLightOn', 'toasterTaken', 'bathroomCurtainsOpen', 'bathroomMainLightOn', 'tvOn', 'drawersOpen', 'alarmArmed', 'livingTvOn', 'plantWatered', 'keysTaken', 'laundryDoorOpen', 'alleyManSpoken', 'alleyManCoffeeRequested']) {
       if (typeof saved.state[key] === 'boolean') gameState[key] = saved.state[key];
     }
     gameState.channel = Number.isInteger(saved.state.channel) && saved.state.channel >= 0 && saved.state.channel < 3 ? saved.state.channel : 0;
@@ -646,10 +769,11 @@ function loadGame() {
 }
 
 function resetGame() {
+  cancelWakeup();
   cancelTransition();
   stopWalking();
   try { localStorage.removeItem(SAVE_KEY); } catch { /* The room still resets if storage is unavailable. */ }
-  Object.assign(gameState, { selectedVerb: 'walk', curtainsOpen: false, lampOn: true, bedroomMainLightOn: false, livingCurtainsOpen: false, livingMainLightOn: false, kitchenLightsOn: false, hallwayLightOn: false, toasterTaken: false, bathroomCurtainsOpen: false, bathroomMainLightOn: false, tvOn: false, drawersOpen: false, alarmArmed: false, livingTvOn: false, channel: 0, plantWatered: false, keysTaken: false });
+  Object.assign(gameState, initialWorldState);
   showRoom('bedroom');
   Object.assign(movement, { x: 42, y: 84, facing: 'down', phase: 0 });
   setVerb('walk');
@@ -700,8 +824,10 @@ function interactApartment(target, verb, object) {
 
 // A single cancellable animation owns door travel; floor clicks cannot interrupt
 // halfway between rooms. On arrival, the panel uses the destination door's clean
-// artwork (so handles and surrounding furniture cannot jump onto it) while keeping
-// the departing room's swing direction, so it closes behind the character.
+// artwork (so handles and surrounding furniture cannot jump onto it). The
+// reciprocal bedroom doorway uses the destination-side swing after the room
+// switch, keeping its single physical leaf inside the bedroom in both directions.
+// Other established portals retain their source-side closing motion.
 function positionDoor(object) {
   // The hotspot may include trim for forgiving interaction, while panel is the
   // exact moving leaf. Keeping those rectangles separate leaves the jamb static.
@@ -771,15 +897,17 @@ function animateDoor(time) {
     if (e >= 1.45 && !t.switched) {
       showRoom(t.object.to);
       t.incoming = roomObjects[t.object.entry];
+      t.useDestinationSwing = Boolean(t.object.destinationSwing || t.incoming.destinationSwing);
       positionDoor(t.incoming);
-      document.getElementById('doorway').dataset.swingSide = 'source';
+      document.getElementById('doorway').dataset.swingSide = t.useDestinationSwing ? 'destination' : 'source';
       document.getElementById('doorway').dataset.visualRoom = gameState.currentRoom;
       t.switched = true;
       document.getElementById('doorway').dataset.motion = 'closing';
     }
     const incoming = t.switched;
     const object = incoming ? t.incoming : t.object;
-    const direction = t.object.swing ?? (t.object.hinge === 'right' ? 1 : -1);
+    const swingObject = incoming && t.useDestinationSwing ? object : t.object;
+    const direction = swingObject.swing ?? (swingObject.hinge === 'right' ? 1 : -1);
     const progress = incoming ? clamp((e-1.7)/.7) : clamp((e-.4)/.75);
     const start = incoming ? object.portal : t.start;
     const end = incoming ? object.walk : object.portal;

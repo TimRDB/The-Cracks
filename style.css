@@ -38,8 +38,8 @@ body.game-started #game { opacity: 1; }
 #sceneViewport { flex: 1; min-height: 0; display: grid; place-items: center; container-type: size; background: #101113; }
 #scene { position: relative; width: min(100cqw, calc(100cqh * 16 / 9)); aspect-ratio: 16 / 9; overflow: hidden; image-rendering: pixelated; cursor: crosshair; }
 #room-art { position: absolute; inset: 0; pointer-events: none; }
-#room-background { position: absolute; inset: 0; z-index: 0; background: #08090b var(--room-image, url('assets/lighting/bedroom-states-v13/bedroom-c0-l1-m0.png')) center / 100% 100% no-repeat; }
-.room-background-layer { position: absolute; inset: 0; background: url('assets/lighting/bedroom-states-v13/bedroom-c0-l1-m0.png') center / 100% 100% no-repeat; opacity: 0; transition: opacity 1.4s cubic-bezier(.45,0,.2,1); will-change: opacity; }
+#room-background { position: absolute; inset: 0; z-index: 0; background: #08090b var(--room-image, url('assets/lighting/bedroom-states-v14/bedroom-c0-l0-m0.png')) center / 100% 100% no-repeat; }
+.room-background-layer { position: absolute; inset: 0; background: url('assets/lighting/bedroom-states-v14/bedroom-c0-l0-m0.png') center / 100% 100% no-repeat; opacity: 0; transition: opacity 1.4s cubic-bezier(.45,0,.2,1); will-change: opacity; }
 .room-background-layer.is-visible { opacity: 1; }
 #living-toaster { display: none; position: absolute; z-index: 2; left: 44.378%; top: 29.331%; width: 4.904%; height: 8.714%; }
 #scene[data-room="living"] #living-toaster:not(.is-taken) { display: block; }
@@ -48,7 +48,7 @@ body.game-started #game { opacity: 1; }
 #scene.light-switching .room-background-layer,
 #scene.light-switching .toaster-state-layer { transition-duration: .22s; transition-timing-function: ease-out; }
 #scene.light-switching .curtain-panel { transition-duration: 1.4s, .22s; transition-timing-function: cubic-bezier(.45,0,.2,1), ease-out; }
-#scene.light-switching .sprite { transition-duration: .20s, .08s; transition-timing-function: ease-out, linear; }
+#scene.light-switching .sprite { transition-duration: .20s; transition-timing-function: ease-out; }
 #scene::after { content: ""; position: absolute; inset: 0; pointer-events: none; box-shadow: inset 0 0 70px #090c1655; }
 /* The image has bare window glass; these independent cloth panels cover it. */
 #curtains { position: absolute; left: 18.9%; top: 8.9%; width: 23.5%; height: 31.8%; overflow: hidden; }
@@ -61,10 +61,11 @@ body.game-started #game { opacity: 1; }
 #statusText { position: absolute; z-index: 140; left: 50%; top: 6px; transform: translateX(-50%); max-width: 90%; padding: 4px 10px; text-align: center; background: #0a0c10d9; border: 1px solid #837763; color: #f2e3c5; font-size: 13px; pointer-events: none; }
 .hotspot { position: absolute; z-index: 15; padding: 0; border: 0; background: transparent; opacity: 0; }
 .hotspot:hover, .hotspot:focus-visible { opacity: 0; background: transparent; outline: none; }
-.sprite { position: absolute; width: var(--sprite-width, 27.5%); aspect-ratio: 1; pointer-events: none; transform-origin: center bottom; transform: translate(-50%, -100%) scaleX(var(--facing, 1)); filter: brightness(var(--player-light, .64)) drop-shadow(2px 3px 1px #0007); transition: filter .65s ease-in-out, width .08s linear; }
+.sprite { position: absolute; width: var(--sprite-width, 27.5%); aspect-ratio: 1; pointer-events: none; transform-origin: center bottom; transform: translate(-50%, -100%) scaleX(var(--facing, 1)); filter: brightness(var(--player-light, .64)) drop-shadow(2px 3px 1px #0007); transition: filter .65s ease-in-out; }
 #scene[data-room="outside"] .player-frame { translate: 0 var(--step-lift, 0%); rotate: var(--stair-lean, 0deg); }
-.player-frame { position: absolute; inset: 0; background: url('assets/bedroom_player.png') no-repeat; background-size: 500% 300%; filter: url(#sprite-green-key); }
-.sprite-filters { position: absolute; pointer-events: none; }
+/* The sheet's green screen is keyed out at build time (scripts/build-player-keyed-sheet.ps1),
+   so no live filter has to re-render the character when its pose, size or room changes. */
+.player-frame { position: absolute; inset: 0; background: url('assets/player-sheet-keyed-v1.png') no-repeat; background-size: 500% 300%; }
 #messageBox { position: absolute; z-index: 150; left: 50%; bottom: 3%; transform: translateX(-50%); width: min(700px, 88%); max-height: calc(100% - 44px); overflow-y: auto; padding: 9px 12px; border: 2px solid #a89675; background: #0a0c10ed; text-align: center; font-size: 14px; line-height: 1.4; }
 .hidden { display: none; }
 [hidden] { display: none !important; }
@@ -105,7 +106,7 @@ body.game-started #game { opacity: 1; }
 .outside-car-foreground.silver { clip-path: polygon(52.1% 63.8%, 52.3% 62.4%, 52.9% 61.4%, 53.7% 61.2%, 54.4% 61.8%, 55.1% 59.0%, 56.2% 57.2%, 58.0% 56.4%, 65.4% 56.5%, 66.8% 57.5%, 67.7% 59.4%, 68.4% 61.8%, 69.1% 61.2%, 69.8% 61.8%, 70.1% 63.1%, 69.7% 64.1%, 69.0% 64.5%, 69.5% 68.0%, 70.2% 72.1%, 70.4% 77.2%, 70.1% 81.8%, 69.2% 84.5%, 67.9% 85.8%, 54.9% 85.9%, 53.5% 84.3%, 52.7% 81.3%, 52.6% 74.0%); }
 .outside-car-foreground.blue { clip-path: polygon(75.7% 64.1%, 75.9% 62.6%, 76.6% 61.5%, 77.3% 61.3%, 78.1% 61.9%, 78.8% 59.3%, 80.1% 57.5%, 81.9% 56.7%, 90.8% 56.7%, 92.3% 57.6%, 93.6% 59.6%, 94.4% 62.3%, 95.3% 61.6%, 96.0% 62.0%, 96.5% 63.3%, 96.2% 64.4%, 95.5% 64.9%, 96.2% 68.5%, 96.8% 73.1%, 97.0% 78.3%, 96.6% 82.3%, 95.4% 84.7%, 93.8% 85.8%, 79.4% 85.9%, 77.7% 84.4%, 76.6% 81.4%, 76.1% 75.5%); }
 #interface { flex: 0 0 auto; display: grid; grid-template-columns: minmax(0, 1.5fr) auto auto; align-items: center; gap: 8px; padding: 6px 8px; max-height: 50%; overflow-y: auto; font-size: 12px; background: linear-gradient(#2d2b29, #1a1a1d); border-top: 2px solid #554f44; }
-#verbs { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; }
+#verbs { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 4px; }
 #interface button { min-height: 32px; padding: 5px 8px; white-space: nowrap; border: 1px solid #736653; background: linear-gradient(#393631, #222226); }
 #interface button:hover { background: #4b4337; }
 #verbs button.active { border-color: #d4b478; background: #685234; color: white; }
@@ -117,3 +118,59 @@ body.game-started #game { opacity: 1; }
 @media (max-height: 500px) { body { padding: 4px; } #interface { padding: 4px 6px; gap: 4px; } }
 @media (max-height: 560px) { .title-content { gap: 1.4rem; } .game-title { font-size: clamp(3.7rem, 17vh, 6rem); } .title-menu { gap: .6rem; } .title-choice { min-height: 45px; font-size: 1rem; } .options-panel { min-height: 82vh; } }
 @media (prefers-reduced-motion: reduce) { .curtain-panel, .room-background-layer, .toaster-state-layer, .sprite, #game, .title-fade, .title-backdrop, .title-content, .options-overlay, .options-panel { transition-duration: .15s; } }
+
+/* Street doors use painted clean plates within their exact leaf rectangles. */
+.street-door { display:none; position:absolute; z-index:3; overflow:hidden; perspective:600px; background-repeat:no-repeat; pointer-events:none; }
+#scene[data-room="street"] .street-door { display:block; }
+#alley-npc { display:none; position:absolute; left:39%; top:34%; z-index:61; width:20%; aspect-ratio:1374/1145; pointer-events:none; background-image:url(assets/alley-man-sprite-v6.png); background-size:200% 100%; background-position:0 0; background-repeat:no-repeat; filter:drop-shadow(2px 3px 1px #0007); }
+#scene[data-room="alley"] #alley-npc { display:block; animation:alley-npc-blink 6s step-end infinite; }
+@keyframes alley-npc-blink { 0%,91%,95%,100% { background-position:0 0; } 92%,94% { background-position:100% 0; } }
+@media (prefers-reduced-motion:reduce) { #scene[data-room="alley"] #alley-npc { animation:none; } }
+.street-leaf { position:absolute; inset:0; background-repeat:no-repeat; transition:transform .65s ease-in-out; backface-visibility:hidden; }
+#street-laundry { left:40.67%;top:49%;width:3.72%;height:15.3%;background-image:url('assets/street_doors_open.png');background-size:2688.1720430107525% 653.59477124183%;background-position:42.241379310344826% 57.85123966942149%; }
+#street-laundry .street-leaf { transform-origin:left center;background-image:url('assets/street_bg.png');background-size:2688.1720430107525% 653.59477124183%;background-position:42.241379310344826% 57.85123966942149%; }
+#street-laundry.is-open .street-leaf { transform:rotateY(-86deg); }
+#street-bluestar { left:62.2009569378%;top:48.9904357067%;width:6.5789473684%;height:16.3655685441%;background-image:url('assets/bluestar-interior-v2.png');background-size:100% 100%;background-position:center; }
+#street-bluestar .street-leaf { width:50%; }
+#street-bluestar .left { background-image:url('assets/bluestar-door-left-v2.png');background-size:100% 100%;background-position:center; }
+#street-bluestar .right { left:50%;background-image:url('assets/bluestar-door-right-v2.png');background-size:100% 100%;background-position:center; }
+#street-bluestar.is-open .left { transform:translateX(-100%); }
+#street-bluestar.is-open .right { transform:translateX(100%); }
+@media (prefers-reduced-motion:reduce) { .street-leaf { transition-duration:.15s; } }
+
+/* The moving PNGs contain metal and handles only. Interior pixels belong to
+   the stationary parent; this faint transparent sheen is the glass surface. */
+#street-bluestar .street-leaf::after { content:'';position:absolute;inset:5% 11% 9%;pointer-events:none;background:linear-gradient(112deg,transparent 25%,rgba(200,224,234,.055) 43%,transparent 49%); }
+
+/* Intro art is a native-size bed-only composite over the untouched bedroom.
+   The normal curtain layer stays above it; no filters/resampling are applied. */
+#wakeup-bed { position:absolute;inset:0;z-index:1;background:url('assets/bedroom-wakeup-v1.png') center/100% 100% no-repeat; }
+.wakeup-active #curtains { z-index:2; }
+.wakeup-active:not(.wakeup-standing) #player { visibility:hidden; }
+.wakeup-active #hotspots { pointer-events:none; }
+.wakeup-active #statusText, .wakeup-active #messageBox { visibility:hidden; }
+#alarm-closeup { position:absolute;z-index:160;left:50%;top:50%;width:49%;aspect-ratio:3/2;transform:translate(-50%,-50%);background:url('assets/alarm-closeup-v1.png') center/100% 100% no-repeat;border:2px solid #7d7464;box-shadow:0 8px 28px #000b;pointer-events:none;image-rendering:auto; }
+#alarm-digits { position:absolute;left:28%;top:40.5%;width:48%;height:18.2%; }
+#alarm-digits svg { display:block;width:100%;height:100%; }
+#wakeup-fade { position:absolute;inset:0;z-index:170;pointer-events:none;background:#08090b;opacity:0;transition:opacity .8s ease-in-out; }
+#skip-wakeup { position:absolute;z-index:165;right:1.5%;bottom:2%;padding:6px 10px;border:1px solid #7d7464;background:#151519cc;color:#d8cfbd;font-size:12px; }
+@media (max-width:600px) { #alarm-closeup { width:66%; } }
+#game:has(.wakeup-active) #interface { visibility:hidden; }
+#alarm-closeup { animation:wakeup-clock-zoom .32s ease-out; }
+@keyframes wakeup-clock-zoom { from { left:9%;top:49%;transform:translate(-50%,-50%) scale(.06);opacity:.4; } to { left:50%;top:50%;transform:translate(-50%,-50%) scale(1);opacity:1; } }
+@media (prefers-reduced-motion:reduce) { #alarm-closeup { animation:none; } }
+
+/* Developer tools (~). Paused state also freezes any CSS keyframe animation. */
+body.game-paused #game *, body.game-paused #game *::before, body.game-paused #game *::after { animation-play-state: paused !important; }
+.dev-overlay { position: fixed; inset: 0; z-index: 1001; display: grid; place-items: center; padding: 16px; background: #050506b8; backdrop-filter: blur(3px); }
+.dev-overlay[hidden], .dev-screen[hidden] { display: none; }
+.dev-panel { width: min(520px, 100%); max-height: 100%; overflow-y: auto; border: 1px solid #736653; background: linear-gradient(#26241f, #151517); box-shadow: 0 16px 60px #000c; font-family: Consolas, "Courier New", monospace; }
+.dev-screen { display: flex; flex-direction: column; gap: 12px; padding: 18px 20px 20px; }
+.dev-screen h2 { margin: 0; color: #d4b478; font-size: 1.15rem; letter-spacing: .14em; text-transform: uppercase; }
+.dev-paused { margin: -6px 0 4px; color: #8f8779; font-size: .8rem; letter-spacing: .08em; text-transform: uppercase; }
+.dev-options { display: flex; flex-direction: column; gap: 6px; }
+.dev-choice { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; min-height: 38px; padding: 8px 12px; border: 1px solid #5c5446; background: #1e1d1b; color: #e6dccb; font: inherit; font-size: .95rem; text-align: left; cursor: pointer; }
+.dev-choice:hover, .dev-choice:focus-visible { border-color: #d4b478; background: #3a3226; color: #fff; outline: none; }
+.dev-scene[aria-current="true"] { border-color: #8a7550; }
+.dev-scene-note { color: #9d9484; font-size: .78rem; }
+.dev-back { align-items: center; margin-top: 6px; letter-spacing: .1em; text-transform: uppercase; }

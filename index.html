@@ -6,9 +6,16 @@
   <title>The Cracks - Apartment</title>
   <link rel="stylesheet" href="style.css" />
   <link rel="preload" as="image" href="assets/title-screen-bg.png" />
-  <link rel="preload" as="image" href="assets/bedroom_player.png" />
+  <link rel="preload" as="image" href="assets/player-sheet-keyed-v1.png" />
+  <link rel="preload" as="image" href="assets/bedroom-wakeup-v1.png" />
+  <link rel="preload" as="image" href="assets/alarm-closeup-v1.png" />
   <link rel="preload" as="image" href="assets/outside_bg.png" />
-  <link rel="preload" as="image" href="assets/lighting/bedroom-states-v13/bedroom-c0-l1-m0.png" />
+  <link rel="preload" as="image" href="assets/street_bg_counter_v2.png" />
+  <link rel="preload" as="image" href="assets/street_doors_open.png" />
+  <link rel="preload" as="image" href="assets/bluestar-interior-v2.png" />
+  <link rel="preload" as="image" href="assets/bluestar-door-left-v2.png" />
+  <link rel="preload" as="image" href="assets/bluestar-door-right-v2.png" />
+  <link rel="preload" as="image" href="assets/lighting/bedroom-states-v14/bedroom-c0-l0-m0.png" />
   <link rel="preload" as="image" href="assets/lighting/hard-states-v7/living-c0-m0-b0-h0.png" />
   <link rel="preload" as="image" href="assets/lighting/hard-states-v7/bathroom-c0-m0.png" />
 </head>
@@ -31,14 +38,6 @@
     </div>
     <div class="title-fade" aria-hidden="true"></div>
   </section>
-  <svg width="0" height="0" class="sprite-filters" aria-hidden="true">
-    <defs>
-      <filter id="sprite-green-key" color-interpolation-filters="sRGB" x="0" y="0" width="100%" height="100%">
-        <feColorMatrix type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  4 -8 4 1 0" />
-        <feComponentTransfer><feFuncA type="discrete" tableValues="0 1" /></feComponentTransfer>
-      </filter>
-    </defs>
-  </svg>
   <main id="game" aria-hidden="true" inert>
     <div id="sceneViewport">
       <section id="scene" class="curtains-closed" data-room="bedroom" aria-label="Bedroom">
@@ -47,6 +46,7 @@
             <div id="room-background-a" class="room-background-layer is-visible"></div>
             <div id="room-background-b" class="room-background-layer"></div>
           </div>
+          <div id="wakeup-bed" hidden></div>
           <div id="living-toaster">
             <div id="living-toaster-a" class="toaster-state-layer is-visible"></div>
             <div id="living-toaster-b" class="toaster-state-layer"></div>
@@ -59,7 +59,10 @@
           <div id="living-tv"></div>
           <div id="doorway" class="hidden"><div id="door-face"><div id="door-surface"></div></div></div>
           <div id="bedroom-door-foreground"></div>
+          <div id="street-laundry" class="street-door" aria-hidden="true"><div class="street-leaf"></div></div>
+          <div id="street-bluestar" class="street-door" aria-hidden="true"><div class="street-leaf left"></div><div class="street-leaf right"></div></div>
         </div>
+        <div id="alley-npc" aria-hidden="true"></div>
         <div id="statusText">Walk to</div>
         <div id="hotspots"></div>
         <div id="player" class="sprite" data-facing="down" aria-label="Player character">
@@ -72,6 +75,9 @@
         </div>
         <div id="messageBox" class="hidden" role="status" aria-live="polite"></div>
         <div id="scene-fade" aria-hidden="true"></div>
+        <div id="alarm-closeup" hidden role="img" aria-label="Alarm clock ringing at 6:00"><div id="alarm-digits"></div></div>
+        <div id="wakeup-fade" aria-hidden="true"></div>
+        <button id="skip-wakeup" hidden>Skip intro</button>
       </section>
     </div>
     <section id="interface" aria-label="Game controls">
@@ -81,6 +87,7 @@
         <button data-verb="open">Open</button>
         <button data-verb="close">Close</button>
         <button data-verb="use">Use</button>
+        <button data-verb="talk">Talk to</button>
       </div>
       <div id="roomControls">
         <span id="roomLight">Curtains closed</span>
@@ -93,8 +100,29 @@
       </div>
     </section>
   </main>
+  <div id="devTools" class="dev-overlay" role="dialog" aria-modal="true" aria-labelledby="devToolsHeading" hidden>
+    <div class="dev-panel">
+      <section id="devMenu" class="dev-screen">
+        <h2 id="devToolsHeading">Developer Tools</h2>
+        <p class="dev-paused">Game paused</p>
+        <div class="dev-options">
+          <button id="devSceneSelectBtn" class="dev-choice">Scene Select</button>
+        </div>
+        <button id="devBackBtn" class="dev-choice dev-back">Back</button>
+      </section>
+      <section id="devSceneSelect" class="dev-screen" aria-labelledby="devSceneHeading" hidden>
+        <h2 id="devSceneHeading">Scene Select</h2>
+        <div id="devSceneList" class="dev-options"></div>
+        <button id="devSceneBackBtn" class="dev-choice dev-back">Back</button>
+      </section>
+    </div>
+  </div>
   <script src="rooms.js"></script>
   <script src="outside.js"></script>
+  <script src="street.js"></script>
+  <script src="alley.js"></script>
+  <script src="wakeup.js"></script>
   <script src="game.js"></script>
+  <script src="devtools.js"></script>
 </body>
 </html>

@@ -23,9 +23,9 @@ const apartmentRooms = {
   living: {
     name: 'Living room & kitchen', image: 'assets/lighting/living-master-v2.png', floor: [8, 95, 57, 94], obstacles: [[28, 64, 45, 30], [80, 55, 19, 31]],
     objects: {
-      bedroomDoor: { ...door('bedroom door', [18.4,14.5,8.5,38], [29,60], 'bedroom', 'door'), hinge: 'left' },
+      bedroomDoor: { ...door('bedroom door', [18.4,14.5,8.5,38], [29,60], 'bedroom', 'door'), hinge: 'right', swing: -1, destinationSwing: true },
       bathroomDoor: { ...door('bathroom door', [67.5,12.5,10.1,39.7], [72.5,61], 'bathroom', 'livingDoor'), panel: [68.6,14.1,8,37.5], appearance: 'glass', hinge: 'right' },
-      exit: { ...door('apartment exit at the end of the hallway', [85.5,7,13.5,47], [91.5,55], 'outside', 'frontDoor'), portal: [91.7,39.6], panel: [89.1,18.4,5.2,21.2], hinge: 'right', swing: 1, description: 'A short recessed hallway leads to the front door and the concrete patio outside.' },
+      exit: { ...door('apartment exit at the end of the hallway', [85.5,7,13.5,47], [91.5,55], 'outside', 'frontDoor'), portal: [91.7,39.6], panel: [88.3971,18.491,4.5455,20.085], hinge: 'right', swing: 1, description: 'A short recessed hallway leads to the front door and the concrete patio outside.' },
       tv: item('living room TV', [80.8,41.5,18,44], [77,80], 'The TV stands to the right of the couch, angled left toward the seating area.'),
       channelBox: item('channel switching box', [84.8,62.5,9,8], [77,75], 'The set-top box switches between three channels. Use it to change channel.'),
       couch: item('couch', [28,64,45,30], [76,80], 'The sagging couch sits in the middle of the room facing the TV.', 'You straighten the blanket and test a cushion.'),

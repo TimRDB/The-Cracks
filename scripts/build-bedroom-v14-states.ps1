@@ -12,7 +12,7 @@ using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.Runtime.InteropServices;
 
-public static class BedroomV13Builder {
+public static class BedroomV14Builder {
   static int Clamp(double value) {
     return Math.Max(0, Math.Min(255, (int)Math.Round(value)));
   }
@@ -91,8 +91,8 @@ public static class BedroomV13Builder {
 Add-Type -TypeDefinition $type -ReferencedAssemblies System.Drawing
 
 $lightingRoot = Join-Path $ProjectRoot 'assets\lighting'
-$sourceRoot = Join-Path $lightingRoot 'bedroom-source-v13'
-$outputRoot = Join-Path $lightingRoot 'bedroom-states-v13'
+$sourceRoot = Join-Path $lightingRoot 'bedroom-source-v14'
+$outputRoot = Join-Path $lightingRoot 'bedroom-states-v14'
 $chairPath = Join-Path $lightingRoot 'bedroom-stool.png'
 [IO.Directory]::CreateDirectory($outputRoot) | Out-Null
 
@@ -101,10 +101,10 @@ foreach ($curtains in 0,1) {
     foreach ($main in 0,1) {
       $sourceName = "bedroom-c1-l$lamp-m$main.png"
       $sourcePath = Join-Path $sourceRoot $sourceName
-      if (-not (Test-Path -LiteralPath $sourcePath)) { throw "Missing v13 source: $sourcePath" }
+      if (-not (Test-Path -LiteralPath $sourcePath)) { throw "Missing v14 source: $sourcePath" }
 
-      $rendered = [BedroomV13Builder]::CompositeChair($sourcePath, $chairPath, ($lamp -eq 1 -or $main -eq 1))
-      if ($curtains -eq 0) { [BedroomV13Builder]::ApplyClosedCurtainAmbient($rendered) }
+      $rendered = [BedroomV14Builder]::CompositeChair($sourcePath, $chairPath, ($lamp -eq 1 -or $main -eq 1))
+      if ($curtains -eq 0) { [BedroomV14Builder]::ApplyClosedCurtainAmbient($rendered) }
       $name = "bedroom-c$curtains-l$lamp-m$main.png"
       $rendered.Save((Join-Path $outputRoot $name), [Drawing.Imaging.ImageFormat]::Png)
       $rendered.Dispose()
@@ -112,4 +112,4 @@ foreach ($curtains in 0,1) {
   }
 }
 
-Write-Host "Built 8 regenerated bedroom states in $outputRoot"
+Write-Host "Built 8 master-derived bedroom states in $outputRoot"

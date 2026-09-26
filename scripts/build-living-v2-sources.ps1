@@ -12,6 +12,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
+using System.IO;
 using System.Runtime.InteropServices;
 
 public static class LivingV2SourceBuilder {
@@ -25,9 +26,97 @@ public static class LivingV2SourceBuilder {
       graphics.CompositingQuality = CompositingQuality.HighQuality;
       graphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
       graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
-      graphics.DrawImage(source, new Rectangle(0, 0, width, height));
+      // Bicubic sampling reaches beyond the source at the canvas boundary.
+      // Mirroring real edge pixels prevents transparent-black samples from
+      // producing a four-sided illumination seam after the field is enlarged.
+      using (ImageAttributes attributes = new ImageAttributes()) {
+        attributes.SetWrapMode(WrapMode.TileFlipXY);
+        graphics.DrawImage(source, new Rectangle(0, 0, width, height),
+          0, 0, source.Width, source.Height, GraphicsUnit.Pixel, attributes);
+      }
     }
     return result;
+  }
+
+  static double SmoothStep(double edge0, double edge1, double value) {
+    double t = Math.Max(0, Math.Min(1, (value - edge0) / (edge1 - edge0)));
+    return t * t * (3 - 2 * t);
+  }
+
+  static double SoftBox(double value, double minimum, double maximum, double feather) {
+    return SmoothStep(minimum, minimum + feather, value)
+      * (1 - SmoothStep(maximum - feather, maximum, value));
+  }
+
+  static double HallStrength(double x, double y) {
+    // Keep a restrained pool of light within the recessed hall while removing
+    // most of its broad spill across the main room. Extra feathered reductions
+    // protect the kitchen bench and bathroom door without creating mask edges.
+    double hallway = SmoothStep(.78, .87, x);
+    double strength = .35 + .37 * hallway;
+    double bathroomDoor = SoftBox(x, .655, .805, .035) * SoftBox(y, .08, .61, .06);
+    double kitchenBench = SoftBox(x, .25, .69, .06) * SoftBox(y, .16, .62, .08);
+    strength *= 1 - .58 * bathroomDoor;
+    strength *= 1 - .42 * kitchenBench;
+    return strength;
+  }
+
+  static double BenchStrength(double x, double y) {
+    // The countertop blocks most downward spill across the green cabinetry.
+    // Keep the transition feathered at the worktop edge, strongly reduce the
+    // unrelated bathroom-door wash, and preserve the useful coffee-table glow.
+    double underBench = SoftBox(x, .43, .675, .025)
+      * SmoothStep(.365, .39, y)
+      * (1 - SmoothStep(.64, .68, y));
+    double bathroomDoor = SoftBox(x, .655, .805, .035) * SoftBox(y, .08, .61, .06);
+    double coffeeTable = SoftBox(x, .40, .65, .025) * SoftBox(y, .58, .76, .025);
+    double strength = 1;
+    strength *= 1 - .92 * underBench;
+    strength *= 1 - .75 * bathroomDoor;
+    strength += (1 - strength) * coffeeTable;
+    return strength;
+  }
+
+  static double BenchRightSpread(double x, double y) {
+    return SoftBox(x, .57, .70, .025) * SoftBox(y, .19, .41, .035);
+  }
+
+  static double MainStrength(double x, double y) {
+    // Remove the main ceiling light's pale wash from the same green drawer
+    // faces while leaving the benchtop, floor and foreground illumination alone.
+    double underBench = SoftBox(x, .43, .675, .025)
+      * SmoothStep(.365, .39, y)
+      * (1 - SmoothStep(.55, .59, y));
+    return 1 - .75 * underBench;
+  }
+
+  static double ExtendPositiveDelta(double current, double sample, double amount) {
+    return sample > current && sample > 0 ? current + (sample - current) * amount : current;
+  }
+
+  static void IlluminateMainBulb(Bitmap output) {
+    // Fill only the exposed glass globe. Its core is deliberately opaque like
+    // the bedroom bulb, while a two-pixel feather preserves the painted rim.
+    const double centerX = 832;
+    const double centerY = 62.5;
+    const double radiusX = 9;
+    const double radiusY = 10.5;
+    // y=55 is immediately below the shade's painted lower rim. Starting there
+    // keeps the upper globe hidden behind that rim instead of painting over it.
+    for (int y = 55; y <= 73; y++) {
+      for (int x = 823; x <= 841; x++) {
+        double dx = (x - centerX) / radiusX;
+        double dy = (y - centerY) / radiusY;
+        double distance = Math.Sqrt(dx * dx + dy * dy);
+        if (distance >= 1) continue;
+        double amount = .97 * (1 - SmoothStep(.78, 1, distance));
+        Color from = output.GetPixel(x, y);
+        int r = Clamp((int)Math.Round(from.R + (255 - from.R) * amount), 0, 255);
+        int g = Clamp((int)Math.Round(from.G + (244 - from.G) * amount), 0, 255);
+        int b = Clamp((int)Math.Round(from.B + (205 - from.B) * amount), 0, 255);
+        output.SetPixel(x, y, Color.FromArgb(from.A, r, g, b));
+      }
+    }
   }
 
   public static void BuildField(string[] onPaths, string[] offPaths, string output, int width, int height) {
@@ -93,9 +182,15 @@ public static class LivingV2SourceBuilder {
     Bitmap output = source.Clone(new Rectangle(0, 0, source.Width, source.Height), PixelFormat.Format32bppArgb);
     if (fieldPaths.Length == 0) return output;
     var fields = new List<Bitmap>();
+    var hallFields = new List<bool>();
+    var benchFields = new List<bool>();
+    var mainFields = new List<bool>();
     try {
       foreach (string path in fieldPaths) {
         using (Bitmap small = new Bitmap(path)) fields.Add(Resize(small, source.Width, source.Height));
+        hallFields.Add(String.Equals(Path.GetFileName(path), "hall.png", StringComparison.OrdinalIgnoreCase));
+        benchFields.Add(String.Equals(Path.GetFileName(path), "bench.png", StringComparison.OrdinalIgnoreCase));
+        mainFields.Add(String.Equals(Path.GetFileName(path), "main.png", StringComparison.OrdinalIgnoreCase));
       }
       Rectangle bounds = new Rectangle(0, 0, output.Width, output.Height);
       BitmapData targetData = output.LockBits(bounds, ImageLockMode.ReadWrite, PixelFormat.Format32bppArgb);
@@ -115,10 +210,28 @@ public static class LivingV2SourceBuilder {
         for (int x = 0; x < output.Width; x++) {
           int index = y * targetData.Stride + x * 4;
           int db = 0, dg = 0, dr = 0;
-          foreach (byte[] pixels in fieldBytes) {
-            db += pixels[index] - 128;
-            dg += pixels[index+1] - 128;
-            dr += pixels[index+2] - 128;
+          for (int fieldIndex = 0; fieldIndex < fieldBytes.Count; fieldIndex++) {
+            byte[] pixels = fieldBytes[fieldIndex];
+            double normalizedX = (double)x / (output.Width - 1);
+            double normalizedY = (double)y / (output.Height - 1);
+            double strength = hallFields[fieldIndex]
+              ? HallStrength(normalizedX, normalizedY)
+              : benchFields[fieldIndex] ? BenchStrength(normalizedX, normalizedY)
+              : mainFields[fieldIndex] ? MainStrength(normalizedX, normalizedY) : 1;
+            double fieldB = pixels[index] - 128;
+            double fieldG = pixels[index+1] - 128;
+            double fieldR = pixels[index+2] - 128;
+            if (benchFields[fieldIndex]) {
+              double spread = BenchRightSpread(normalizedX, normalizedY);
+              int sampleX = Math.Max(0, x - (int)Math.Round(output.Width * .025));
+              int sampleIndex = y * targetData.Stride + sampleX * 4;
+              fieldB = ExtendPositiveDelta(fieldB, pixels[sampleIndex] - 128, .42 * spread);
+              fieldG = ExtendPositiveDelta(fieldG, pixels[sampleIndex+1] - 128, .42 * spread);
+              fieldR = ExtendPositiveDelta(fieldR, pixels[sampleIndex+2] - 128, .42 * spread);
+            }
+            db += (int)Math.Round(fieldB * strength);
+            dg += (int)Math.Round(fieldG * strength);
+            dr += (int)Math.Round(fieldR * strength);
           }
           target[index] = (byte)Clamp(target[index] + db, 0, 255);
           target[index+1] = (byte)Clamp(target[index+1] + dg, 0, 255);
@@ -128,6 +241,7 @@ public static class LivingV2SourceBuilder {
       Marshal.Copy(target, 0, targetData.Scan0, bytes);
       output.UnlockBits(targetData);
       for (int i = 0; i < fields.Count; i++) fields[i].UnlockBits(fieldData[i]);
+      if (mainFields.Contains(true)) IlluminateMainBulb(output);
       return output;
     } finally {
       foreach (Bitmap field in fields) field.Dispose();

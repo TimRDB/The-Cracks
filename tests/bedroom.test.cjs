@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
 const vm = require('node:vm');
-const source = ['rooms.js', 'outside.js', 'game.js'].map(file => fs.readFileSync(path.join(__dirname, '..', file), 'utf8')).join('\n');
+const source = ['rooms.js', 'outside.js', 'street.js', 'alley.js', 'wakeup.js', 'game.js'].map(file => fs.readFileSync(path.join(__dirname, '..', file), 'utf8')).join('\n');
 const styles = fs.readFileSync(path.join(__dirname, '..', 'style.css'), 'utf8');
 const markup = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
 
@@ -23,6 +23,7 @@ test('approved background masters remain byte-for-byte unchanged', () => {
 
 function game(storage = new Map()) {
   const elements = new Map(); let frame = null, time = 0;
+  const timers=new Map();let timerId=0,timerNow=0;
   function element() {
     return { style: { setProperty(k, v) { this[k] = v; } }, dataset: {}, attributes: {}, events: {}, children: [],
       classList: { values: new Set(), add(c) { this.values.add(c); }, remove(c) { this.values.delete(c); }, contains(c) { return this.values.has(c); }, toggle(c, on) { on ? this.values.add(c) : this.values.delete(c); } },
@@ -32,12 +33,22 @@ function game(storage = new Map()) {
     };
   }
   const get = id => { if (!elements.has(id)) elements.set(id, element()); return elements.get(id); };
-  const verbs = ['walk', 'look', 'open', 'close', 'use'].map(verb => { const el = element(); el.dataset.verb = verb; return el; });
+  const verbs = ['walk', 'look', 'open', 'close', 'use', 'talk'].map(verb => { const el = element(); el.dataset.verb = verb; return el; });
   const context = vm.createContext({ document: { getElementById: get, querySelectorAll: () => verbs, createElement: element },
     localStorage: { getItem: k => storage.get(k) ?? null, setItem: (k, v) => storage.set(k, v), removeItem: k => storage.delete(k) },
-    setTimeout: () => 1, clearTimeout() {}, requestAnimationFrame: cb => { frame = cb; return 1; }, cancelAnimationFrame: () => { frame = null; } });
+    performance:{now:()=>timerNow}, getComputedStyle:()=>({opacity:'0'}),
+    setTimeout: (cb,ms=0) => {const id=++timerId;timers.set(id,{cb,at:timerNow+ms});return id;}, clearTimeout(id) {timers.delete(id);}, requestAnimationFrame: cb => { frame = cb; return 1; }, cancelAnimationFrame: () => { frame = null; } });
   vm.runInContext(source, context);
   return { get, storage, run: code => vm.runInContext(code, context),
+    advance(ms) {
+      const end=timerNow+ms;let limit=10000;
+      while(limit-- > 0) {
+        const next=[...timers].filter(([,t])=>t.at<=end).sort((a,b)=>a[1].at-b[1].at)[0];
+        if(!next) break;
+        timers.delete(next[0]);timerNow=next[1].at;next[1].cb();
+      }
+      assert.ok(limit>0);timerNow=end;
+    },
     tick(dt = 1000 / 60) { time += dt; const cb = frame; frame = null; if (cb) cb(time); },
     finish() { let limit = 3000; while (frame && limit-- > 0) this.tick(); assert.ok(limit > 0, 'walk must arrive'); }
   };
@@ -46,7 +57,13 @@ test('new launches always start in the dark bedroom, even with a saved open-curt
   const g = game(); g.run('setCurtains(true); saveGame();');
   const fresh = game(g.storage);
   assert.equal(fresh.run('gameState.curtainsOpen'), false);
+  for (const key of ['lampOn', 'bedroomMainLightOn', 'livingMainLightOn', 'kitchenLightsOn', 'hallwayLightOn', 'bathroomMainLightOn']) {
+    assert.equal(fresh.run(`gameState.${key}`), false, `${key} must start off`);
+  }
   assert.ok(fresh.get('scene').classList.contains('curtains-closed'));
+  assert.match(fresh.get('scene').style['--room-image'], /bedroom-c0-l0-m0\.png/);
+  assert.match(markup, /preload[^>]+bedroom-c0-l0-m0\.png/);
+  assert.match(styles, /--room-image[^}]+bedroom-c0-l0-m0\.png/);
   assert.equal(fresh.get('curtainToggle').textContent, 'Open curtains');
   assert.equal(fresh.run('movement.facing'), 'down');
   assert.equal(fresh.get('hotspots').children.length, 14);
@@ -59,19 +76,19 @@ test('bedroom lighting uses complete pre-rendered states without runtime masks',
   assert.doesNotMatch(styles, /#room-art\s*\{[^}]*(?:filter|transition)/);
   const g = game();
   assert.equal(g.get('scene').dataset.room, 'bedroom');
-  assert.match(g.get('scene').style['--room-image'], /bedroom-c0-l1-m0\.png/);
+  assert.match(g.get('scene').style['--room-image'], /bedroom-c0-l0-m0\.png/);
   g.run('showRoom("living"); showRoom("bedroom");');
-  assert.match(g.get('scene').style['--room-image'], /bedroom-c0-l1-m0\.png/);
+  assert.match(g.get('scene').style['--room-image'], /bedroom-c0-l0-m0\.png/);
   g.run('setCurtains(true);');
   assert.equal(g.get('scene').classList.contains('curtains-open'), true);
-  assert.match(g.get('scene').style['--room-image'], /bedroom-c1-l1-m0\.png/);
+  assert.match(g.get('scene').style['--room-image'], /bedroom-c1-l0-m0\.png/);
 });
 
 test('independent light circuits select the matching complete background', () => {
   const g = game();
   g.run('interact("mainLightSwitch","use")');
   assert.equal(g.run('gameState.bedroomMainLightOn'), true);
-  assert.match(g.get('scene').style['--room-image'], /bedroom-c0-l1-m1\.png/);
+  assert.match(g.get('scene').style['--room-image'], /bedroom-c0-l0-m1\.png/);
 
   g.run('showRoom("living")');
   for (const [target, key] of [
@@ -96,7 +113,7 @@ test('light switches rapidly update room, fixture and character illumination', (
   assert.match(source, /syncRoom\(\{ fastLight: true \}\)/);
   assert.match(styles, /#scene\.light-switching \.room-background-layer,[\s\S]*?transition-duration:\s*\.22s/);
   assert.match(styles, /#scene\.light-switching \.curtain-panel[^}]*transition-duration:\s*1\.4s, \.22s/);
-  assert.match(styles, /#scene\.light-switching \.sprite[^}]*transition-duration:\s*\.20s, \.08s/);
+  assert.match(styles, /#scene\.light-switching \.sprite[^}]*transition-duration:\s*\.20s;/);
 
   const g = game();
   g.get('room-background-a').classList.add('is-visible');
@@ -143,6 +160,8 @@ test('lighting state is saved, loaded and reset with backwards-compatible defaul
   for (const key of ['bedroomMainLightOn','livingCurtainsOpen','livingMainLightOn','kitchenLightsOn','hallwayLightOn','bathroomCurtainsOpen','bathroomMainLightOn']) assert.equal(g.run(`gameState.${key}`), true);
   g.run('resetGame()');
   for (const key of ['bedroomMainLightOn','livingCurtainsOpen','livingMainLightOn','kitchenLightsOn','hallwayLightOn','bathroomCurtainsOpen','bathroomMainLightOn']) assert.equal(g.run(`gameState.${key}`), false);
+  assert.equal(g.run('gameState.curtainsOpen'), false);
+  assert.equal(g.run('gameState.lampOn'), false);
 });
 
 test('all 28 pre-rendered lighting states are native-size PNGs with verified hashes', () => {
@@ -181,6 +200,25 @@ test('living circuits share one fixed high-detail master and deterministic light
   assert.match(builder, /\$livingSources\s*=\s*@\{/);
   assert.match(sourceBuilder, /Relight\(\$master, \$fields\)/);
   assert.match(sourceBuilder, /living-master-v2\.png/);
+  assert.match(sourceBuilder, /SetWrapMode\(WrapMode\.TileFlipXY\)/);
+  assert.match(sourceBuilder, /HallStrength\(double x, double y\)/);
+  assert.match(sourceBuilder, /double strength = \.35 \+ \.37 \* hallway/);
+  assert.match(sourceBuilder, /bathroomDoor/);
+  assert.match(sourceBuilder, /kitchenBench/);
+  assert.match(sourceBuilder, /BenchStrength\(double x, double y\)/);
+  assert.match(sourceBuilder, /double underBench/);
+  assert.match(sourceBuilder, /SmoothStep\(\.365, \.39, y\)/);
+  assert.match(sourceBuilder, /1 - \.92 \* underBench/);
+  assert.match(sourceBuilder, /double coffeeTable/);
+  assert.match(sourceBuilder, /strength \+= \(1 - strength\) \* coffeeTable/);
+  assert.match(sourceBuilder, /BenchRightSpread\(double x, double y\)/);
+  assert.match(sourceBuilder, /ExtendPositiveDelta/);
+  assert.match(sourceBuilder, /MainStrength\(double x, double y\)/);
+  assert.match(sourceBuilder, /return 1 - \.75 \* underBench/);
+  assert.match(sourceBuilder, /IlluminateMainBulb\(Bitmap output\)/);
+  assert.match(sourceBuilder, /if \(mainFields\.Contains\(true\)\) IlluminateMainBulb\(output\)/);
+  assert.match(sourceBuilder, /const double radiusX = 9/);
+  assert.match(sourceBuilder, /for \(int y = 55; y <= 73; y\+\+\)/);
   assert.doesNotMatch(sourceBuilder, /living-floor-lamp/);
   assert.doesNotMatch(builder, /switchSprite|\$switch|kitchenReflectionSurface|hallwayInterior|benchFixtures|hallwayFixture/);
   assert.doesNotMatch(builder, /livingLamp|living-floor-lamp|room == "living"\) DrawPercent/);
@@ -278,6 +316,9 @@ test('the toaster is a persistent state-matched prop over clean living-room plat
   assert.match(markup, /id="living-toaster-a"[^>]*is-visible/);
   assert.match(markup, /id="living-toaster-b"/);
   assert.match(styles, /\.toaster-state-layer[^}]*transition:\s*opacity 1\.4s/);
+  assert.match(source, /let toasterLayerCleanupTimer = null/);
+  assert.match(source, /setLayerVisibilityImmediately\(current, true\)/);
+  assert.match(source, /commitToasterImage\(toasterImageForState\(\), immediate, fastLight\)/);
 
   const g = game();
   g.run('showRoom("living");setVerb("use");updateStatus("toaster")');
@@ -293,12 +334,12 @@ test('the toaster is a persistent state-matched prop over clean living-room plat
 });
 test('bedroom curtain fabric follows room lighting with the same smooth transition', () => {
   const g = game();
-  assert.equal(g.get('scene').style['--curtain-light'], .82);
-  g.run('gameState.lampOn=false;syncRoom()');
   assert.equal(g.get('scene').style['--curtain-light'], .55);
+  g.run('gameState.lampOn=true;syncRoom()');
+  assert.equal(g.get('scene').style['--curtain-light'], .82);
   g.run('gameState.bedroomMainLightOn=true;syncRoom()');
   assert.equal(g.get('scene').style['--curtain-light'], 1.04);
-  g.run('gameState.bedroomMainLightOn=false;setCurtains(true)');
+  g.run('gameState.lampOn=false;gameState.bedroomMainLightOn=false;setCurtains(true)');
   assert.equal(g.get('scene').style['--curtain-light'], .9);
   assert.match(styles, /filter:\s*brightness\(var\(--curtain-light/);
   assert.match(styles, /filter 1\.4s/);
@@ -463,7 +504,7 @@ test('the restored bathroom runs from its left entrance to the right-side bath a
   assert.match(styles, /data-appearance="glass"/);
 });
 
-test('bedroom travel keeps the original arrival walk but closes with the departing side in both directions', () => {
+test('bedroom travel keeps the physical door inside the bedroom in both directions', () => {
   const g = game();
   g.run('showRoom("bedroom"); interact("door", "use");');
   g.tick(16); for (let i = 0; i < 28; i++) g.tick(50);
@@ -473,34 +514,34 @@ test('bedroom travel keeps the original arrival walk but closes with the departi
   assert.match(g.get('door-face').style.transform, /rotateY\([1-9]/);
   for (let i = 0; i < 10; i++) g.tick(50);
   assert.equal(g.run('gameState.currentRoom'), 'living');
-  assert.equal(g.get('doorway').dataset.hinge, 'left');
-  assert.equal(g.get('doorway').dataset.swingSide, 'source');
+  assert.equal(g.get('doorway').dataset.hinge, 'right');
+  assert.equal(g.get('doorway').dataset.swingSide, 'destination');
   assert.equal(g.get('doorway').dataset.visualRoom, 'living');
   assert.match(g.get('door-surface').style.backgroundImage, /living-c0-m0-b0-h0\.png/);
   for (let i = 0; i < 12; i++) g.tick(50);
-  assert.match(g.get('door-face').style.transform, /rotateY\([1-9]/);
+  assert.match(g.get('door-face').style.transform, /rotateY\(-/);
   g.finish();
 
   g.run('interact("bedroomDoor", "use");');
   g.tick(16); for (let i = 0; i < 28; i++) g.tick(50);
   assert.equal(g.run('gameState.currentRoom'), 'living');
   assert.equal(g.get('doorway').dataset.motion, 'opening');
-  assert.equal(g.get('doorway').dataset.hinge, 'left');
+  assert.equal(g.get('doorway').dataset.hinge, 'right');
   assert.match(g.get('door-face').style.transform, /rotateY\(-/);
   for (let i = 0; i < 10; i++) g.tick(50);
   assert.equal(g.run('gameState.currentRoom'), 'bedroom');
   assert.equal(g.get('doorway').dataset.hinge, 'right');
-  assert.equal(g.get('doorway').dataset.swingSide, 'source');
+  assert.equal(g.get('doorway').dataset.swingSide, 'destination');
   assert.equal(g.get('doorway').dataset.visualRoom, 'bedroom');
-  assert.match(g.get('door-surface').style.backgroundImage, /bedroom-c0-l1-m0\.png/);
+  assert.match(g.get('door-surface').style.backgroundImage, /bedroom-c0-l0-m0\.png/);
   for (let i = 0; i < 12; i++) g.tick(50);
-  assert.match(g.get('door-face').style.transform, /rotateY\(-/);
+  assert.match(g.get('door-face').style.transform, /rotateY\([1-9]/);
   g.finish();
 });
 
 test('the regenerated right-hinged bedroom door animates clear of the shortened couch', () => {
-  const stateDirectory = path.join(__dirname, '..', 'assets', 'lighting', 'bedroom-states-v13');
-  const sourceDirectory = path.join(__dirname, '..', 'assets', 'lighting', 'bedroom-source-v13');
+  const stateDirectory = path.join(__dirname, '..', 'assets', 'lighting', 'bedroom-states-v14');
+  const sourceDirectory = path.join(__dirname, '..', 'assets', 'lighting', 'bedroom-source-v14');
   const stateFiles = fs.readdirSync(stateDirectory).filter(file => file.endsWith('.png')).sort();
   const sourceFiles = fs.readdirSync(sourceDirectory).filter(file => file.endsWith('.png')).sort();
   assert.equal(stateFiles.length, 8);
@@ -511,25 +552,25 @@ test('the regenerated right-hinged bedroom door animates clear of the shortened 
     assert.equal(bytes.readUInt32BE(20), 941);
   }
   assert.match(source, /if \(bedroom\) preloadRoomImage\(bedroomDoorImageForState\(\)\)/);
-  assert.match(source, /assets\/lighting\/bedroom-states-v13\/bedroom-c/);
-  const builder = fs.readFileSync(path.join(__dirname, '..', 'scripts', 'build-bedroom-v13-states.ps1'), 'utf8');
-  assert.match(builder, /bedroom-source-v13/);
+  assert.match(source, /assets\/lighting\/bedroom-states-v14\/bedroom-c/);
+  const builder = fs.readFileSync(path.join(__dirname, '..', 'scripts', 'build-bedroom-v14-states.ps1'), 'utf8');
+  assert.match(builder, /bedroom-source-v14/);
   assert.match(builder, /bedroom-stool\.png/);
   assert.match(builder, /ApplyClosedCurtainAmbient/);
 
   const g = game();
   assert.equal(g.run('JSON.stringify(apartmentRooms.bedroom.objects.door.area)'), '[72.8,14,9.5,42.5]');
-  assert.equal(g.run('JSON.stringify(apartmentRooms.bedroom.objects.door.panel)'), '[72.9067,13.9214,9.4498,42.6142]');
+  assert.equal(g.run('JSON.stringify(apartmentRooms.bedroom.objects.door.panel)'), '[72.9665,14.0276,9.2105,43.2519]');
   assert.equal(g.run('apartmentRooms.bedroom.objects.door.foreground'), undefined);
   assert.equal(g.run('JSON.stringify(apartmentRooms.bedroom.objects.couch.area)'), '[78.5,57,21.5,38]');
   g.run('interact("door", "use");');
-  assert.equal(g.get('doorway').style.left, '72.9067%');
-  assert.equal(g.get('doorway').style.top, '13.9214%');
-  assert.equal(g.get('doorway').style.width, '9.4498%');
-  assert.equal(g.get('doorway').style.height, '42.6142%');
+  assert.equal(g.get('doorway').style.left, '72.9665%');
+  assert.equal(g.get('doorway').style.top, '14.0276%');
+  assert.equal(g.get('doorway').style.width, '9.2105%');
+  assert.equal(g.get('doorway').style.height, '43.2519%');
   assert.equal(g.get('door-face').style.transformOrigin, 'right center');
   assert.equal(g.get('doorway').dataset.foreground, '');
-  assert.match(g.get('door-surface').style.backgroundImage, /bedroom-states-v13\/bedroom-c0-l1-m0\.png/);
+  assert.match(g.get('door-surface').style.backgroundImage, /bedroom-states-v14\/bedroom-c0-l0-m0\.png/);
   assert.match(g.get('door-surface').style.backgroundSize, /^[\d.]+% [\d.]+%$/);
   assert.notEqual(g.get('door-surface').style.backgroundSize, '100% 100%');
   assert.equal(g.get('bedroom-door-foreground').style.display, undefined);
@@ -537,15 +578,31 @@ test('the regenerated right-hinged bedroom door animates clear of the shortened 
 
 test('living-room doors have reversed artwork handedness and hotspots stay invisible', () => {
   const g = game();
-  assert.equal(g.run('apartmentRooms.living.objects.bedroomDoor.hinge'), 'left');
+  assert.equal(g.run('apartmentRooms.living.objects.bedroomDoor.hinge'), 'right');
+  assert.equal(g.run('apartmentRooms.living.objects.bedroomDoor.swing'), -1);
+  assert.equal(g.run('apartmentRooms.living.objects.bedroomDoor.destinationSwing'), true);
   assert.equal(g.run('apartmentRooms.living.objects.bathroomDoor.hinge'), 'right');
   assert.equal(g.run('apartmentRooms.living.objects.exit.hinge'), 'right');
   assert.equal(g.run('apartmentRooms.outside.objects.frontDoor.hinge'), 'left');
   assert.equal(g.run('apartmentRooms.living.objects.exit.swing'), 1);
+  assert.equal(g.run('JSON.stringify(apartmentRooms.living.objects.exit.panel)'), '[88.3971,18.491,4.5455,20.085]');
   assert.equal(g.run('apartmentRooms.outside.objects.frontDoor.swing'), 1);
   assert.equal(g.run('apartmentRooms.bedroom.objects.door.hinge'), 'right');
+  assert.equal(g.run('apartmentRooms.bedroom.objects.door.destinationSwing'), true);
   assert.equal(g.run('apartmentRooms.bathroom.objects.livingDoor.hinge'), 'left');
   assert.match(styles, /\.hotspot:hover[^}]*opacity:\s*0[^}]*background:\s*transparent[^}]*outline:\s*none/);
+});
+
+test('the living-room front door animation samples only the exact inner leaf', () => {
+  const g = game();
+  g.run('showRoom("living"); positionDoor(apartmentRooms.living.objects.exit);');
+  assert.equal(g.get('doorway').style.left, '88.3971%');
+  assert.equal(g.get('doorway').style.top, '18.491%');
+  assert.equal(g.get('doorway').style.width, '4.5455%');
+  assert.equal(g.get('doorway').style.height, '20.085%');
+  assert.equal(g.get('door-face').style.transformOrigin, 'right center');
+  assert.match(g.get('door-surface').style.backgroundImage, /living-c0-m0-b0-h0\.png/);
+  assert.notEqual(g.run('JSON.stringify(apartmentRooms.living.objects.exit.area)'), g.run('JSON.stringify(apartmentRooms.living.objects.exit.panel)'));
 });
 
 test('transition input is locked and reset cancels pending travel', () => {
@@ -714,4 +771,168 @@ test('bedroom has a separate interactive bookshelf beside the lamp table', () =>
   const g = game();
   assert.equal(g.run('roomObjects.bookshelf.name'), 'small bookshelf');
   assert.ok(g.run('roomObjects.bookshelf.area[0] + roomObjects.bookshelf.area[2]') < g.run('roomObjects.lamp.area[0] + roomObjects.lamp.area[2]'));
+});
+
+test('street is reached from the right footpath and returns at the left edge', () => {
+  const g=game();
+  g.run("showRoom('outside');Object.assign(movement,{x:90,y:55});movePlayerTo(99,55)");
+  g.finish();
+  assert.equal(g.run('gameState.currentRoom'),'street');
+  assert.equal(g.run('movement.x'),3);
+  assert.ok(g.run("playerPerspective('street',movement.y).width < playerPerspective('outside',55).width"));
+  g.run("movePlayerTo(0,64)");g.finish();
+  assert.equal(g.run('gameState.currentRoom'),'outside');
+  assert.equal(g.run('movement.x'),93);
+});
+test('Bluestar sensor opens without entering and walking crosses its threshold', () => {
+  const g=game();
+  g.run("showRoom('street');Object.assign(movement,{x:56,y:streetFootY(56)});renderPlayer()");
+  assert.equal(g.get('street-bluestar').classList.contains('is-open'),false);
+  g.run("movePlayerTo(62,streetFootY(62))");g.finish();
+  assert.equal(g.get('street-bluestar').classList.contains('is-open'),true);
+  assert.equal(g.run('movement.x'),62);
+  assert.ok(g.run('movement.y > streetDoors.bluestar.threshold'));
+  g.run("handleTarget('bluestar')");g.finish();
+  assert.equal(g.run('movement.y'),63.6);
+  assert.equal(g.run('gameState.currentRoom'),'street');
+  g.run("movePlayerTo(78,streetFootY(78))");g.finish();
+  assert.equal(g.get('street-bluestar').classList.contains('is-open'),false);
+});
+test('Laundry opens and closes, its entry and saved state remain usable', () => {
+  const g=game();
+  g.run("showRoom('street');Object.assign(movement,{x:39,y:streetFootY(39)});setVerb('open');handleTarget('laundry')");
+  g.finish();
+  assert.equal(g.run('gameState.laundryDoorOpen'),true);
+  assert.ok(g.run('movement.y > streetDoors.laundry.threshold'));
+  g.run("setVerb('walk');handleTarget('laundry')");g.finish();
+  assert.equal(g.run('movement.y'),62.5);
+  g.run("saveGame();showRoom('bedroom');gameState.laundryDoorOpen=false;loadGame()");
+  assert.equal(g.run('gameState.currentRoom'),'street');
+  assert.equal(g.run('gameState.laundryDoorOpen'),true);
+  assert.equal(g.run('movement.y'),62.5);
+  g.run("setVerb('close');handleTarget('laundry')");g.finish();
+  assert.equal(g.run('gameState.laundryDoorOpen'),false);
+  assert.ok(g.run('movement.y > streetDoors.laundry.threshold'));
+});
+test('street routes stay on the pavement and alley instead of cutting across bins or shops', () => {
+  const g=game();
+  g.run("showRoom('street');Object.assign(movement,{x:42.53,y:64.3});movePlayerTo(87.5,64.5)");
+  assert.ok(g.run('movement.route.some(p=>p.x===87.7 && p.y===streetFootY(87.7))'));
+  g.finish();
+  assert.equal(g.run('movement.y'),64.5);
+  g.run('movePlayerTo(50,95)');g.finish();
+  assert.ok(g.run('Math.abs(movement.y-streetFootY(movement.x))<.001'));
+});
+
+test('the player sheet is pre-keyed so no live filter re-renders the character', () => {
+  const sheet = fs.readFileSync(path.join(__dirname, '..', 'assets', 'player-sheet-keyed-v1.png'));
+  assert.equal(sheet.readUInt32BE(16), 1619);
+  assert.equal(sheet.readUInt32BE(20), 971);
+  assert.equal(sheet[25], 6, 'RGBA with transparency');
+  assert.match(styles, /.player-frame[^}]*player-sheet-keyed-v1.png/);
+  assert.doesNotMatch(styles + markup, /sprite-green-key/);
+});
+
+test('Bluestar alley uses a stable two-frame transparent blink sprite', () => {
+  const npc = fs.readFileSync(path.join(__dirname, '..', 'assets', 'alley-man-sprite-v6.png'));
+  assert.equal(npc.readUInt32BE(16), 2748);
+  assert.equal(npc.readUInt32BE(20), 1145);
+  assert.match(markup, /id="alley-npc"/);
+  assert.match(styles, /alley-man-sprite-v6\.png/);
+  assert.match(styles, /background-size:200% 100%/);
+  assert.match(styles, /@keyframes alley-npc-blink/);
+});
+
+test('Bluestar alley is reciprocal with free walking inside its concrete bounds', () => {
+  const g=game();
+  g.run("showRoom('street');Object.assign(movement,{x:87.5,y:64.5});setVerb('walk');handleTarget('alley')");
+  g.finish();g.advance(500);
+  assert.equal(g.run('gameState.currentRoom'),'alley');
+  assert.equal(g.run('movement.x'),28.5);
+  assert.equal(g.run('movement.facing'),'down');
+  g.run('movePlayerTo(35,80)');g.finish();
+  assert.equal(g.run('movement.x'),35);assert.equal(g.run('movement.y'),80);
+  // The shelter, dumpster, bushes and the foreground beyond the cutoff stay out of reach.
+  for (const [x,y] of [[50,58],[10,70],[80,80],[40,97]]) assert.equal(g.run(`alleyPointIsFree(${x},${y})`),false);
+  g.run('movePlayerTo(80,97)');g.finish();
+  assert.ok(g.run('alleyPointIsFree(movement.x,movement.y) && movement.y<=90'));
+  // Crossing from the back of the alley to the door steps goes around the shelter.
+  g.run('Object.assign(movement,{x:40,y:52});movePlayerTo(58,67)');
+  assert.ok(g.run('[movement.destination,...movement.route].every((p,i,a)=>alleyFreeSegment(i?a[i-1]:{x:40,y:52},p))'));
+  assert.ok(g.run('movement.route.length>0'));
+  g.finish();
+  g.run("saveGame();showRoom('bedroom');loadGame()");
+  assert.equal(g.run('gameState.currentRoom'),'alley');
+  g.run("setVerb('walk');handleTarget('street')");g.finish();g.advance(500);
+  assert.equal(g.run('gameState.currentRoom'),'street');
+  assert.equal(g.run('movement.x'),87.5);
+});
+
+test('alley and street openings turn a standing player around before crossing', () => {
+  const g=game();
+  g.run("showRoom('street');Object.assign(movement,{x:3,y:streetFootY(3),facing:'right'});setVerb('walk');handleTarget('alley')");
+  g.finish();g.advance(500);
+  assert.equal(g.run('gameState.currentRoom'),'alley');
+  // Back out without moving: turn to face the street, then cross.
+  g.run("handleTarget('street')");
+  assert.equal(g.run('movement.facing'),'up');
+  assert.equal(g.run('movement.destination'),null);
+  assert.equal(g.run('gameState.currentRoom'),'alley');
+  g.advance(300);
+  assert.equal(g.run('gameState.currentRoom'),'street');
+  assert.equal(g.run('movement.facing'),'down','arrives facing the street');
+  assert.equal(g.run('movement.y'),64.5);
+  // And straight back in: turn toward the alley, then enter facing the camera.
+  g.run("handleTarget('alley')");
+  assert.equal(g.run('movement.facing'),'up');
+  assert.equal(g.run('gameState.currentRoom'),'street');
+  g.advance(300);
+  assert.equal(g.run('gameState.currentRoom'),'alley');
+  assert.equal(g.run('movement.facing'),'down');
+  // Walking away during the turn cancels the exit.
+  g.run("handleTarget('street');movePlayerTo(35,70)");
+  g.advance(500);g.finish();
+  assert.equal(g.run('gameState.currentRoom'),'alley');
+  assert.equal(g.run('movement.x'),35);
+});
+
+test('wake-up plays sleep, 6:00 alarm, black frame and standing reveal in order',()=>{
+  const g=game();g.run('beginWakeup()');
+  assert.equal(g.run('wakeup.phase'),'sleeping');
+  assert.equal(g.get('wakeup-bed').hidden,false);
+  assert.equal(g.get('interface').inert,true);
+  g.run("movePlayerTo(60,84);setCurtains(true);toggleLight('bedroomMain');saveGame()");
+  assert.equal(g.run('movement.destination'),null);
+  assert.equal(g.run('gameState.curtainsOpen'),false);
+  assert.equal(g.run('gameState.bedroomMainLightOn'),false);
+  assert.equal(g.storage.size,0);
+  g.advance(2800);assert.equal(g.run('wakeup.phase'),'alarm');
+  assert.match(g.get('alarm-closeup').attributes['aria-label'],/6:00/);
+  assert.equal(g.get('alarm-closeup').hidden,false);
+  g.advance(3200);assert.equal(g.run('wakeup.phase'),'after-alarm');
+  assert.equal(g.get('alarm-closeup').hidden,true);
+  g.advance(450);assert.equal(g.run('wakeup.phase'),'fade-out');
+  assert.equal(g.get('wakeup-bed').hidden,false);
+  g.advance(800);assert.equal(g.run('wakeup.phase'),'black');
+  assert.equal(g.get('wakeup-bed').hidden,true);
+  assert.equal(g.get('wakeup-fade').style.opacity,'1');
+  g.advance(200);assert.equal(g.run('wakeup.phase'),'fade-in');
+  g.advance(1250);assert.equal(g.run('wakeup.active'),false);
+  assert.equal(g.get('interface').inert,false);
+  assert.equal(g.run('movement.x'),42);
+  assert.equal(g.run('movement.y'),84);
+  g.run('movePlayerTo(50,84)');g.finish();
+  assert.equal(g.run('movement.x'),50);
+});
+test('skipping or resetting the wake-up sequence cancels all pending stages',()=>{
+  for(const action of ['finishWakeup()','resetGame()']) {
+    const g=game();g.run('beginWakeup()');g.advance(2900);g.run(action);
+    g.advance(20000);
+    assert.equal(g.run('wakeup.active'),false);
+    assert.equal(g.run('wakeup.phase'),'idle');
+    assert.equal(g.get('alarm-closeup').hidden,true);
+    assert.equal(g.get('wakeup-bed').hidden,true);
+    assert.equal(g.get('interface').inert,false);
+    assert.equal(g.run('wakeup.timers.length'),0);
+  }
 });

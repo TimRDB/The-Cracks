@@ -62,15 +62,26 @@ child.stderr.on('data', chunk => { log += chunk; });
     assert.match(await evaluate("getComputedStyle(document.getElementById('room-background')).backgroundImage"), /bedroom-c0-l0-m1/);
     await capture('lighting-bedroom-main.png');
     await evaluate("positionDoor(apartmentRooms.bedroom.objects.door);document.getElementById('doorway').dataset.motion='opening';document.getElementById('door-face').style.transform='rotateY(55deg)'");
-    assert.deepEqual(await evaluate("['left','top','width','height'].map(key => document.getElementById('doorway').style[key])"), ['72.9067%','13.9214%','9.4498%','42.6142%']);
+    assert.deepEqual(await evaluate("['left','top','width','height'].map(key => document.getElementById('doorway').style[key])"), ['72.9665%','14.0276%','9.2105%','43.2519%']);
     assert.equal(await evaluate("getComputedStyle(document.getElementById('bedroom-door-foreground')).display"), 'none');
-    assert.match(await evaluate("document.getElementById('door-surface').style.backgroundImage"), /bedroom-states-v13\/bedroom-c0-l0-m1\.png/);
+    assert.match(await evaluate("document.getElementById('door-surface').style.backgroundImage"), /bedroom-states-v14\/bedroom-c0-l0-m1\.png/);
     await capture('bedroom-door-opening-preview.png');
     await evaluate("cancelTransition()");
     await evaluate("showRoom('living');movement.x=50;movement.y=82;Object.assign(gameState,{livingCurtainsOpen:false,livingMainLightOn:false,kitchenLightsOn:false,hallwayLightOn:false});syncRoom();renderPlayer();messageBox.classList.add('hidden');");
     await delay(800);
     assert.match(await evaluate("getComputedStyle(document.getElementById('room-background')).backgroundImage"), /living-c0-m0-b0-h0/);
     await capture('lighting-living-dark.png');
+    for (const circuit of ['livingMain', 'kitchen', 'hallway']) {
+      await evaluate(`toggleLight('${circuit}')`);
+      await delay(40);
+      const toasterCoverage = await evaluate("[...document.querySelectorAll('.toaster-state-layer.is-visible')].map(layer => Number(getComputedStyle(layer).opacity))");
+      assert.equal(toasterCoverage.length, 2, `${circuit} must retain both toaster states during the swap`);
+      assert.equal(Math.max(...toasterCoverage), 1, `${circuit} must keep one toaster state fully opaque throughout the swap`);
+      await delay(300);
+      assert.equal(await evaluate("document.querySelectorAll('.toaster-state-layer.is-visible').length"), 1, `${circuit} must release the old toaster state after the reveal`);
+      const expectedToaster = await evaluate("toasterImageForState().split('/').pop()");
+      assert.ok((await evaluate("getComputedStyle(document.querySelector('#living-toaster .is-visible')).backgroundImage")).includes(expectedToaster), `${circuit} must select its matching toaster lighting state`);
+    }
     await evaluate("Object.assign(gameState,{livingCurtainsOpen:true,livingMainLightOn:true,kitchenLightsOn:true,hallwayLightOn:true});syncRoom();renderPlayer();");
     await delay(800);
     assert.match(await evaluate("getComputedStyle(document.getElementById('room-background')).backgroundImage"), /living-c1-m1-b1-h1/);
