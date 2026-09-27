@@ -455,8 +455,8 @@ function renderInventory() {
   });
 }
 function playerSheetForState() {
-  if (gameState.outfit === 'crumpled') return gameState.socksOn ? 'assets/player-sheet-clothes-socks-v9.png' : 'assets/player-sheet-clothes-barefoot-v6.png';
-  if (gameState.outfit === 'clean') return gameState.socksOn ? 'assets/player-sheet-clean-socks-v11.png' : 'assets/player-sheet-clean-barefoot-v8.png';
+  if (gameState.outfit === 'crumpled') return gameState.socksOn ? 'assets/player-sheet-clothes-socks-v11.png' : 'assets/player-sheet-clothes-barefoot-v8.png';
+  if (gameState.outfit === 'clean') return gameState.socksOn ? 'assets/player-sheet-clean-socks-v13.png' : 'assets/player-sheet-clean-barefoot-v10.png';
   return gameState.socksOn ? 'assets/player-sheet-underwear-socks-v6.png' : 'assets/player-sheet-keyed-v1.png';
 }
 

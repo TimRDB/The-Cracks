@@ -82,10 +82,10 @@ child.stderr.on('data', chunk => { log += chunk; });
 
     await evaluate("showRoom('bedroom');setVerb(null);wearCleanClothes()");
     await until("gameState.outfit==='clean'&&!wardrobeChanging");
-    assert.match(await evaluate("playerFrame.style.getPropertyValue('--player-sheet')"), /player-sheet-clean-barefoot-v8/);
-    assert.equal(await evaluate("Promise.all(['assets/player-sheet-clean-barefoot-v8.png','assets/player-sheet-clean-socks-v11.png'].map(src=>new Promise(resolve=>{const image=new Image();image.onload=()=>resolve(image.naturalWidth===1619&&image.naturalHeight===971);image.onerror=()=>resolve(false);image.src=src}))).then(results=>results.every(Boolean))"), true);
+    assert.match(await evaluate("playerFrame.style.getPropertyValue('--player-sheet')"), /player-sheet-clean-barefoot-v10/);
+    assert.equal(await evaluate("Promise.all(['assets/player-sheet-clean-barefoot-v10.png','assets/player-sheet-clean-socks-v13.png'].map(src=>new Promise(resolve=>{const image=new Image();image.onload=()=>resolve(image.naturalWidth===1619&&image.naturalHeight===971);image.onerror=()=>resolve(false);image.src=src}))).then(results=>results.every(Boolean))"), true);
     await evaluate('toggleSocks()');
-    assert.match(await evaluate("playerFrame.style.getPropertyValue('--player-sheet')"), /player-sheet-clean-socks-v11/);
+    assert.match(await evaluate("playerFrame.style.getPropertyValue('--player-sheet')"), /player-sheet-clean-socks-v13/);
     await evaluate('toggleSocks();putCleanClothesAway()');
     await until("gameState.outfit==='underwear'&&!wardrobeChanging");
 

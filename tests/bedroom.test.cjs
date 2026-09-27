@@ -1262,7 +1262,7 @@ test('crumpled clothes remain transparent, lighting-matched, portable and persis
 
 test('wardrobe actions switch all six player sheets and keep worn items in inventory', () => {
   const assets = path.join(__dirname, '..', 'assets');
-  for (const file of ['player-sheet-keyed-v1.png','player-sheet-underwear-socks-v6.png','player-sheet-clothes-barefoot-v6.png','player-sheet-clothes-socks-v9.png','player-sheet-clean-barefoot-v8.png','player-sheet-clean-socks-v11.png']) {
+  for (const file of ['player-sheet-keyed-v1.png','player-sheet-underwear-socks-v6.png','player-sheet-clothes-barefoot-v8.png','player-sheet-clothes-socks-v11.png','player-sheet-clean-barefoot-v10.png','player-sheet-clean-socks-v13.png']) {
     const png = fs.readFileSync(path.join(assets, file));
     assert.equal(png.readUInt32BE(16), 1619, file + ' width');
     assert.equal(png.readUInt32BE(20), 971, file + ' height');
@@ -1273,7 +1273,7 @@ test('wardrobe actions switch all six player sheets and keep worn items in inven
   assert.equal(g.run('gameState.outfit'), 'crumpled');
   assert.equal(g.run("gameState.itemPlacements.crumpledClothes.kind"), 'worn');
   assert.equal(g.run("gameState.inventory.includes('crumpledClothes')"), true);
-  assert.match(g.get('player').querySelector().style['--player-sheet'], /player-sheet-clothes-barefoot-v6/);
+  assert.match(g.get('player').querySelector().style['--player-sheet'], /player-sheet-clothes-barefoot-v8/);
   g.run('renderInventory()');
   assert.equal(g.get('inventoryItems').children[0].children[1].children[1].textContent, 'You are wearing these');
   g.advance(300);
@@ -1298,13 +1298,13 @@ test('wardrobe actions switch all six player sheets and keep worn items in inven
   g.run("setVerb('use');handleTarget('drawers')"); g.finish();
 
   g.run("wearCrumpledClothes()"); g.advance(250);
-  assert.match(g.get('player').querySelector().style['--player-sheet'], /player-sheet-clothes-socks-v9/);
+  assert.match(g.get('player').querySelector().style['--player-sheet'], /player-sheet-clothes-socks-v11/);
   g.advance(300);
   g.run("interactionSelection.itemId='socks';setVerb('place',{keepItem:true});handleTarget('drawers')"); g.finish(); g.advance(250);
   assert.equal(g.run('gameState.socksOn'), false);
   assert.equal(g.run("gameState.itemPlacements.socks.kind"), 'stored');
   assert.equal(g.run("gameState.inventory.includes('socks')"), false);
-  assert.match(g.get('player').querySelector().style['--player-sheet'], /player-sheet-clothes-barefoot-v6/);
+  assert.match(g.get('player').querySelector().style['--player-sheet'], /player-sheet-clothes-barefoot-v8/);
 });
 
 
@@ -1318,7 +1318,7 @@ test('worn clothes and socks persist through save/load and reset to the original
   assert.equal(g.run("gameState.itemPlacements.crumpledClothes.kind"), 'worn');
   assert.equal(g.run("gameState.itemPlacements.socks.kind"), 'worn');
   assert.equal(g.run("gameState.inventory.includes('crumpledClothes') && gameState.inventory.includes('socks')"), true);
-  assert.match(g.get('player').querySelector().style['--player-sheet'], /player-sheet-clothes-socks-v9/);
+  assert.match(g.get('player').querySelector().style['--player-sheet'], /player-sheet-clothes-socks-v11/);
   g.run('resetGame()');
   assert.equal(g.run('gameState.outfit'), 'underwear');
   assert.equal(g.run('gameState.socksOn'), false);
@@ -1372,7 +1372,7 @@ test('the Wardrobe toggles clean clothes and swaps clean and crumpled outfits sa
   assert.equal(g.run('gameState.outfit'), 'clean');
   assert.equal(g.run("gameState.itemPlacements.cleanClothes.kind"), 'worn');
   assert.equal(g.run("gameState.inventory.includes('cleanClothes')"), true);
-  assert.match(g.get('player').querySelector().style['--player-sheet'], /player-sheet-clean-barefoot-v8/);
+  assert.match(g.get('player').querySelector().style['--player-sheet'], /player-sheet-clean-barefoot-v10/);
   g.advance(300);
   g.run('wearCleanClothes()');
   assert.equal(g.get('messageBox').textContent, "You're already wearing clean clothes.");
@@ -1403,7 +1403,7 @@ test('the Wardrobe toggles clean clothes and swaps clean and crumpled outfits sa
 
   g.run("setVerb('use');handleTarget('drawers')"); g.finish();
   g.run("setVerb('use');handleTarget('cupboard')"); g.finish(); g.advance(240);
-  assert.match(g.get('player').querySelector().style['--player-sheet'], /player-sheet-clean-socks-v11/);
+  assert.match(g.get('player').querySelector().style['--player-sheet'], /player-sheet-clean-socks-v13/);
 });
 test('clean clothes and socks survive save, load, and reset', () => {
   const g = game();
@@ -1414,7 +1414,7 @@ test('clean clothes and socks survive save, load, and reset', () => {
   assert.equal(g.run("gameState.itemPlacements.cleanClothes.kind"), 'worn');
   assert.equal(g.run("gameState.itemPlacements.socks.kind"), 'worn');
   assert.equal(g.run("gameState.inventory.includes('cleanClothes') && gameState.inventory.includes('socks')"), true);
-  assert.match(g.get('player').querySelector().style['--player-sheet'], /player-sheet-clean-socks-v11/);
+  assert.match(g.get('player').querySelector().style['--player-sheet'], /player-sheet-clean-socks-v13/);
   g.run('resetGame()');
   assert.equal(g.run('gameState.outfit'), 'underwear');
   assert.equal(g.run('gameState.socksOn'), false);
