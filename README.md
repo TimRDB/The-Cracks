@@ -36,6 +36,7 @@ The title screen's New Game button begins with the character asleep under the co
 - `rooms.js`: living room/kitchen, bathroom and exterior objects and door connections
 - `outside.js`: artwork-aligned paths, stair treads, free parking-lot regions (including the slanted parking line beside the burgundy car) and obstacle-avoiding route selection
 - `assets/outside-cars-foreground-v1.png`: transparent cutout of the three parked cars, built by `scripts/build-outside-car-foreground.py` from `assets/outside_bg.png` using OpenCV GrabCut guided by the traced outlines in `scripts/outside-car-hints.json` (requires `pip install opencv-python-headless numpy`)
+- `scripts/build-living-tv-outline.py`: traces the living-room TV and cabinet outline (`livingTvSilhouette` in `rooms.js`) from `assets/lighting/living-master-v2.png` with OpenCV GrabCut, trimmed to the measured painted edges and rounded at the corners (requires `pip install opencv-python-headless numpy`)
 - `assets/outside_bg.png`: exterior background; generation prompt in `assets/outside-art-notes.md`
 - `tests/outside-browser.cjs`: optional headless Chrome smoke check; captures patio and stairs into `output/`
 - `style.css`: responsive layout, curtains, lighting, and sprite rendering
