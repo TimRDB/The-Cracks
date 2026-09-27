@@ -2,7 +2,8 @@ const devToolsOverlay = document.getElementById('devTools');
 const devMenu = document.getElementById('devMenu');
 const devSceneSelect = document.getElementById('devSceneSelect');
 const devSceneList = document.getElementById('devSceneList');
-const devTools = { open: false, fromTitle: false, paused: null, animations: [], previousFocus: null };
+const devStats = document.getElementById('devStats');
+const devTools = { open: false, fromTitle: false, paused: null, previousFocus: null };
 
 // Where the player stands when each scene starts: the new-game pose, or the
 // arrival point from the scene's usual entrance.
@@ -17,39 +18,22 @@ const devScenes = [
 ];
 
 function pauseGame() {
-  const paused = { walking: movement.frame !== null, transition: Boolean(transition), wakeup: wakeup.active };
-  gameTimers.pause();
-  devTools.animations=(game.getAnimations?.({subtree:true})||[]).filter(a=>a.playState==='running' && a.effect?.target?.id!=='wakeup-fade');
-  devTools.animations.forEach(a=>{
-    a.pause();
-    // Pin the hold time immediately; otherwise Chromium may advance a CSS
-    // animation by a fraction of one frame while its pause task settles.
-    a.currentTime = a.currentTime;
-  });
-  if (paused.walking) { cancelAnimationFrame(movement.frame); movement.frame = null; }
-  if (paused.transition) cancelAnimationFrame(transition.frame);
-  if (paused.wakeup) pauseWakeup();
-  devTools.paused = paused;
-  document.body.classList.add('game-paused');
+  devTools.paused = pauseWorld('developer');
 }
 
 function resumeGame() {
-  const paused = devTools.paused;
+  resumeWorld('developer');
   devTools.paused = null;
-  document.body.classList.remove('game-paused');
-  devTools.animations.forEach(a=>{if(a.playState==='paused')a.play();});
-  devTools.animations=[];
-  gameTimers.resume();
-  if (!paused) return;
-  if (paused.wakeup && wakeup.active) resumeWakeup();
-  if (paused.transition && transition) { transition.last = null; transition.frame = requestAnimationFrame(animateDoor); }
-  if (paused.walking && movement.destination) { movement.lastTime = null; movement.frame = requestAnimationFrame(advanceWalk); }
 }
 
 function showDevScreen(screen) {
   devMenu.hidden = screen !== devMenu;
   devSceneSelect.hidden = screen !== devSceneSelect;
+  devStats.hidden = screen !== devStats;
   screen.querySelector('button')?.focus();
+}
+function activeDevScreen() {
+  return [devMenu, devSceneSelect, devStats].find(screen => !screen.hidden) || devMenu;
 }
 
 // Available on the title screen and throughout play; only the brief New Game
@@ -57,6 +41,7 @@ function showDevScreen(screen) {
 function openDevTools() {
   const fadingIntoGame = titleScreen.classList.contains('is-leaving') && !document.body.classList.contains('game-started');
   if (devTools.open || fadingIntoGame) return;
+  if (inventoryOverlay.hidden === false) closeInventory();
   devTools.open = true;
   devTools.fromTitle = !document.body.classList.contains('game-started');
   devTools.previousFocus=document.activeElement;
@@ -119,29 +104,40 @@ function openSceneSelect() {
 function teleportToScene(target) {
   hideDevTools();
   if (devTools.fromTitle) leaveTitleScreen();
+  const paused = abandonWorldPause('developer');
   devTools.paused = null;
-  document.body.classList.remove('game-paused');
-  devTools.animations.forEach(a=>a.cancel());
-  devTools.animations=[];
+  paused?.animations.forEach(animation => animation.cancel());
   gameTimers.clearAll();
   gameTimers.resume();
   cancelWakeup();
   cancelTransition();
   stopWalking();
   const appearance=Object.fromEntries(Object.entries(gameState).filter(([key])=>/clothes|clothing|outfit|appearance|wearing|costume/i.test(key)));
-  Object.assign(gameState, initialWorldState, appearance);
-  setVerb('walk');
+  resetWorldState(); Object.assign(gameState, appearance);
+  setVerb('pickup');
+  cancelRoomSwitch();
   if (target.id === 'wakeup') { prepareWakeupAudio(); beginWakeup(); return; }
-  showRoom(target.id);
-  Object.assign(movement, target.start, { phase: 0 });
-  syncRoom();
-  renderPlayer();
-  showMessage(`${apartmentRooms[target.id].name}.`);
+  whenRoomReady(target.id, () => {
+    showRoom(target.id);
+    Object.assign(movement, target.start, { phase: 0 });
+    syncRoom();
+    renderPlayer();
+    showMessage(`${apartmentRooms[target.id].name}.`);
+  });
 }
 
 document.getElementById('devSceneSelectBtn').addEventListener('click', openSceneSelect);
+document.getElementById('devStatsBtn').addEventListener('click', () => showDevScreen(devStats));
+const devHighlightObjectsBtn = document.getElementById('devHighlightObjectsBtn');
+devHighlightObjectsBtn.addEventListener('click', () => {
+  const enabled = !document.body.classList.contains('highlight-objects');
+  document.body.classList.toggle('highlight-objects', enabled);
+  devHighlightObjectsBtn.setAttribute('aria-pressed', String(enabled));
+  devHighlightObjectsBtn.textContent = `Highlight Objects: ${enabled ? 'On' : 'Off'}`;
+});
 document.getElementById('devBackBtn').addEventListener('click', closeDevTools);
 document.getElementById('devSceneBackBtn').addEventListener('click', () => showDevScreen(devMenu));
+document.getElementById('devStatsBackBtn').addEventListener('click', () => showDevScreen(devMenu));
 // Capture phase, so Escape here never also skips the wake-up intro.
 window.addEventListener('keydown', event => {
   const tilde = event.code === 'Backquote' || event.key === '~' || event.key === '`';
@@ -152,7 +148,7 @@ window.addEventListener('keydown', event => {
     return;
   }
   if (devTools.open && event.key === 'Tab') {
-    const buttons=[...(devSceneSelect.hidden?devMenu:devSceneSelect).querySelectorAll('button')];
+    const buttons=[...activeDevScreen().querySelectorAll('button')];
     const index=buttons.indexOf(document.activeElement);
     event.preventDefault();
     buttons[(index+(event.shiftKey?-1:1)+buttons.length)%buttons.length]?.focus();
@@ -161,6 +157,6 @@ window.addEventListener('keydown', event => {
   if (devTools.open && event.key === 'Escape') {
     event.preventDefault();
     event.stopImmediatePropagation();
-    if (!devSceneSelect.hidden) showDevScreen(devMenu); else closeDevTools();
+    if (activeDevScreen() !== devMenu) showDevScreen(devMenu); else closeDevTools();
   }
 }, true);

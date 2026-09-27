@@ -41,11 +41,16 @@ body.game-started #game { opacity: 1; }
 #room-background { position: absolute; inset: 0; z-index: 0; background: #08090b var(--room-image, url('assets/lighting/bedroom-states-v14/bedroom-c0-l0-m0.png')) center / 100% 100% no-repeat; }
 .room-background-layer { position: absolute; inset: 0; background: url('assets/lighting/bedroom-states-v14/bedroom-c0-l0-m0.png') center / 100% 100% no-repeat; opacity: 0; transition: opacity 1.4s cubic-bezier(.45,0,.2,1); will-change: opacity; }
 .room-background-layer.is-visible { opacity: 1; }
+#bedroom-clothes { display:none; position:absolute; z-index:2; left:18%; top:72%; width:14.5%; aspect-ratio:1237 / 547; filter:drop-shadow(1px 2px 2px #0008); }
+#scene[data-room="bedroom"] #bedroom-clothes:not(.is-away) { display:block; }
+.clothes-state-layer { position:absolute; inset:0; background:url('assets/lighting/bedroom-clothes-v1/bedroom-c0-l0-m0.png') center / 100% 100% no-repeat; opacity:0; transition:opacity 1.4s cubic-bezier(.45,0,.2,1); will-change:opacity; }
+.clothes-state-layer.is-visible { opacity:1; }
 #living-toaster { display: none; position: absolute; z-index: 2; left: 44.378%; top: 29.331%; width: 4.904%; height: 8.714%; }
 #scene[data-room="living"] #living-toaster:not(.is-taken) { display: block; }
 .toaster-state-layer { position: absolute; inset: 0; background: center / 100% 100% no-repeat; opacity: 0; transition: opacity 1.4s cubic-bezier(.45,0,.2,1); will-change: opacity; }
 .toaster-state-layer.is-visible { opacity: 1; }
 #scene.light-switching .room-background-layer,
+#scene.light-switching .clothes-state-layer,
 #scene.light-switching .toaster-state-layer { transition-duration: .22s; transition-timing-function: ease-out; }
 #scene.light-switching .curtain-panel { transition-duration: 1.4s, .22s; transition-timing-function: cubic-bezier(.45,0,.2,1), ease-out; }
 #scene.light-switching .sprite { transition-duration: .20s; transition-timing-function: ease-out; }
@@ -65,7 +70,7 @@ body.game-started #game { opacity: 1; }
 #scene[data-room="outside"] .player-frame { translate: 0 var(--step-lift, 0%); rotate: var(--stair-lean, 0deg); }
 /* The sheet's green screen is keyed out at build time (scripts/build-player-keyed-sheet.ps1),
    so no live filter has to re-render the character when its pose, size or room changes. */
-.player-frame { position: absolute; inset: 0; background: url('assets/player-sheet-keyed-v1.png') no-repeat; background-size: 500% 300%; }
+.player-frame { position: absolute; inset: 0; background: var(--player-sheet, url('assets/player-sheet-keyed-v1.png')) no-repeat; background-size: 500% 300%; }
 #messageBox { position: absolute; z-index: 150; left: 50%; bottom: 3%; transform: translateX(-50%); width: min(700px, 88%); max-height: calc(100% - 44px); overflow-y: auto; padding: 9px 12px; border: 2px solid #a89675; background: #0a0c10ed; text-align: center; font-size: 14px; line-height: 1.4; }
 .hidden { display: none; }
 [hidden] { display: none !important; }
@@ -92,37 +97,39 @@ body.game-started #game { opacity: 1; }
 #doorway[data-motion="opening"] #door-face { filter: brightness(1.04); }
 #doorway[data-motion="closing"] #door-face { filter: brightness(.96); }
 #scene-fade { position: absolute; inset: 0; z-index: 130; background: #08090b; opacity: 0; pointer-events: none; }
+#scene.wardrobe-fade #scene-fade { opacity:1; transition:opacity .22s ease-in; }
+#scene.wardrobe-reveal #scene-fade { opacity:0; transition:opacity .24s ease-out; }
 #scene[aria-busy="true"] { cursor: wait; }
 #foreground { display: none; position: absolute; inset: 0; z-index: 110; pointer-events: none; }
 #scene[data-room="living"] #foreground { display: block; clip-path: polygon(28% 73%, 31% 67%, 36% 64%, 48% 66%, 55% 64%, 69% 66%, 73% 72%, 73% 94%, 28% 94%); }
 #scene[data-room="living"] #foreground { background: var(--room-image) center / 100% 100%; filter: brightness(.88) saturate(.9); }
 #scene[data-room="outside"].player-behind-cars #foreground { display: block; }
-.outside-car-foreground { display: none; position: absolute; inset: 0; background: var(--room-image) center / 100% 100% no-repeat; }
-#scene[data-room="outside"].player-behind-cars .outside-car-foreground { display: block; }
-/* These silhouettes closely trace each painted vehicle rather than masking a
-   broad rectangle of road. Extra points preserve the roof, mirrors, quarter
-   panels, bumper corners and wheel-level outline at every responsive size. */
-.outside-car-foreground.burgundy { clip-path: polygon(1.9% 74.8%, 2.5% 71.1%, 3.8% 67.1%, 5.3% 61.5%, 6.7% 58.7%, 8.3% 57.2%, 11.1% 56.6%, 16.9% 56.7%, 19.1% 57.7%, 20.7% 59.7%, 21.5% 62.1%, 22.6% 61.1%, 23.4% 61.6%, 23.8% 63.1%, 23.3% 64.3%, 22.5% 64.8%, 23.2% 68.6%, 23.7% 73.3%, 23.7% 78.8%, 23.1% 82.7%, 21.8% 85.1%, 19.8% 86.0%, 5.4% 86.1%, 3.6% 84.5%, 2.3% 81.5%); }
-.outside-car-foreground.silver { clip-path: polygon(52.1% 63.8%, 52.3% 62.4%, 52.9% 61.4%, 53.7% 61.2%, 54.4% 61.8%, 55.1% 59.0%, 56.2% 57.2%, 58.0% 56.4%, 65.4% 56.5%, 66.8% 57.5%, 67.7% 59.4%, 68.4% 61.8%, 69.1% 61.2%, 69.8% 61.8%, 70.1% 63.1%, 69.7% 64.1%, 69.0% 64.5%, 69.5% 68.0%, 70.2% 72.1%, 70.4% 77.2%, 70.1% 81.8%, 69.2% 84.5%, 67.9% 85.8%, 54.9% 85.9%, 53.5% 84.3%, 52.7% 81.3%, 52.6% 74.0%); }
-.outside-car-foreground.blue { clip-path: polygon(75.7% 64.1%, 75.9% 62.6%, 76.6% 61.5%, 77.3% 61.3%, 78.1% 61.9%, 78.8% 59.3%, 80.1% 57.5%, 81.9% 56.7%, 90.8% 56.7%, 92.3% 57.6%, 93.6% 59.6%, 94.4% 62.3%, 95.3% 61.6%, 96.0% 62.0%, 96.5% 63.3%, 96.2% 64.4%, 95.5% 64.9%, 96.2% 68.5%, 96.8% 73.1%, 97.0% 78.3%, 96.6% 82.3%, 95.4% 84.7%, 93.8% 85.8%, 79.4% 85.9%, 77.7% 84.4%, 76.6% 81.4%, 76.1% 75.5%); }
+/* A per-pixel cutout of the three painted cars (scripts/build-outside-car-foreground.py),
+   so only car pixels, never road, kerb or grass, are drawn over the player. */
+.outside-cars-foreground { display: none; position: absolute; inset: 0; background: url('assets/outside-cars-foreground-v1.png') center / 100% 100% no-repeat; }
+#scene[data-room="outside"].player-behind-cars .outside-cars-foreground { display: block; }
 #interface { flex: 0 0 auto; display: grid; grid-template-columns: minmax(0, 1.5fr) auto auto; align-items: center; gap: 8px; padding: 6px 8px; max-height: 50%; overflow-y: auto; font-size: 12px; background: linear-gradient(#2d2b29, #1a1a1d); border-top: 2px solid #554f44; }
-#verbs { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 4px; }
+#verbs { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)) 32px; gap: 4px; }
 #interface button { min-height: 32px; padding: 5px 8px; white-space: nowrap; border: 1px solid #736653; background: linear-gradient(#393631, #222226); }
 #interface button:hover { background: #4b4337; }
 #verbs button.active { border-color: #d4b478; background: #685234; color: white; }
-#roomControls { display: flex; align-items: center; gap: 8px; }
-#roomLight { color: #b5ad9e; font-size: 11px; }
+#verbs .verb-clear { min-width:32px; padding:5px 0; color:#b8afa1; font-size:18px; line-height:1; }
+#verbs .verb-clear:hover, #verbs .verb-clear:focus-visible { border-color:#b89a67; color:#fff; outline:none; }
+#roomControls[hidden] { display: none; }
+#inventoryControl { margin-left: 2px; padding-left: 9px; border-left: 1px solid #5c5446; }
+#inventoryBtn { min-width: 94px; }
+#inventoryCount { display: inline-grid; place-items: center; min-width: 18px; height: 18px; margin-left: 4px; padding: 0 4px; border: 1px solid #71644f; border-radius: 9px; background: #181719; color: #d4b478; font-size: 10px; }
 #controls { display: grid; grid-template-columns: repeat(3, auto); gap: 4px; }
 @media (max-width: 860px) { #interface { grid-template-columns: minmax(0, 1fr) auto; gap: 5px; } #verbs { grid-column: 1 / -1; } }
 @media (max-width: 600px) { #roomLight { display: none; } #interface { padding: 5px; } #interface button { padding: 5px; font-size: 11px; } #statusText, #messageBox { font-size: 12px; } }
 @media (max-height: 500px) { body { padding: 4px; } #interface { padding: 4px 6px; gap: 4px; } }
 @media (max-height: 560px) { .title-content { gap: 1.4rem; } .game-title { font-size: clamp(3.7rem, 17vh, 6rem); } .title-menu { gap: .6rem; } .title-choice { min-height: 45px; font-size: 1rem; } .options-panel { min-height: 82vh; } }
-@media (prefers-reduced-motion: reduce) { .curtain-panel, .room-background-layer, .toaster-state-layer, .sprite, #game, .title-fade, .title-backdrop, .title-content, .options-overlay, .options-panel { transition-duration: .15s; } }
+@media (prefers-reduced-motion: reduce) { .curtain-panel, .room-background-layer, .clothes-state-layer, .toaster-state-layer, .sprite, #game, .title-fade, .title-backdrop, .title-content, .options-overlay, .options-panel { transition-duration: .15s; } }
 
 /* Street doors use painted clean plates within their exact leaf rectangles. */
 .street-door { display:none; position:absolute; z-index:3; overflow:hidden; perspective:600px; background-repeat:no-repeat; pointer-events:none; }
 #scene[data-room="street"] .street-door { display:block; }
-#alley-npc { display:none; position:absolute; left:39%; top:34%; z-index:61; width:20%; aspect-ratio:1374/1145; pointer-events:none; background-image:url(assets/alley-man-sprite-v6.png); background-size:200% 100%; background-position:0 0; background-repeat:no-repeat; filter:drop-shadow(2px 3px 1px #0007); }
+#alley-npc { display:none; position:absolute; left:39%; top:34%; z-index:59; width:20%; aspect-ratio:1374/1145; pointer-events:none; background-image:url(assets/alley-man-sprite-v6.png); background-size:200% 100%; background-position:0 0; background-repeat:no-repeat; filter:drop-shadow(2px 3px 1px #0007); }
 #scene[data-room="alley"] #alley-npc { display:block; animation:alley-npc-blink 6s step-end infinite; }
 @keyframes alley-npc-blink { 0%,91%,95%,100% { background-position:0 0; } 92%,94% { background-position:100% 0; } }
 @media (prefers-reduced-motion:reduce) { #scene[data-room="alley"] #alley-npc { animation:none; } }
@@ -164,6 +171,7 @@ body.game-started #game { opacity: 1; }
 body.game-paused #game *, body.game-paused #game *::before, body.game-paused #game *::after { animation-play-state: paused !important; }
 .dev-overlay { position: fixed; inset: 0; z-index: 1001; display: grid; place-items: center; padding: 16px; background: #050506b8; backdrop-filter: blur(3px); }
 .dev-overlay[hidden], .dev-screen[hidden] { display: none; }
+.dev-stats-empty { min-height:180px; border:1px solid #37332c; background:#11111355; }
 .dev-panel { width: min(520px, 100%); max-height: 100%; overflow-y: auto; border: 1px solid #736653; background: linear-gradient(#26241f, #151517); box-shadow: 0 16px 60px #000c; font-family: Consolas, "Courier New", monospace; }
 .dev-screen { display: flex; flex-direction: column; gap: 12px; padding: 18px 20px 20px; }
 .dev-screen h2 { margin: 0; color: #d4b478; font-size: 1.15rem; letter-spacing: .14em; text-transform: uppercase; }
@@ -174,3 +182,37 @@ body.game-paused #game *, body.game-paused #game *::before, body.game-paused #ga
 .dev-scene[aria-current="true"] { border-color: #8a7550; }
 .dev-scene-note { color: #9d9484; font-size: .78rem; }
 .dev-back { align-items: center; margin-top: 6px; letter-spacing: .1em; text-transform: uppercase; }
+
+
+/* Inventory is a paused modal. It lives outside #game so its controls remain
+   active while the scene and bottom bar are inert. */
+.inventory-overlay { position:fixed; inset:0; z-index:1000; display:grid; place-items:center; padding:16px; background:#050506b8; backdrop-filter:blur(3px); }
+.inventory-overlay[hidden] { display:none; }
+.inventory-panel { width:min(620px,100%); max-height:min(78vh,680px); overflow-y:auto; padding:18px; border:1px solid #736653; background:linear-gradient(#26241f,#151517); box-shadow:0 16px 60px #000c; }
+.inventory-header { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; }
+.inventory-header h2 { margin:0; color:#d4b478; font-size:1.15rem; letter-spacing:.14em; text-transform:uppercase; }
+.inventory-header p { margin:5px 0 0; color:#a9a090; font-size:.82rem; }
+.inventory-close,.inventory-actions button,.inventory-card { border:1px solid #5c5446; background:#1e1d1b; color:#e6dccb; }
+.inventory-close,.inventory-actions button { min-height:34px; padding:6px 12px; }
+.inventory-actions { display:flex; gap:6px; margin:16px 0 10px; }
+.inventory-actions button.active { border-color:#d4b478; background:#685234; color:#fff; }
+.inventory-items { display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:8px; min-height:92px; }
+.inventory-empty { grid-column:1/-1; align-self:center; margin:20px 0; color:#928a7d; text-align:center; }
+.inventory-card { display:grid; grid-template-columns:68px 1fr; gap:10px; min-height:88px; padding:9px; text-align:left; cursor:pointer; }
+.inventory-card:hover,.inventory-card:focus-visible { border-color:#d4b478; background:#332d24; outline:none; }
+.inventory-item-icon { width:68px; height:68px; border:1px solid #4e483e; background-color:#111; background-repeat:no-repeat; box-shadow:inset 0 0 10px #0008; }
+.inventory-item-icon.item-toaster { background-image:url('assets/lighting/living-master-v2.png'); background-size:2380.952% 1333.333%; background-position:47.286% 32.649%; }
+.inventory-item-icon.item-crumpled-clothes { background-image:url('assets/bedroom-crumpled-clothes-v1.png'); background-position:center; background-size:contain; }
+.inventory-item-icon.item-clean-clothes { background-image:url('assets/clean-clothes-icon-v1.png'); background-position:center; background-size:contain; }
+.inventory-item-icon.item-socks { background-image:url('assets/socks-icon-v1.png'); background-position:center; background-size:contain; }
+.inventory-item-copy strong { display:block; margin:2px 0 5px; color:#eee2cf; font-size:.95rem; }
+.inventory-item-copy span { color:#aaa193; font-size:.8rem; line-height:1.35; }
+.inventory-use-prompt { margin:0 0 10px; color:#d4b478; font-size:.85rem; }
+
+
+/* Developer hotspot inspection. These outlines are a display aid only and do
+   not change hit areas, stacking, movement or object behavior. */
+body.highlight-objects #scene .hotspot { opacity:1; border:2px dotted #f0c45c; background:#f0c45c18; box-shadow:inset 0 0 0 1px #15120bbb,0 0 5px #0008; }
+body.highlight-objects #scene .hotspot:hover,
+body.highlight-objects #scene .hotspot:focus-visible { opacity:1; border-color:#fff0a6; background:#f0c45c2b; outline:none; }
+.inventory-item-icon.item-keys { background-image:url('assets/lighting/living-master-v2.png'); background-size:2500% 2000%; background-position:80.938% 27.895%; }

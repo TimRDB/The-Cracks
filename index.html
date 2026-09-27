@@ -7,15 +7,22 @@
   <link rel="stylesheet" href="style.css" />
   <link rel="preload" as="image" href="assets/title-screen-bg.png" />
   <link rel="preload" as="image" href="assets/player-sheet-keyed-v1.png" />
+  <link rel="preload" as="image" href="assets/player-sheet-underwear-socks-v6.png" />
+  <link rel="preload" as="image" href="assets/player-sheet-clothes-barefoot-v6.png" />
+  <link rel="preload" as="image" href="assets/player-sheet-clothes-socks-v9.png" />
+  <link rel="preload" as="image" href="assets/player-sheet-clean-barefoot-v8.png" />
+  <link rel="preload" as="image" href="assets/player-sheet-clean-socks-v11.png" />
   <link rel="preload" as="image" href="assets/bedroom-wakeup-v1.png" />
   <link rel="preload" as="image" href="assets/alarm-closeup-v1.png" />
   <link rel="preload" as="image" href="assets/outside_bg.png" />
+  <link rel="preload" as="image" href="assets/outside-cars-foreground-v1.png" />
   <link rel="preload" as="image" href="assets/street_bg_counter_v2.png" />
   <link rel="preload" as="image" href="assets/street_doors_open.png" />
   <link rel="preload" as="image" href="assets/bluestar-interior-v2.png" />
   <link rel="preload" as="image" href="assets/bluestar-door-left-v2.png" />
   <link rel="preload" as="image" href="assets/bluestar-door-right-v2.png" />
   <link rel="preload" as="image" href="assets/lighting/bedroom-states-v14/bedroom-c0-l0-m0.png" />
+  <link rel="preload" as="image" href="assets/lighting/bedroom-clothes-v1/bedroom-c0-l0-m0.png" />
   <link rel="preload" as="image" href="assets/lighting/hard-states-v7/living-c0-m0-b0-h0.png" />
   <link rel="preload" as="image" href="assets/lighting/hard-states-v7/bathroom-c0-m0.png" />
 </head>
@@ -47,6 +54,10 @@
             <div id="room-background-b" class="room-background-layer"></div>
           </div>
           <div id="wakeup-bed" hidden></div>
+          <div id="bedroom-clothes">
+            <div id="bedroom-clothes-a" class="clothes-state-layer is-visible"></div>
+            <div id="bedroom-clothes-b" class="clothes-state-layer"></div>
+          </div>
           <div id="living-toaster">
             <div id="living-toaster-a" class="toaster-state-layer is-visible"></div>
             <div id="living-toaster-b" class="toaster-state-layer"></div>
@@ -63,15 +74,13 @@
           <div id="street-bluestar" class="street-door" aria-hidden="true"><div class="street-leaf left"></div><div class="street-leaf right"></div></div>
         </div>
         <div id="alley-npc" aria-hidden="true"></div>
-        <div id="statusText">Walk to</div>
+        <div id="statusText">Pick up</div>
         <div id="hotspots"></div>
         <div id="player" class="sprite" data-facing="down" aria-label="Player character">
           <div class="player-frame"></div>
         </div>
         <div id="foreground" aria-hidden="true">
-          <div class="outside-car-foreground burgundy"></div>
-          <div class="outside-car-foreground silver"></div>
-          <div class="outside-car-foreground blue"></div>
+          <div class="outside-cars-foreground"></div>
         </div>
         <div id="messageBox" class="hidden" role="status" aria-live="polite"></div>
         <div id="scene-fade" aria-hidden="true"></div>
@@ -82,16 +91,19 @@
     </div>
     <section id="interface" aria-label="Game controls">
       <div id="verbs" aria-label="Action verbs">
-        <button data-verb="walk">Walk to</button>
+        <button data-verb="pickup">Pick up</button>
+        <button data-verb="place">Place</button>
         <button data-verb="look">Look at</button>
-        <button data-verb="open">Open</button>
-        <button data-verb="close">Close</button>
         <button data-verb="use">Use</button>
         <button data-verb="talk">Talk to</button>
+        <button id="clearVerb" class="verb-clear" aria-label="Deselect current action" title="Deselect action">&times;</button>
       </div>
-      <div id="roomControls">
-        <span id="roomLight">Curtains closed</span>
-        <button id="curtainToggle" aria-controls="curtains" aria-expanded="false">Open curtains</button>
+      <div id="roomControls" hidden aria-hidden="true">
+        <span id="roomLight"></span>
+        <button id="curtainToggle" tabindex="-1" aria-controls="curtains" aria-expanded="false"></button>
+      </div>
+      <div id="inventoryControl">
+        <button id="inventoryBtn" aria-controls="inventoryOverlay" aria-expanded="false">Inventory <span id="inventoryCount" aria-label="items">0</span></button>
       </div>
       <div id="controls">
         <button id="saveBtn">Save</button>
@@ -100,6 +112,19 @@
       </div>
     </section>
   </main>
+  <div id="inventoryOverlay" class="inventory-overlay" role="dialog" aria-modal="true" aria-labelledby="inventoryHeading" hidden>
+    <section class="inventory-panel">
+      <header class="inventory-header">
+        <div><h2 id="inventoryHeading">Inventory</h2><p>Choose an item, or choose Use or Place first.</p></div>
+        <button id="inventoryCloseBtn" class="inventory-close">Close</button>
+      </header>
+      <div class="inventory-actions" aria-label="Inventory actions">
+        <button id="inventoryUseBtn">Use</button>
+        <button id="inventoryPlaceBtn">Place</button>
+      </div>
+      <div id="inventoryItems" class="inventory-items"></div>
+    </section>
+  </div>
   <div id="devTools" class="dev-overlay" role="dialog" aria-modal="true" aria-labelledby="devToolsHeading" hidden>
     <div class="dev-panel">
       <section id="devMenu" class="dev-screen">
@@ -107,6 +132,8 @@
         <p class="dev-paused">Game paused</p>
         <div class="dev-options">
           <button id="devSceneSelectBtn" class="dev-choice">Scene Select</button>
+          <button id="devStatsBtn" class="dev-choice">Character Stats</button>
+          <button id="devHighlightObjectsBtn" class="dev-choice" aria-pressed="false">Highlight Objects: Off</button>
         </div>
         <button id="devBackBtn" class="dev-choice dev-back">Back</button>
       </section>
@@ -114,6 +141,11 @@
         <h2 id="devSceneHeading">Scene Select</h2>
         <div id="devSceneList" class="dev-options"></div>
         <button id="devSceneBackBtn" class="dev-choice dev-back">Back</button>
+      </section>
+      <section id="devStats" class="dev-screen" aria-labelledby="devStatsHeading" hidden>
+        <h2 id="devStatsHeading">Character Stats</h2>
+        <div class="dev-stats-empty" aria-label="No character statistics configured yet"></div>
+        <button id="devStatsBackBtn" class="dev-choice dev-back">Back</button>
       </section>
     </div>
   </div>

@@ -18,6 +18,13 @@ public static class AlleyManV6Builder {
     int dr=c.R-key.R, dg=c.G-key.G, db=c.B-key.B;
     return dr*dr+dg*dg+db*db < 140*140 && c.G > c.R*1.12 && c.G > c.B*1.08;
   }
+  // Enclosed pockets (such as the gap between hand and knee, or the shadow under
+  // the bags) and stray outline fringe show the green screen too, sometimes in
+  // shadow. The figure has no pure green: its olive jacket has less green than
+  // red, so a strongly green hue at any brightness is key colour.
+  static bool EnclosedKeyPocket(Color c, Color key) {
+    return c.G > 40 && c.G > c.R*2.5 && c.G > c.B*2.5;
+  }
 
   public static string Build(string sourcePath, string outputPath) {
     using (var source = new Bitmap(sourcePath)) {
@@ -30,6 +37,7 @@ public static class AlleyManV6Builder {
       for(int y=0;y<height;y++){seed(0,y);seed(width-1,y);}
       int[] ox={-1,1,0,0},oy={0,0,-1,1};
       while(queue.Count>0){int i=queue.Dequeue(),x=i%width,y=i/width;for(int n=0;n<4;n++){int nx=x+ox[n],ny=y+oy[n];if(nx<0||ny<0||nx>=width||ny>=height)continue;int ni=ny*width+nx;if(!background[ni]&&GreenBackground(source.GetPixel(nx,ny),key)){background[ni]=true;queue.Enqueue(ni);}}}
+      for(int i=0;i<count;i++) if(!background[i]&&EnclosedKeyPocket(source.GetPixel(i%width,i/width),key)) background[i]=true;
 
       using(var open=new Bitmap(width,height,PixelFormat.Format32bppArgb)){
         for(int y=0;y<height;y++)for(int x=0;x<width;x++){
@@ -77,7 +85,7 @@ public static class AlleyManV6Builder {
           }
         }
       }
-      return String.Format("source={0}x{1}; sheet={2}x{1}; frames=2; keyed=edge-connected background only; blink edits=eye regions only",width,height,width*2);
+      return String.Format("source={0}x{1}; sheet={2}x{1}; frames=2; keyed=edge-connected background plus enclosed key-colour pockets; blink edits=eye regions only",width,height,width*2);
     }
   }
 }

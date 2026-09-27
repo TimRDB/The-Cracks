@@ -41,6 +41,7 @@ child.stderr.on('data', chunk => { log += chunk; });
     await evaluate("titleScreen.hidden=true;game.inert=false;document.body.classList.add('game-started');showRoom('alley');Object.assign(movement,{x:28.5,y:48,facing:'right'});renderPlayer();messageBox.classList.add('hidden')");
     await delay(500);
     assert.equal(await evaluate('gameState.currentRoom'), 'alley');
+    assert.equal(await evaluate("document.querySelectorAll('#verbs button[data-verb]').length"), 5);
     assert.equal(await evaluate("document.querySelectorAll('#verbs button').length"), 6);
     assert.equal(await evaluate("roomObjects.man.name"), 'man sheltering in the alley');
     assert.equal(await evaluate("getComputedStyle(document.getElementById('alley-npc')).display"), 'block');

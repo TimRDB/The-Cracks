@@ -33,7 +33,7 @@ function game(storage = new Map()) {
     };
   }
   const get = id => { if (!elements.has(id)) elements.set(id, element()); return elements.get(id); };
-  const verbs = ['walk', 'look', 'open', 'close', 'use', 'talk'].map(verb => { const el = element(); el.dataset.verb = verb; return el; });
+  const verbs = ['pickup', 'place', 'look', 'use', 'talk'].map(verb => { const el = element(); el.dataset.verb = verb; return el; });
   const context = vm.createContext({ document: { getElementById: get, querySelectorAll: () => verbs, createElement: element },
     localStorage: { getItem: k => storage.get(k) ?? null, setItem: (k, v) => storage.set(k, v), removeItem: k => storage.delete(k) },
     performance:{now:()=>timerNow}, getComputedStyle:()=>({opacity:'0'}),
@@ -66,7 +66,7 @@ test('new launches always start in the dark bedroom, even with a saved open-curt
   assert.match(styles, /--room-image[^}]+bedroom-c0-l0-m0\.png/);
   assert.equal(fresh.get('curtainToggle').textContent, 'Open curtains');
   assert.equal(fresh.run('movement.facing'), 'down');
-  assert.equal(fresh.get('hotspots').children.length, 14);
+  assert.equal(fresh.get('hotspots').children.length, 15);
 });
 test('bedroom lighting uses complete pre-rendered states without runtime masks', () => {
   assert.match(markup, /id="scene"[^>]*class="curtains-closed"[^>]*data-room="bedroom"/);
@@ -141,7 +141,7 @@ test('bathroom off-screen curtains change daylight and the mirror reflection wit
   const g = game(); g.run('showRoom("bathroom")');
   assert.equal(g.run('gameState.bathroomCurtainsOpen'), false);
   assert.match(g.get('scene').style['--room-image'], /bathroom-c0-m0\.png/);
-  g.run('setVerb("walk");updateStatus("bathroomCurtains")');
+  g.run('setVerb(null);updateStatus("bathroomCurtains")');
   assert.equal(g.get('statusText').textContent, 'Open bathroom curtains');
   g.run('handleTarget("bathroomCurtains")'); g.finish();
   assert.equal(g.run('gameState.bathroomCurtainsOpen'), true);
@@ -155,7 +155,7 @@ test('lighting state is saved, loaded and reset with backwards-compatible defaul
   const g = game();
   g.run('Object.assign(gameState,{bedroomMainLightOn:true,livingCurtainsOpen:true,livingMainLightOn:true,kitchenLightsOn:true,hallwayLightOn:true,bathroomCurtainsOpen:true,bathroomMainLightOn:true});saveGame()');
   const saved = JSON.parse(g.storage.get('theCracksBedroomSave'));
-  assert.equal(saved.version, 5);
+  assert.equal(saved.version, 7);
   g.run('Object.assign(gameState,{bedroomMainLightOn:false,livingCurtainsOpen:false,livingMainLightOn:false,kitchenLightsOn:false,hallwayLightOn:false,bathroomCurtainsOpen:false,bathroomMainLightOn:false});loadGame()');
   for (const key of ['bedroomMainLightOn','livingCurtainsOpen','livingMainLightOn','kitchenLightsOn','hallwayLightOn','bathroomCurtainsOpen','bathroomMainLightOn']) assert.equal(g.run(`gameState.${key}`), true);
   g.run('resetGame()');
@@ -224,7 +224,7 @@ test('living circuits share one fixed high-detail master and deterministic light
   assert.doesNotMatch(builder, /livingLamp|living-floor-lamp|room == "living"\) DrawPercent/);
 });
 
-test('all lights advertise their current action and toggle immediately on click', () => {
+test('all switches and the bedside lamp walk into reach before toggling', () => {
   const g = game();
   for (const [room, target, state, label] of [
     ['bedroom', 'lamp', 'lampOn', 'lamp'],
@@ -234,11 +234,14 @@ test('all lights advertise their current action and toggle immediately on click'
     ['living', 'hallwayLightSwitch', 'hallwayLightOn', 'hallway light'],
     ['bathroom', 'mainLightSwitch', 'bathroomMainLightOn', 'bathroom light']
   ]) {
-    g.run(`showRoom('${room}');setVerb('look');`);
+    g.run(`showRoom('${room}');setVerb(null);`);
     const wasOn = g.run(`gameState.${state}`);
     g.run(`updateStatus('${target}')`);
     assert.equal(g.get('statusText').textContent, `Turn ${wasOn ? 'off' : 'on'} ${label}`);
     g.run(`handleTarget('${target}')`);
+    assert.equal(g.run(`gameState.${state}`), wasOn, 'the light waits until the character arrives');
+    assert.notEqual(g.run('movement.destination'), null);
+    g.finish();
     assert.equal(g.run(`gameState.${state}`), !wasOn);
     assert.equal(g.run('movement.destination'), null);
     assert.equal(g.get('statusText').textContent, `Turn ${wasOn ? 'on' : 'off'} ${label}`);
@@ -321,14 +324,20 @@ test('the toaster is a persistent state-matched prop over clean living-room plat
   assert.match(source, /commitToasterImage\(toasterImageForState\(\), immediate, fastLight\)/);
 
   const g = game();
-  g.run('showRoom("living");setVerb("use");updateStatus("toaster")');
+  g.run('showRoom("living");setVerb("pickup");updateStatus("toaster")');
   assert.equal(g.get('statusText').textContent, 'Pick up toaster');
   g.run('handleTarget("toaster")'); g.finish();
   assert.equal(g.run('gameState.toasterTaken'), true);
+  assert.equal(g.run('JSON.stringify(gameState.inventory)'), '["toaster"]');
   assert.ok(g.get('living-toaster').classList.contains('is-taken'));
-  assert.equal(g.get('statusText').textContent, 'Put back toaster');
-  g.run('saveGame();gameState.toasterTaken=false;loadGame()');
+  assert.equal(g.get('inventoryCount').textContent, '1');
+  g.run('saveGame();resetWorldState();loadGame()');
   assert.equal(g.run('gameState.toasterTaken'), true);
+  assert.equal(g.run('JSON.stringify(gameState.inventory)'), '["toaster"]');
+  g.run('interactionSelection.itemId="toaster";setVerb("place",{keepItem:true});handleTarget("toaster")'); g.finish();
+  assert.equal(g.run('gameState.toasterTaken'), false);
+  assert.equal(g.run('gameState.inventory.length'), 0);
+  assert.equal(g.run('gameState.itemPlacements.toaster.target'), 'toaster');
   g.run('resetGame()');
   assert.equal(g.run('gameState.toasterTaken'), false);
 });
@@ -455,7 +464,7 @@ test('doors animate before switching rooms and all interior routes are reciproca
   g.run('handleTarget("bedroomDoor");'); g.finish();
   assert.equal(g.run('gameState.currentRoom'), 'bedroom');
   assert.equal(g.run('gameState.curtainsOpen'), true);
-  assert.equal(g.get('hotspots').children.length, 14);
+  assert.equal(g.get('hotspots').children.length, 15);
 });
 
 test('the restored bathroom runs from its left entrance to the right-side bath and closes on the source side', () => {
@@ -649,7 +658,7 @@ test('living TV channels, saves, bathroom and exit preserve apartment state', ()
 
 test('outside paths descend stairs and use the gap beside the blue car', () => {
   const g = game();
-  g.run('showRoom("outside"); movement.x=73; movement.y=37.4; handleTarget("blueCar");');
+  g.run('showRoom("outside"); movement.x=73; movement.y=37.4; setVerb("look"); handleTarget("blueCar");');
   let stairs = 0, passage = false, lift = false;
   for (let i=0; i<2200 && g.run('movement.destination !== null'); i++) {
     g.tick();
@@ -669,9 +678,20 @@ test('outside paths descend stairs and use the gap beside the blue car', () => {
   assert.match(g.get('messageBox').textContent, /Lonza Experience/);
 });
 
+test('the parking line beside the burgundy car bounds the empty bay', () => {
+  const g = game();
+  // The line runs from (28.1, 64.4) at the kerb to (22.0, 89.9) at the lane.
+  for (const [x, y] of [[24, 75], [22, 62], [21.5, 80]]) assert.equal(g.run(`outsidePointIsFree(${x},${y})`), false, `${x},${y} is beside the car`);
+  for (const [x, y] of [[25.6, 75], [27, 70], [23, 86]]) assert.equal(g.run(`outsidePointIsFree(${x},${y})`), true, `${x},${y} is on or right of the line`);
+  const snapped = g.run('outsideProjection(24,75)');
+  assert.ok(Math.abs(snapped.x - (29.9 - (snapped.y - 57) * 8.4 / 35)) < .01, 'clicks beside the car snap onto the line');
+  const route = g.run('outsideRoute({x:22,y:55},{x:21.5,y:92})');
+  assert.ok(route.every(point => g.run(`outsidePointIsFree(${point.x},${point.y})`)));
+});
+
 test('all painted gaps between parked cars are walkable', () => {
   const g = game();
-  for (const x of [24, 50, 72.7]) {
+  for (const x of [50, 72.7]) {
     const route = g.run(`outsideRoute({x:${x},y:55},{x:${x},y:92})`);
     assert.ok(route.length > 0);
     assert.ok(route.filter(point => point.y > 55).every(point => Math.abs(point.x - x) < .001));
@@ -697,12 +717,18 @@ test('clear parking-lot ground supports free movement without crossing parked ca
   assert.notDeepEqual([onCar.x, onCar.y], [61, 70]);
 });
 
-test('car foreground masks use tightly traced vehicle silhouettes', () => {
-  for (const car of ['burgundy', 'silver', 'blue']) {
-    const rule = styles.match(new RegExp(`\\.outside-car-foreground\\.${car} \\{ clip-path: polygon\\(([^;]+)\\); \\}`));
-    assert.ok(rule, `${car} foreground mask must exist`);
-    assert.ok(rule[1].split(',').length >= 25, `${car} mask must closely trace the painted silhouette`);
-  }
+test('cars occlude the player through a per-pixel cutout, switching at their ground line', () => {
+  const cutout = fs.readFileSync(path.join(__dirname, '..', 'assets', 'outside-cars-foreground-v1.png'));
+  assert.equal(cutout.readUInt32BE(16), 1672);
+  assert.equal(cutout.readUInt32BE(20), 941);
+  assert.equal(cutout[25], 6, 'RGBA with transparency outside the cars');
+  assert.match(styles, /\.outside-cars-foreground \{[^}]*outside-cars-foreground-v1\.png/);
+  assert.doesNotMatch(styles, /outside-car-foreground\.(burgundy|silver|blue)/);
+  const g = game();
+  g.run("showRoom('outside');movement.x=36;movement.y=85;renderPlayer()");
+  assert.equal(g.get('scene').classList.contains('player-behind-cars'), true);
+  g.run('movement.y=86;renderPlayer()');
+  assert.equal(g.get('scene').classList.contains('player-behind-cars'), false, 'level with the bumpers the player is in front');
 });
 
 test('outside perspective is calibrated to doors and parked cars', () => {
@@ -723,14 +749,22 @@ test('outside perspective is calibrated to doors and parked cars', () => {
   assert.ok(Math.abs(frontBodyHeight / .30 - 1.8 / 1.4) < .02);
 });
 
-test('both neighbouring patios are reachable but locked, even with keys', () => {
+test('the neighbouring apartment doors give their distinct responses', () => {
   const g = game();
-  g.run('showRoom("outside"); movement.x=73; movement.y=37.4; gameState.keysTaken=true; setVerb("open");');
-  for (const target of ['neighbourLeft', 'neighbourMiddle', 'blueCar', 'silverCar', 'burgundyCar']) {
+  g.run('showRoom("outside"); movement.x=73; movement.y=37.4; gameState.keysTaken=true; setVerb("use");');
+  for (const [target, expected] of [
+    ['neighbourLeft', 'The door is locked.'],
+    ['neighbourMiddle', "You think it's open, but have no desire to barge in."]
+  ]) {
     g.run('handleTarget("' + target + '");'); g.finish();
+    assert.equal(g.get('messageBox').textContent, expected);
     assert.equal(g.run('gameState.currentRoom'), 'outside');
-    assert.match(g.get('messageBox').textContent, /locked/i);
     assert.equal(g.run('transition'), null);
+    g.run('setVerb("use")');
+  }
+  for (const target of ['blueCar', 'silverCar', 'burgundyCar']) {
+    g.run('handleTarget("' + target + '");'); g.finish();
+    assert.equal(g.get('messageBox').textContent, 'It is locked.');
   }
 });
 
@@ -798,21 +832,19 @@ test('Bluestar sensor opens without entering and walking crosses its threshold',
   g.run("movePlayerTo(78,streetFootY(78))");g.finish();
   assert.equal(g.get('street-bluestar').classList.contains('is-open'),false);
 });
-test('Laundry opens and closes, its entry and saved state remain usable', () => {
+test('Laundry uses one contextual click to open, enter and persist its door state', () => {
   const g=game();
-  g.run("showRoom('street');Object.assign(movement,{x:39,y:streetFootY(39)});setVerb('open');handleTarget('laundry')");
-  g.finish();
+  g.run("showRoom('street');Object.assign(movement,{x:39,y:streetFootY(39)});setVerb(null);updateStatus('laundry')");
+  assert.equal(g.get('statusText').textContent,'Open Laundry glass door');
+  g.run("handleTarget('laundry')");g.finish();
   assert.equal(g.run('gameState.laundryDoorOpen'),true);
-  assert.ok(g.run('movement.y > streetDoors.laundry.threshold'));
-  g.run("setVerb('walk');handleTarget('laundry')");g.finish();
   assert.equal(g.run('movement.y'),62.5);
   g.run("saveGame();showRoom('bedroom');gameState.laundryDoorOpen=false;loadGame()");
   assert.equal(g.run('gameState.currentRoom'),'street');
   assert.equal(g.run('gameState.laundryDoorOpen'),true);
   assert.equal(g.run('movement.y'),62.5);
-  g.run("setVerb('close');handleTarget('laundry')");g.finish();
+  g.run('resetGame()');
   assert.equal(g.run('gameState.laundryDoorOpen'),false);
-  assert.ok(g.run('movement.y > streetDoors.laundry.threshold'));
 });
 test('street routes stay on the pavement and alley instead of cutting across bins or shops', () => {
   const g=game();
@@ -833,6 +865,65 @@ test('the player sheet is pre-keyed so no live filter re-renders the character',
   assert.doesNotMatch(styles + markup, /sprite-green-key/);
 });
 
+test('the seated man is clickable above the shelter, sleeping bag and bags', () => {
+  const g = game();
+  assert.equal(g.run("Object.keys(apartmentRooms.alley.objects).at(-1)"), 'man');
+  assert.match(styles, /#alley-npc \{[^}]*z-index:59/);
+});
+
+test('verbs an object does not support get a fitting reply instead of its Use response', () => {
+  const g = game();
+  const reply = (room, target, verb) => { g.run(`showRoom('${room}');setVerb('${verb}');interact('${target}','${verb}')`); return g.run('messageBox.textContent'); };
+  assert.equal(reply('bathroom', 'toilet', 'talk'), 'The toilet offers only the usual household silence.');
+  assert.equal(reply('bathroom', 'toilet', 'open'), 'The toilet does not open.');
+  assert.equal(reply('bathroom', 'toilet', 'use'), 'You flush the toilet.');
+  assert.equal(reply('living', 'couch', 'open'), 'The couch does not open.');
+  assert.equal(reply('bedroom', 'bed', 'talk'), 'There is nothing you feel like saying to the bed.');
+  assert.equal(reply('living', 'bedroomDoor', 'talk'), "You don't feel like talking to that right now.");
+  assert.equal(g.run('transition'), null, 'talking to a door does not open it');
+});
+
+test('Use follows scene openings while Talk To leaves them alone', () => {
+  const g = game();
+  g.run("showRoom('alley');Object.assign(movement,{x:28.5,y:48,facing:'up'});renderPlayer();setVerb('talk');updateStatus('street')");
+  assert.equal(g.get('statusText').textContent, 'Talk to street beside Bluestar');
+  g.run("handleTarget('street')");g.finish();g.advance(500);
+  assert.equal(g.run('gameState.currentRoom'), 'alley');
+  assert.equal(g.get('messageBox').textContent, "You don't feel like talking to that right now.");
+  g.run("setVerb('use');handleTarget('street')");g.finish();g.advance(500);
+  assert.equal(g.run('gameState.currentRoom'), 'street');
+  assert.equal(g.run('gameState.selectedVerb'), null);
+});
+
+test('loading a save during the turn at an opening cancels the pending exit', () => {
+  const g = game();
+  g.run("showRoom('alley');Object.assign(movement,{x:28.5,y:48,facing:'down'});renderPlayer();saveGame();setVerb('use');handleTarget('street')");
+  assert.equal(g.run('movement.facing'), 'up');
+  g.run('loadGame()');
+  g.advance(500);
+  assert.equal(g.run('gameState.currentRoom'), 'alley');
+});
+
+test('room switches wait for every destination asset, then change in one step', () => {
+  const g = game();
+  // Each destination lists its overlays with its background.
+  assert.equal(g.run("JSON.stringify(roomAssetPaths('outside'))"), JSON.stringify(['assets/outside_bg.png', 'assets/outside-cars-foreground-v1.png']));
+  assert.ok(g.run("roomAssetPaths('alley').includes('assets/alley-man-sprite-v6.png')"));
+  // Simulate a browser where nothing is decoded yet.
+  g.run("globalThis.Image=function(){};decodedRoomImages.clear();showRoom('alley');Object.assign(movement,{x:28.5,y:48,facing:'up'});renderPlayer()");
+  g.run("travelAlley('street')");
+  assert.equal(g.run('gameState.currentRoom'), 'alley', 'the old scene stays until the new one is decoded');
+  assert.equal(g.run('movement.x'), 28.5, 'the player stays put and visible in the old scene');
+  g.run("movePlayerTo(40,80)");
+  assert.equal(g.run('movement.destination'), null, 'input waits during the switch');
+  g.run("cancelRoomSwitch();roomAssetPaths('street').forEach(p=>decodedRoomImages.add(p));travelAlley('street')");
+  assert.equal(g.run('gameState.currentRoom'), 'street');
+  assert.equal(g.run('movement.x'), 87.5);
+  // Every neighbour of a room is warmed, so exits normally switch instantly.
+  assert.equal(g.run('roomNeighbours.alley.join()'), 'street');
+  assert.equal(g.run('roomNeighbours.street.join()'), 'outside,alley');
+});
+
 test('Bluestar alley uses a stable two-frame transparent blink sprite', () => {
   const npc = fs.readFileSync(path.join(__dirname, '..', 'assets', 'alley-man-sprite-v6.png'));
   assert.equal(npc.readUInt32BE(16), 2748);
@@ -845,7 +936,7 @@ test('Bluestar alley uses a stable two-frame transparent blink sprite', () => {
 
 test('Bluestar alley is reciprocal with free walking inside its concrete bounds', () => {
   const g=game();
-  g.run("showRoom('street');Object.assign(movement,{x:87.5,y:64.5});setVerb('walk');handleTarget('alley')");
+  g.run("showRoom('street');Object.assign(movement,{x:87.5,y:64.5});setVerb('use');handleTarget('alley')");
   g.finish();g.advance(500);
   assert.equal(g.run('gameState.currentRoom'),'alley');
   assert.equal(g.run('movement.x'),28.5);
@@ -863,14 +954,14 @@ test('Bluestar alley is reciprocal with free walking inside its concrete bounds'
   g.finish();
   g.run("saveGame();showRoom('bedroom');loadGame()");
   assert.equal(g.run('gameState.currentRoom'),'alley');
-  g.run("setVerb('walk');handleTarget('street')");g.finish();g.advance(500);
+  g.run("setVerb('use');handleTarget('street')");g.finish();g.advance(500);
   assert.equal(g.run('gameState.currentRoom'),'street');
   assert.equal(g.run('movement.x'),87.5);
 });
 
 test('alley and street openings turn a standing player around before crossing', () => {
   const g=game();
-  g.run("showRoom('street');Object.assign(movement,{x:3,y:streetFootY(3),facing:'right'});setVerb('walk');handleTarget('alley')");
+  g.run("showRoom('street');Object.assign(movement,{x:3,y:streetFootY(3),facing:'right'});setVerb('use');handleTarget('alley')");
   g.finish();g.advance(500);
   assert.equal(g.run('gameState.currentRoom'),'alley');
   // Back out without moving: turn to face the street, then cross.
@@ -935,4 +1026,397 @@ test('skipping or resetting the wake-up sequence cancels all pending stages',()=
     assert.equal(g.get('interface').inert,false);
     assert.equal(g.run('wakeup.timers.length'),0);
   }
+});
+
+test('bottom interface exposes five verbs, a separate inventory, and no visible state tracker', () => {
+  assert.deepEqual([...markup.matchAll(/data-verb="([^"]+)"/g)].map(match => match[1]), ['pickup','place','look','use','talk']);
+  assert.doesNotMatch(markup, /data-verb="(?:walk|open|close)"/);
+  assert.match(markup, /id="roomControls" hidden/);
+  assert.match(markup, /id="inventoryBtn"/);
+  assert.match(styles, /#verbs[^}]*repeat\(5[^}]*32px/);
+  assert.match(markup, /id="clearVerb"[^>]*aria-label="Deselect current action"/);
+});
+
+test('switches and doors respect selected verbs while curtains remain contextual', () => {
+  const g = game();
+  for (const [target, name] of [['mainLightSwitch', 'bedroom light switch'], ['lamp', 'bedside lamp'], ['door', 'living room door']]) {
+    for (const [verb, label] of [['pickup', 'Pick up'], ['place', 'Place'], ['look', 'Look at'], ['use', 'Use'], ['talk', 'Talk to']]) {
+      g.run(`showRoom('bedroom');setVerb('${verb}');updateStatus('${target}')`);
+      assert.equal(g.get('statusText').textContent, `${label} ${name}`);
+    }
+  }
+  g.run("showRoom('bedroom');setVerb('look');updateStatus('mainLightSwitch')");
+  assert.equal(g.get('statusText').textContent, 'Look at bedroom light switch');
+  g.run("handleTarget('mainLightSwitch')"); g.finish();
+  assert.equal(g.run('gameState.bedroomMainLightOn'), false);
+  assert.equal(g.run('gameState.selectedVerb'), 'look');
+  assert.equal(g.get('messageBox').textContent, g.run('roomObjects.mainLightSwitch.description'));
+
+  for (const [verb, expected] of [
+    ['talk', "You don't feel like talking to that right now."],
+    ['pickup', "It can't be picked up without power tools."],
+    ['place', "It's already there."]
+  ]) {
+    g.run(`setVerb('${verb}');handleTarget('mainLightSwitch')`); g.finish();
+    assert.equal(g.run('gameState.bedroomMainLightOn'), false);
+    assert.equal(g.get('messageBox').textContent, expected);
+    assert.equal(g.run('gameState.selectedVerb'), verb);
+  }
+
+  g.run("setVerb('use');updateStatus('mainLightSwitch')");
+  assert.equal(g.get('statusText').textContent, 'Use bedroom light switch');
+  g.run("handleTarget('mainLightSwitch')");
+  assert.equal(g.run('gameState.bedroomMainLightOn'), false);
+  assert.equal(g.run('gameState.selectedVerb'), 'use');
+  g.finish();
+  assert.equal(g.run('gameState.bedroomMainLightOn'), true);
+  assert.equal(g.run('gameState.selectedVerb'), null);
+
+  g.run("setVerb('look');updateStatus('door')");
+  assert.equal(g.get('statusText').textContent, 'Look at living room door');
+  g.run("handleTarget('door')"); g.finish();
+  assert.equal(g.run('gameState.currentRoom'), 'bedroom');
+  assert.equal(g.run('gameState.selectedVerb'), 'look');
+  assert.equal(g.get('messageBox').textContent, g.run('roomObjects.door.description'));
+
+  g.run("setVerb('use');handleTarget('door')"); g.finish();
+  assert.equal(g.run('gameState.currentRoom'), 'living');
+  assert.equal(g.run('gameState.selectedVerb'), null);
+
+  g.run("showRoom('bedroom');setVerb('look');updateStatus('curtains')");
+  assert.equal(g.get('statusText').textContent, 'Look at bedroom curtains');
+  g.run("handleTarget('curtains')"); g.finish();
+  assert.equal(g.run('gameState.curtainsOpen'), false);
+  assert.equal(g.run('gameState.selectedVerb'), 'look');
+  assert.equal(g.get('messageBox').textContent, g.run('roomObjects.curtains.description'));
+
+  g.run("setVerb('look');updateStatus('lamp');handleTarget('lamp')"); g.finish();
+  assert.equal(g.run('gameState.lampOn'), false);
+  assert.equal(g.run('gameState.selectedVerb'), 'look');
+  assert.equal(g.get('messageBox').textContent, g.run('roomObjects.lamp.description'));
+  g.run("setVerb('use');handleTarget('lamp')");
+  assert.equal(g.run('gameState.lampOn'), false);
+  assert.equal(g.run('gameState.selectedVerb'), 'use');
+  g.finish();
+  assert.equal(g.run('gameState.lampOn'), true);
+  assert.equal(g.run('gameState.selectedVerb'), null);
+});
+
+test('a new floor click cancels a contextual action while the character is approaching', () => {
+  const g = game();
+  g.run("showRoom('bedroom');Object.assign(movement,{x:12,y:84});setVerb('look');handleTarget('door')");
+  assert.notEqual(g.run('movement.destination'), null);
+  assert.equal(g.run('gameState.selectedVerb'), 'look');
+  g.run('movePlayerTo(20,84)'); g.finish();
+  assert.equal(g.run('gameState.currentRoom'), 'bedroom');
+  assert.equal(g.run('movement.x'), 20);
+  assert.equal(g.run('movement.y'), 84);
+  assert.equal(g.run('transition'), null);
+
+  g.run("Object.assign(movement,{x:42,y:84});setVerb('use');handleTarget('mainLightSwitch')");
+  assert.equal(g.run('gameState.bedroomMainLightOn'), false);
+  assert.notEqual(g.run('movement.destination'), null);
+  g.run('movePlayerTo(30,84)'); g.finish();
+  assert.equal(g.run('gameState.bedroomMainLightOn'), false);
+  assert.equal(g.run('gameState.selectedVerb'), 'use');
+});
+
+test('the deselect button clears the active action while contextual controls still work', () => {
+  const g = game();
+  g.run("setVerb('look');setVerb(null)");
+  assert.equal(g.run('gameState.selectedVerb'), null);
+  assert.equal(g.get('statusText').textContent, 'No action selected');
+  assert.ok(g.run("[...document.querySelectorAll('#verbs button')].every(button=>!button.classList.contains('active'))"));
+  g.run("updateStatus('mainLightSwitch')");
+  assert.equal(g.get('statusText').textContent, 'Turn on bedroom light');
+  g.run("handleTarget('mainLightSwitch')");
+  assert.equal(g.run('gameState.bedroomMainLightOn'), false);
+  assert.notEqual(g.run('movement.destination'), null);
+  g.finish();
+  assert.equal(g.run('gameState.bedroomMainLightOn'), true);
+});
+
+test('every scene object has a useful description and a valid interaction anchor', () => {
+  const g = game();
+  const count = g.run("Object.values(apartmentRooms).flatMap(room=>Object.values(room.objects)).length");
+  assert.ok(count >= 55, 'the audit covers every current scene object');
+  assert.equal(g.run("Object.values(apartmentRooms).flatMap(room=>Object.values(room.objects)).every(object=>typeof object.name==='string'&&object.name.length>1&&typeof object.description==='string'&&object.description.length>12&&Array.isArray(object.walk)&&object.walk.length===2)"), true);
+});
+
+test('every object has capitalized hover labels and responses for all five actions', () => {
+  const g = game();
+  assert.equal(g.run("Object.values(apartmentRooms).flatMap(room=>Object.values(room.objects)).every(object=>/^[A-Z0-9]/.test(objectDisplayName(object)))"), true);
+  assert.equal(g.run("Object.values(apartmentRooms).flatMap(room=>Object.entries(room.objects)).every(([target,object])=>['look','use','talk','pickup','place'].every(verb=>typeof interactionReply(target,object,verb)==='string'&&interactionReply(target,object,verb).length>8))"), true);
+  for (const room of Object.keys(g.run('apartmentRooms'))) {
+    g.run(`showRoom('${room}')`);
+    assert.ok(g.get('hotspots').children.every(button => /^[A-Z0-9]/.test(button.attributes['aria-label'])));
+  }
+  g.run("showRoom('bedroom');setVerb(null);updateStatus('bed')");
+  assert.equal(g.get('statusText').textContent, 'Bed');
+  g.run("setVerb('look');updateStatus('bed')");
+  assert.equal(g.get('statusText').textContent, 'Look at bed');
+  assert.equal(g.run("interactionReply('tv',apartmentRooms.living.objects.tv,'talk')"), "You don't feel like talking to the TV.");
+  assert.equal(g.run("interactionReply('blueCar',apartmentRooms.outside.objects.blueCar,'talk')"), "You don't feel like talking to the car.");
+  assert.match(g.run("interactionReply('plant',apartmentRooms.living.objects.plant,'talk')"), /plant leans toward the window/);
+});
+
+test('walkable furnishings still respond to Pick Up, Place and Talk To', () => {
+  const g = game();
+  g.run("showRoom('living');setVerb('pickup');handleTarget('rug',{detail:1,clientX:500,clientY:500})"); g.finish();
+  assert.match(g.get('messageBox').textContent, /fixed in place/);
+  g.run("setVerb('place');handleTarget('rug',{detail:1,clientX:500,clientY:500})"); g.finish();
+  assert.equal(g.get('messageBox').textContent, 'The rug is already where it has ended up.');
+  g.run("setVerb('talk');handleTarget('livingCurtains')"); g.finish();
+  assert.equal(g.run('gameState.livingCurtainsOpen'), false);
+  assert.match(g.get('messageBox').textContent, /nothing you feel like saying/);
+});
+
+test('the toaster returns to the bench and apartment keys use the same inventory model', () => {
+  const g = game();
+  g.run("showRoom('living');setVerb('pickup');handleTarget('toaster')");g.finish();
+  g.run("interactionSelection.itemId='toaster';setVerb('place',{keepItem:true});updateStatus('toaster')");
+  assert.equal(g.get('statusText').textContent, 'Place toaster on bench');
+  g.run("handleTarget('toaster')");g.finish();
+  assert.equal(g.get('messageBox').textContent, 'You place the toaster on the bench.');
+  g.run("setVerb('pickup');handleTarget('keys')");g.finish();
+  assert.equal(g.run('gameState.keysTaken'), true);
+  assert.equal(g.run("gameState.inventory.includes('keys')"), true);
+  assert.equal(g.run('gameState.itemPlacements.keys.kind'), 'inventory');
+  g.run('saveGame();resetWorldState();loadGame()');
+  assert.equal(g.run("gameState.inventory.includes('keys')"), true);
+  assert.equal(g.run('gameState.keysTaken'), true);
+});
+
+test('Developer Tools exposes a reversible object-highlight toggle', () => {
+  assert.match(markup, /id="devHighlightObjectsBtn"[^>]*aria-pressed="false"[^>]*>Highlight Objects: Off/);
+  assert.match(styles, /body.highlight-objects #scene .hotspot[^}]*border:2px dotted/);
+  assert.ok(fs.readFileSync(path.join(__dirname, '..', 'devtools.js'), 'utf8').includes('devHighlightObjectsBtn.textContent'));
+});
+
+test('inventory pauses movement without changing lighting and resumes exactly where it stopped', () => {
+  const g = game();
+  g.run('gameState.bedroomMainLightOn=true;syncRoom();movePlayerTo(55,84)');
+  assert.notEqual(g.run('movement.frame'), null);
+  g.run('openInventory()');
+  assert.equal(g.run('gameTimers.paused'), true);
+  assert.equal(g.run('movement.frame'), null);
+  assert.equal(g.run('gameState.bedroomMainLightOn'), true);
+  assert.equal(g.get('inventoryOverlay').hidden, false);
+  g.run('closeInventory()');
+  assert.equal(g.run('gameTimers.paused'), false);
+  assert.notEqual(g.run('movement.frame'), null);
+  assert.equal(g.run('gameState.bedroomMainLightOn'), true);
+  g.finish();
+});
+
+test('inventory Use and Place select an item and track alternate containers through save/load', () => {
+  const g = game();
+  g.run('showRoom("living");setVerb("pickup");handleTarget("toaster")');g.finish();
+  g.run('openInventory();setInventoryMode("use");selectInventoryItem("toaster")');
+  assert.equal(g.run('interactionSelection.itemId'), 'toaster');
+  assert.equal(g.run('gameState.selectedVerb'), 'use');
+  g.run('updateStatus("coffee")');
+  assert.equal(g.get('statusText').textContent, 'Use toaster with coffee machine');
+  g.run('openInventory();setInventoryMode("place");selectInventoryItem("toaster");handleTarget("counter")');g.finish();
+  assert.equal(g.run('gameState.inventory.length'), 0);
+  assert.equal(g.run('gameState.itemPlacements.toaster.target'), 'counter');
+  assert.equal(g.run('gameState.toasterTaken'), true);
+  g.run('setVerb("pickup");handleTarget("counter")');g.finish();
+  assert.equal(g.run('JSON.stringify(gameState.inventory)'), '["toaster"]');
+  g.run('saveGame();resetWorldState();loadGame()');
+  assert.equal(g.run('JSON.stringify(gameState.inventory)'), '["toaster"]');
+  assert.equal(g.run('gameState.itemPlacements.toaster.kind'), 'inventory');
+});
+
+test('the developer menu includes an empty future character-stats screen', () => {
+  assert.match(markup, /id="devStatsBtn"[^>]*>Character Stats</);
+  assert.match(markup, /id="devStats"[^>]*hidden/);
+  assert.ok(source.includes('characterStats: { schemaVersion: 1, definitions: {}, values: {}, displayMode: null }'));
+});
+
+
+test('crumpled clothes remain transparent, lighting-matched, portable and persistent', () => {
+  const assetRoot = path.join(__dirname, '..', 'assets');
+  const base = fs.readFileSync(path.join(assetRoot, 'bedroom-crumpled-clothes-v1.png'));
+  assert.equal(base.readUInt32BE(16), 1237);
+  assert.equal(base.readUInt32BE(20), 547);
+  assert.equal(base[25], 6, 'the prop must use RGBA transparency');
+  for (const c of [0,1]) for (const l of [0,1]) for (const m of [0,1]) {
+    assert.ok(fs.existsSync(path.join(assetRoot, 'lighting', 'bedroom-clothes-v1', 'bedroom-c' + c + '-l' + l + '-m' + m + '.png')));
+  }
+  const g = game();
+  assert.equal(g.run("itemAtTarget('bedroom','crumpledClothes')"), 'crumpledClothes');
+  g.run("setVerb('pickup');handleTarget('crumpledClothes')"); g.finish();
+  assert.equal(g.run("gameState.inventory.includes('crumpledClothes')"), true);
+  assert.equal(g.get('bedroom-clothes').classList.contains('is-away'), true);
+  g.run("interactionSelection.itemId='crumpledClothes';setVerb('place',{keepItem:true});handleTarget('crumpledClothes')"); g.finish();
+  assert.equal(g.get('messageBox').textContent, 'You place the crumpled clothes on the carpet.');
+  assert.equal(g.get('bedroom-clothes').classList.contains('is-away'), false);
+  g.run("toggleLight('bedroomMain')");
+  assert.match(g.run('displayedClothesImage'), /bedroom-c0-l0-m1\.png/);
+  g.run("setVerb('pickup');handleTarget('crumpledClothes')"); g.finish();
+  g.run('saveGame();resetWorldState();loadGame()');
+  assert.equal(g.run("gameState.inventory.includes('crumpledClothes')"), true);
+});
+
+
+test('wardrobe actions switch all six player sheets and keep worn items in inventory', () => {
+  const assets = path.join(__dirname, '..', 'assets');
+  for (const file of ['player-sheet-keyed-v1.png','player-sheet-underwear-socks-v6.png','player-sheet-clothes-barefoot-v6.png','player-sheet-clothes-socks-v9.png','player-sheet-clean-barefoot-v8.png','player-sheet-clean-socks-v11.png']) {
+    const png = fs.readFileSync(path.join(assets, file));
+    assert.equal(png.readUInt32BE(16), 1619, file + ' width');
+    assert.equal(png.readUInt32BE(20), 971, file + ' height');
+    assert.equal(png[25], 6, file + ' must retain RGBA transparency');
+  }
+  const g = game();
+  g.run("setVerb('use');handleTarget('crumpledClothes')"); g.finish(); g.advance(250);
+  assert.equal(g.run('gameState.outfit'), 'crumpled');
+  assert.equal(g.run("gameState.itemPlacements.crumpledClothes.kind"), 'worn');
+  assert.equal(g.run("gameState.inventory.includes('crumpledClothes')"), true);
+  assert.match(g.get('player').querySelector().style['--player-sheet'], /player-sheet-clothes-barefoot-v6/);
+  g.run('renderInventory()');
+  assert.equal(g.get('inventoryItems').children[0].children[1].children[1].textContent, 'You are wearing these');
+  g.advance(300);
+
+  g.run("interactionSelection.itemId='crumpledClothes';setVerb('place',{keepItem:true});handleTarget('crumpledClothes')"); g.finish(); g.advance(250);
+  assert.equal(g.run('gameState.outfit'), 'underwear');
+  assert.equal(g.run("gameState.itemPlacements.crumpledClothes.kind"), 'world');
+  assert.match(g.get('player').querySelector().style['--player-sheet'], /player-sheet-keyed-v1/);
+  g.advance(300);
+
+  g.run("setVerb('use');handleTarget('drawers')"); g.finish(); g.advance(250);
+  assert.equal(g.run('gameState.socksOn'), true);
+  assert.equal(g.run("gameState.itemPlacements.socks.kind"), 'worn');
+  assert.equal(g.run("gameState.inventory.includes('socks')"), true);
+  assert.match(g.get('player').querySelector().style['--player-sheet'], /player-sheet-underwear-socks-v6/);
+  g.advance(300);
+  g.run("setVerb('use');handleTarget('drawers')"); g.finish();
+  assert.equal(g.run('gameState.socksOn'), false);
+  assert.equal(g.run("gameState.itemPlacements.socks.kind"), 'stored');
+  assert.equal(g.run("gameState.inventory.includes('socks')"), false);
+  assert.equal(g.get('messageBox').textContent, 'You take off the socks and put them back in the chest of drawers.');
+  g.run("setVerb('use');handleTarget('drawers')"); g.finish();
+
+  g.run("wearCrumpledClothes()"); g.advance(250);
+  assert.match(g.get('player').querySelector().style['--player-sheet'], /player-sheet-clothes-socks-v9/);
+  g.advance(300);
+  g.run("interactionSelection.itemId='socks';setVerb('place',{keepItem:true});handleTarget('drawers')"); g.finish(); g.advance(250);
+  assert.equal(g.run('gameState.socksOn'), false);
+  assert.equal(g.run("gameState.itemPlacements.socks.kind"), 'stored');
+  assert.equal(g.run("gameState.inventory.includes('socks')"), false);
+  assert.match(g.get('player').querySelector().style['--player-sheet'], /player-sheet-clothes-barefoot-v6/);
+});
+
+
+test('worn clothes and socks persist through save/load and reset to the original outfit', () => {
+  const g = game();
+  g.run('wearCrumpledClothes()'); g.advance(600);
+  g.run('wearSocks()'); g.advance(600);
+  g.run('saveGame();resetWorldState();loadGame()');
+  assert.equal(g.run('gameState.outfit'), 'crumpled');
+  assert.equal(g.run('gameState.socksOn'), true);
+  assert.equal(g.run("gameState.itemPlacements.crumpledClothes.kind"), 'worn');
+  assert.equal(g.run("gameState.itemPlacements.socks.kind"), 'worn');
+  assert.equal(g.run("gameState.inventory.includes('crumpledClothes') && gameState.inventory.includes('socks')"), true);
+  assert.match(g.get('player').querySelector().style['--player-sheet'], /player-sheet-clothes-socks-v9/);
+  g.run('resetGame()');
+  assert.equal(g.run('gameState.outfit'), 'underwear');
+  assert.equal(g.run('gameState.socksOn'), false);
+  assert.equal(g.run("gameState.itemPlacements.crumpledClothes.kind"), 'world');
+  assert.equal(g.run("gameState.itemPlacements.socks.kind"), 'stored');
+});
+
+
+test('the clothes spot becomes Carpet and only clothes changes use the black fade', () => {
+  const g = game();
+  g.run("setVerb('use');handleTarget('crumpledClothes')"); g.finish();
+  assert.equal(g.run('gameState.outfit'), 'underwear');
+  assert.equal(g.get('scene').classList.contains('wardrobe-fade'), true);
+  g.advance(240);
+  assert.equal(g.run('gameState.outfit'), 'crumpled');
+  assert.equal(g.get('scene').classList.contains('wardrobe-fade'), true, 'the sprite swaps while black is held');
+  g.advance(50);
+  assert.equal(g.get('scene').classList.contains('wardrobe-reveal'), true);
+  g.advance(250);
+  g.run("setVerb(null);updateStatus('crumpledClothes')");
+  assert.equal(g.get('statusText').textContent, 'Carpet');
+  g.run("setVerb('look');updateStatus('crumpledClothes');interact('crumpledClothes','look')");
+  assert.equal(g.get('statusText').textContent, 'Look at carpet');
+  assert.equal(g.get('messageBox').textContent, "It's the carpet.");
+  assert.equal(g.get('hotspots').children.find(button=>button.dataset.target==='crumpledClothes').attributes['aria-label'], 'Carpet');
+
+  g.run("interactionSelection.itemId='crumpledClothes';setVerb('place',{keepItem:true});handleTarget('crumpledClothes')"); g.finish();
+  assert.equal(g.run('gameState.outfit'), 'crumpled');
+  assert.equal(g.get('scene').classList.contains('wardrobe-fade'), true);
+  g.advance(240);
+  assert.equal(g.run('gameState.outfit'), 'underwear');
+  g.advance(300);
+
+  g.run("setVerb('use');handleTarget('drawers')"); g.finish();
+  assert.equal(g.run('gameState.socksOn'), true);
+  assert.equal(g.run('wardrobeChanging'), false);
+  assert.equal(g.get('scene').classList.contains('wardrobe-fade'), false);
+  assert.match(g.get('player').querySelector().style['--player-sheet'], /player-sheet-underwear-socks-v6/);
+  g.run("interactionSelection.itemId='socks';setVerb('place',{keepItem:true});handleTarget('drawers')"); g.finish();
+  assert.equal(g.run('gameState.socksOn'), false);
+  assert.equal(g.run('wardrobeChanging'), false);
+});
+
+test('the Wardrobe toggles clean clothes and swaps clean and crumpled outfits safely', () => {
+  const g = game();
+  assert.equal(g.run("bedroomObjects.cupboard.name"), 'wardrobe');
+
+  g.run("setVerb('use');handleTarget('cupboard')"); g.finish();
+  assert.equal(g.get('scene').classList.contains('wardrobe-fade'), true);
+  g.advance(240);
+  assert.equal(g.run('gameState.outfit'), 'clean');
+  assert.equal(g.run("gameState.itemPlacements.cleanClothes.kind"), 'worn');
+  assert.equal(g.run("gameState.inventory.includes('cleanClothes')"), true);
+  assert.match(g.get('player').querySelector().style['--player-sheet'], /player-sheet-clean-barefoot-v8/);
+  g.advance(300);
+  g.run('wearCleanClothes()');
+  assert.equal(g.get('messageBox').textContent, "You're already wearing clean clothes.");
+
+  g.run("setVerb('use');handleTarget('cupboard')"); g.finish(); g.advance(240);
+  assert.equal(g.run('gameState.outfit'), 'underwear');
+  assert.equal(g.run("gameState.itemPlacements.cleanClothes.kind"), 'stored');
+  assert.equal(g.run("gameState.inventory.includes('cleanClothes')"), false);
+  g.advance(300);
+
+  g.run("setVerb('use');handleTarget('crumpledClothes')"); g.finish(); g.advance(540);
+  g.run("setVerb('use');handleTarget('cupboard')"); g.finish(); g.advance(540);
+  assert.equal(g.run('gameState.outfit'), 'clean');
+  assert.equal(g.get('messageBox').textContent, 'You throw the crumpled clothes back on the carpet and put on the clean clothes.');
+  assert.equal(g.run("gameState.itemPlacements.crumpledClothes.kind"), 'world');
+  assert.equal(g.get('bedroom-clothes').classList.contains('is-away'), false);
+
+  g.run("setVerb('use');handleTarget('crumpledClothes')"); g.finish(); g.advance(540);
+  assert.equal(g.run('gameState.outfit'), 'crumpled');
+  assert.equal(g.get('messageBox').textContent, 'You put the clean clothes back in the wardrobe and put on the crumpled clothes.');
+  assert.equal(g.run("gameState.itemPlacements.cleanClothes.kind"), 'stored');
+
+  g.run("setVerb('use');handleTarget('cupboard')"); g.finish(); g.advance(540);
+  g.run("interactionSelection.itemId='cleanClothes';setVerb('place',{keepItem:true});handleTarget('cupboard')"); g.finish(); g.advance(240);
+  assert.equal(g.run('gameState.outfit'), 'underwear');
+  assert.equal(g.run("gameState.itemPlacements.cleanClothes.kind"), 'stored');
+  g.advance(300);
+
+  g.run("setVerb('use');handleTarget('drawers')"); g.finish();
+  g.run("setVerb('use');handleTarget('cupboard')"); g.finish(); g.advance(240);
+  assert.match(g.get('player').querySelector().style['--player-sheet'], /player-sheet-clean-socks-v11/);
+});
+test('clean clothes and socks survive save, load, and reset', () => {
+  const g = game();
+  g.run('wearSocks();wearCleanClothes()'); g.advance(600);
+  g.run('saveGame();resetWorldState();loadGame()');
+  assert.equal(g.run('gameState.outfit'), 'clean');
+  assert.equal(g.run('gameState.socksOn'), true);
+  assert.equal(g.run("gameState.itemPlacements.cleanClothes.kind"), 'worn');
+  assert.equal(g.run("gameState.itemPlacements.socks.kind"), 'worn');
+  assert.equal(g.run("gameState.inventory.includes('cleanClothes') && gameState.inventory.includes('socks')"), true);
+  assert.match(g.get('player').querySelector().style['--player-sheet'], /player-sheet-clean-socks-v11/);
+  g.run('resetGame()');
+  assert.equal(g.run('gameState.outfit'), 'underwear');
+  assert.equal(g.run('gameState.socksOn'), false);
+  assert.equal(g.run("gameState.itemPlacements.cleanClothes.kind"), 'stored');
 });

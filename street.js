@@ -8,8 +8,8 @@ apartmentRooms.street = {
   name:'Laundry & Bluestar', image:'assets/street_bg_counter_v2.png', floor:[1,99,56,74],
   objects:{
     apartments:{...item('footpath back to the apartments',[0,60,4,9],[1,streetFootY(1)],'The footpath leads back to the apartment forecourt.'),streetExit:'outside'},
-    laundry:{...item('Laundry glass door',[40.3,48,4.5,17],[42.53,streetFootY(42.53)],'A glass-panelled door leads into the dollar laundry. Open it, then walk across the threshold.'),streetDoor:'laundry'},
-    bluestar:{...item('Bluestar automatic doors',[61.8,48,7.4,18.5],[65.48,streetFootY(65.48)],'The centre-opening glass doors slide apart as you approach. Walk into the opening to enter.'),streetDoor:'bluestar'},
+    laundry:{...item('Laundry glass door',[40.3,48,4.5,17],[42.53,streetFootY(42.53)],'A glass-panelled door leads into the dollar laundry. It opens by hand when you enter.'),streetDoor:'laundry'},
+    bluestar:{...item('Bluestar automatic doors',[61.8,48,7.4,18.5],[65.48,streetFootY(65.48)],'Bluestar’s centre-opening glass doors slide apart as you approach the entrance.'),streetDoor:'bluestar'},
     laundryWindow:item('dollar laundry',[30.5,39,9.5,23],[36,streetFootY(36)],'Laundry. A dollar a wash; rows of washing machines turn behind the glass.'),
     prices:item('Bluestar prices',[69.4,48,4.5,14],[72,streetFootY(72)],'Milk $3. Bread $2. The shop windows are crowded with everyday essentials.'),
     rubbish:item('rubbish bin',[74.2,58.8,3.5,9.8],[76,streetFootY(76)],'The dark bin is labelled RUBBISH.'),
@@ -69,10 +69,13 @@ function streetRoute(from,to) {
   return route.filter((p,i)=>Math.hypot(p.x-(i?route[i-1].x:start.x),p.y-(i?route[i-1].y:start.y))>.001);
 }
 function travelStreet(to) {
-  stopWalking();showRoom(to);
-  Object.assign(movement,to==='street'?{x:3,y:streetFootY(3),facing:'right'}:{x:93,y:55,facing:'left'});
-  renderPlayer();
-  showMessage(to==='street'?'Laundry and Bluestar. The footpath continues past the shops to a narrow alley.':'Back at the apartment forecourt.');
+  stopWalking();
+  whenRoomReady(to,()=>{
+    showRoom(to);
+    Object.assign(movement,to==='street'?{x:3,y:streetFootY(3),facing:'right'}:{x:93,y:55,facing:'left'});
+    renderPlayer();
+    showMessage(to==='street'?'Laundry and Bluestar. The footpath continues past the shops to a narrow alley.':'Back at the apartment forecourt.');
+  });
 }
 function streetArrival(x,y,callback) {
   const to=gameState.currentRoom==='outside'&&x>=95&&y>=51&&y<=59?'street':
@@ -87,23 +90,26 @@ function syncStreetDoors() {
   auto.classList.toggle('is-open',distance<(auto.classList.contains('is-open')?8:6));
   document.getElementById('street-laundry').classList.toggle('is-open',!!gameState.laundryDoorOpen);
 }
-function handleStreetTarget(object,verb) {
+function handleStreetTarget(object,verb,onAction) {
   if(object.streetExit) {
     if(verb==='look') showMessage(object.description);
-    else movePlayerTo(...object.walk,()=>travelStreet(object.streetExit));
+    else if(exitVerbs.has(verb)) movePlayerTo(...object.walk,()=>{onAction?.();travelStreet(object.streetExit);});
+    else showMessage(refusal(verb,object));
     return true;
   }
   if(!object.streetDoor) return false;
   const key=object.streetDoor,d=streetDoors[key];
   if(verb==='look') {showMessage(object.description);return true;}
   movePlayerTo(...object.walk,()=>{
+    onAction?.();
     if(key==='laundry') {
       if(verb==='close') {gameState.laundryDoorOpen=false;syncStreetDoors();showMessage('You close the Laundry door.');return;}
       const wasOpen=gameState.laundryDoorOpen;
       gameState.laundryDoorOpen=true;syncStreetDoors();
-      if(verb==='open'||(verb==='use'&&!wasOpen)) {
+      if(verb==='open') {
         showMessage('You open the Laundry door. Walk into the doorway to step inside.');return;
       }
+      if(verb==='use'&&!wasOpen) showMessage('You open the Laundry door and step through.');
     } else if(verb==='close'||verb==='open') {
       showMessage('The sensor keeps the doors open while you stand nearby. Walk into the opening to enter.');return;
     }

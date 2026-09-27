@@ -17,7 +17,7 @@ public static class AlleyManV6Validator {
     using (var sheet = new Bitmap(path)) {
       if (sheet.Width % 2 != 0) throw new Exception("Sprite width must contain two equal frames.");
       int width = sheet.Width / 2, height = sheet.Height, count = width * height;
-      int different = 0, outsideEyes = 0, transparent = 0, partialAlpha = 0;
+      int different = 0, outsideEyes = 0, transparent = 0, partialAlpha = 0, vividGreen = 0;
       bool[] clear = new bool[count], exterior = new bool[count];
       var queue = new Queue<int>();
       for (int y = 0; y < height; y++) for (int x = 0; x < width; x++) {
@@ -25,6 +25,7 @@ public static class AlleyManV6Validator {
         int index = y * width + x;
         if (open.A == 0) { clear[index] = true; transparent++; }
         else if (open.A < 255) partialAlpha++;
+        if (open.A > 128 && open.G > 40 && open.G > open.R * 2.5 && open.G > open.B * 2.5) vividGreen++;
         if (open.ToArgb() != closed.ToArgb()) { different++; if (!InEyes(x, y)) outsideEyes++; }
       }
       Action<int,int> seed = (x,y) => { int i=y*width+x; if(clear[i]&&!exterior[i]){exterior[i]=true;queue.Enqueue(i);} };
@@ -34,8 +35,11 @@ public static class AlleyManV6Validator {
       int internalHoles=0; for(int i=0;i<count;i++)if(clear[i]&&!exterior[i])internalHoles++;
       if(different==0)throw new Exception("Blink frame has no changed pixels.");
       if(outsideEyes!=0)throw new Exception(outsideEyes+" changed pixels occur outside the eye regions.");
-      if(internalHoles!=0)throw new Exception(internalHoles+" fully transparent pixels form internal holes.");
-      return String.Format("sprite={0}x{1}; frames=2; changed pixels={2}; changes outside eyes={3}; transparent={4}; partial-alpha edge pixels={5}; internal transparent holes={6}",sheet.Width,height,different,outsideEyes,transparent,partialAlpha,internalHoles);
+      // Small enclosed pockets of green screen are keyed out deliberately; a large
+      // hole would mean part of the figure (such as the olive jacket) was lost.
+      if(internalHoles>1500)throw new Exception(internalHoles+" fully transparent pixels form internal holes.");
+      if(vividGreen!=0)throw new Exception(vividGreen+" opaque green-screen pixels remain.");
+      return String.Format("sprite={0}x{1}; frames=2; changed pixels={2}; changes outside eyes={3}; transparent={4}; partial-alpha edge pixels={5}; internal transparent holes={6}; vivid green={7}",sheet.Width,height,different,outsideEyes,transparent,partialAlpha,internalHoles,vividGreen);
     }
   }
 }

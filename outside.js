@@ -21,12 +21,13 @@ outsideFootpath.slice(1).forEach((id, i) => outsideEdge(outsideFootpath[i], id))
 });
 // The verticals are centred on the empty bay and the visible gaps between cars.
 // Their lower ends join one continuous lane in front of the parked vehicles.
-const outsideLaneXs = [5, 24, 36, 50, 72.7, 96];
+// The second lane node sits where the parking line beside the burgundy car
+// meets the lane.
+const outsideLaneXs = [5, 21.5, 36, 50, 72.7, 96];
 const outsideLane = outsideLaneXs.map(x => outsideNode(x, 92));
 outsideLane.slice(1).forEach((id, i) => outsideEdge(outsideLane[i], id));
 outsideEdge(outsideFootpath[2], outsideLane[2]); // empty parking bay
 [
-  [24, 1, 2, 1],
   [50, 3, 4, 3],
   [72.7, 4, 5, 4]
 ].forEach(([x, leftFoot, rightFoot, laneIndex]) => {
@@ -35,21 +36,49 @@ outsideEdge(outsideFootpath[2], outsideLane[2]); // empty parking bay
   outsideEdge(top, outsideFootpath[rightFoot]);
   outsideEdge(top, outsideLane[laneIndex]);
 });
+// Beside the burgundy car the walkable edge is its painted parking line, which
+// runs straight from the kerb (28.1, 64.4) to the lane (21.5, 92).
+const outsideParkingLine = Object.freeze({ top: Object.freeze({ x: 29.9, y: 57 }), bottom: Object.freeze({ x: 21.5, y: 92 }) });
+{
+  const top = outsideNode(outsideParkingLine.top.x, 55);
+  const kerb = outsideNode(outsideParkingLine.top.x, outsideParkingLine.top.y);
+  outsideEdge(outsideFootpath[1], top);
+  outsideEdge(top, outsideFootpath[2]);
+  outsideEdge(top, kerb);
+  outsideEdge(kerb, outsideLane[1]);
+}
 
 // Broad, overlapping regions let clicks retain their exact position wherever
 // there is clear ground. The narrow regions between vehicles connect the rear
-// footpath to the foreground, while the empty bay is fully explorable.
+// footpath to the foreground, while the empty bay is fully explorable up to
+// the parking line beside the burgundy car (a polygon, as the line is slanted).
 const outsideFreeAreas = Object.freeze([
   Object.freeze({ left: 5, right: 96, top: 52, bottom: 58, name: 'footpath' }),
   Object.freeze({ left: 5, right: 96, top: 88, bottom: 96, name: 'foreground parking lot' }),
-  Object.freeze({ left: 24, right: 50, top: 55, bottom: 92, name: 'empty parking bay' }),
-  Object.freeze({ left: 21.5, right: 26.5, top: 55, bottom: 92, name: 'left car gap' }),
+  Object.freeze({ polygon: Object.freeze([outsideParkingLine.top, { x: 50, y: 57 }, { x: 50, y: 92 }, outsideParkingLine.bottom]), name: 'empty parking bay' }),
   Object.freeze({ left: 47.5, right: 53, top: 55, bottom: 92, name: 'middle car gap' }),
   Object.freeze({ left: 69, right: 75.5, top: 55, bottom: 92, name: 'right car gap' })
 ]);
 
+function outsidePolygonContains(polygon, x, y) {
+  let inside = false;
+  for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+    const a = polygon[i], b = polygon[j];
+    if ((a.y > y) !== (b.y > y) && x < a.x + (y - a.y) * (b.x - a.x) / (b.y - a.y)) inside = !inside;
+  }
+  if (inside) return true;
+  // Points on the outline (such as the parking line itself) are walkable.
+  return polygon.some((a, i) => {
+    const b = polygon[(i + 1) % polygon.length];
+    const dx = b.x - a.x, dy = b.y - a.y;
+    const t = Math.max(0, Math.min(1, ((x - a.x) * dx + (y - a.y) * dy) / (dx * dx + dy * dy)));
+    return Math.hypot(x - a.x - dx * t, y - a.y - dy * t) < .01;
+  });
+}
+
 function outsidePointIsFree(x, y) {
-  return outsideFreeAreas.some(area => x >= area.left && x <= area.right && y >= area.top && y <= area.bottom);
+  return outsideFreeAreas.some(area => area.polygon ? outsidePolygonContains(area.polygon, x, y)
+    : x >= area.left && x <= area.right && y >= area.top && y <= area.bottom);
 }
 
 function outsideFreeSegment(a, b) {

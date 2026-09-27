@@ -12,12 +12,8 @@ apartmentRooms.alley = {
   name: 'Bluestar alley', image: 'assets/alley-bg-npc-v2.png', floor: [19.5, 72.5, 47.5, 90],
   objects: {
     street: {
-      ...item('street beside Bluestar', [16, 29, 13, 23], [28.5, 48], 'The wet street is visible at the mouth of the alley.'),
+      ...item('street beside Bluestar', [20.5, 29, 10.5, 20], [28.5, 48], 'The wet street is visible at the mouth of the alley.'),
       alleyExit: 'street', exitFacing: 'up'
-    },
-    man: {
-      ...item('man sheltering in the alley', [42.5, 36, 14.5, 24], [42, 64], 'A bearded man in an olive rain jacket sits on flattened cardboard beside the wall.'),
-      alleyPerson: true
     },
     shelter: item('cardboard shelter', [44, 38, 10, 18], [40, 62], 'Flattened cartons have been propped into a small lean-to against the brick wall.'),
     sleepingBag: item('sleeping bag', [40, 52, 16, 11], [42, 65], 'A dark sleeping bag is arranged over dry layers of cardboard.'),
@@ -25,7 +21,13 @@ apartmentRooms.alley = {
     dumpster: item('commercial dumpster', [0, 31, 21, 58], [29, 68], 'A rain-streaked commercial dumpster stands along the left side of the alley.'),
     bushes: item('alley bushes', [61, 48, 39, 45], [58, 73], 'Glossy green bushes run along the building edge, dotted with yellow leaves.'),
     bins: item('recycling and waste bins', [32, 36, 12, 17], [30, 55], 'Blue, green and dark wheelie bins stand together beside the fence.'),
-    fence: item('wooden fence', [30, 20, 13, 32], [29, 54], 'A weathered horizontal-slat fence screens the service area from the street.')
+    fence: item('wooden fence', [30, 20, 13, 32], [29, 54], 'A weathered horizontal-slat fence screens the service area from the street.'),
+    // Hotspots stack in listing order, so the man comes last to stay clickable
+    // over the shelter, sleeping bag and bags he sits among.
+    man: {
+      ...item('man sheltering in the alley', [42.5, 36, 14.5, 24], [42, 64], 'A bearded man in an olive rain jacket sits on flattened cardboard beside the wall.'),
+      alleyPerson: true
+    }
   }
 };
 
@@ -107,33 +109,36 @@ function alleyRoute(from, to) {
 
 function travelAlley(to) {
   stopWalking();
-  showRoom(to);
-  Object.assign(movement, to === 'alley'
-    ? { x: 28.5, y: 48, facing: 'down' }
-    : { x: 87.5, y: 64.5, facing: 'down' });
-  renderPlayer();
-  showMessage(to === 'alley'
-    ? 'The rain is quieter between the buildings. Someone has made a shelter farther down the alley.'
-    : 'You step out beside Bluestar.');
+  whenRoomReady(to, () => {
+    showRoom(to);
+    Object.assign(movement, to === 'alley'
+      ? { x: 28.5, y: 48, facing: 'down' }
+      : { x: 87.5, y: 64.5, facing: 'down' });
+    renderPlayer();
+    showMessage(to === 'alley'
+      ? 'The rain is quieter between the buildings. Someone has made a shelter farther down the alley.'
+      : 'You step out beside Bluestar.');
+  });
 }
 
 // A player already standing at an opening visibly turns toward it, pauses
-// briefly, then goes through. Any new walk during the pause cancels the exit.
+// briefly, then goes through. Any walk, load, reset or teleport cancels it.
 const alleyTurnDelay = 280;
 function faceAlleyExit(facing, callback) {
   if (movement.facing === facing) { callback(); return; }
   movement.facing = facing;
   renderPlayer();
-  const { x, y } = movement, room = gameState.currentRoom;
-  gameTimers.schedule(() => {
-    if (gameState.currentRoom === room && movement.destination === null && movement.x === x && movement.y === y) callback();
+  movement.pendingTimer = gameTimers.schedule(() => {
+    movement.pendingTimer = null;
+    callback();
   }, alleyTurnDelay);
 }
 
-function handleAlleyTarget(target, object, verb) {
+function handleAlleyTarget(target, object, verb, onAction) {
   if (object?.alleyExit) {
     if (verb === 'look') showMessage(object.description);
-    else movePlayerTo(...object.walk, () => faceAlleyExit(object.exitFacing, () => travelAlley(object.alleyExit)));
+    else if (exitVerbs.has(verb)) movePlayerTo(...object.walk, () => faceAlleyExit(object.exitFacing, () => { onAction?.(); travelAlley(object.alleyExit); }));
+    else showMessage(refusal(verb, object));
     return true;
   }
   if (!object?.alleyPerson) return false;
