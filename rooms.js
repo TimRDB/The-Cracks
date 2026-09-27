@@ -1,6 +1,8 @@
 // Artwork-aligned hit areas, floor bounds and reciprocal doorway connections.
 const item = (name, area, walk, description, response) => ({ name, area, walk, description, response });
 const door = (name, area, walk, to, entry) => ({ name, area, walk, to, entry, description: `The ${name}.`, portal: [area[0] + area[2] / 2, area[1] + area[3]] });
+// Traced outline of the living-room TV, its stand and the cabinet it sits on.
+const livingTvSilhouette = [[83.97,41.13],[94.98,44.95],[95.1,63.76],[98.56,65.25],[98.5,66.95],[98.39,83.21],[98.15,84.8],[96.35,84.8],[96.29,83.74],[93.18,84.38],[93.18,86.08],[91.57,86.08],[91.51,84.17],[80.98,72.69],[80.74,57.39],[83.97,56.54]];
 const apartmentRooms = {
   outside: {
     name: 'Apartment forecourt', image: 'assets/outside_bg.png', floor: [5, 96, 36, 96],
@@ -21,12 +23,22 @@ const apartmentRooms = {
     }
   },
   living: {
-    name: 'Living room & kitchen', image: 'assets/lighting/living-master-v2.png', floor: [8, 95, 57, 94], obstacles: [[28, 64, 45, 30], [80, 55, 19, 31]],
+    name: 'Living room & kitchen', image: 'assets/lighting/living-master-v2.png', floor: [8, 98.6, 39.8, 94],
+    // The floor runs up the recessed hallway to the front door and behind the
+    // TV cabinet, out to the cabinet's right edge.
+    walkArea: [[8,57],[85.8,57],[85.8,52],[86.3,46],[88,39.8],[93.4,39.8],[95.2,46],[96.8,50.5],[98.6,55],[98.6,94],[8,94]],
+    // The couch, and the TV cabinet's angled floor footprint.
+    obstacles: [[28, 64, 45, 30], [[80.4,72.4],[87.6,68.8],[99,83.3],[92.4,85.9]]],
+    // Drawn over the player whenever they stand behind the cabinet's front ground line.
+    tvOccluder: {
+      silhouette: livingTvSilhouette,
+      groundLine: [[80.4,72.4],[92.4,85.9],[99,83.3]]
+    },
     objects: {
       bedroomDoor: { ...door('bedroom door', [18.4,14.5,8.5,38], [29,60], 'bedroom', 'door'), description: 'A painted interior door leading back into the bedroom.', hinge: 'right', swing: -1, destinationSwing: true },
       bathroomDoor: { ...door('bathroom door', [67.5,12.5,10.1,39.7], [72.5,61], 'bathroom', 'livingDoor'), description: 'A two-panel frosted-glass door leading into the bathroom.', panel: [68.6,14.1,8,37.5], appearance: 'glass', hinge: 'right' },
-      exit: { ...door('apartment exit at the end of the hallway', [85.5,7,13.5,47], [91.5,55], 'outside', 'frontDoor'), portal: [91.7,39.6], panel: [88.3971,18.491,4.5455,20.085], hinge: 'right', swing: 1, description: 'A short recessed hallway leads to the front door and the concrete patio outside.' },
-      tv: item('living room TV', [80.8,41.5,18,44], [77,80], 'The TV stands to the right of the couch, angled left toward the seating area.'),
+      exit: { ...door('apartment exit at the end of the hallway', [87.8,16.5,6.3,23], [91.2,42], 'outside', 'frontDoor'), portal: [91.7,39.6], panel: [88.3971,18.491,4.5455,20.085], hinge: 'right', swing: 1, description: 'A short recessed hallway leads to the front door and the concrete patio outside.' },
+      tv: { ...item('living room TV', [80.7,41,17.9,45.1], [77,80], 'The TV stands to the right of the couch, angled left toward the seating area.'), shape: livingTvSilhouette },
       channelBox: item('channel switching box', [84.8,62.5,9,8], [77,75], 'The set-top box switches between three channels. Use it to change channel.'),
       couch: item('couch', [28,64,45,30], [76,80], 'The sagging couch sits in the middle of the room facing the TV.', 'You straighten the blanket and test a cushion.'),
       chair: item('armchair', [5.5,53,21,29], [27,84], 'An armchair with a well-established dent.', 'You pat the cushion. Still comfortable.'),

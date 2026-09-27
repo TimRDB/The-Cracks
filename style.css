@@ -104,6 +104,11 @@ body.game-started #game { opacity: 1; }
 #scene[data-room="living"] #foreground { display: block; clip-path: polygon(28% 73%, 31% 67%, 36% 64%, 48% 66%, 55% 64%, 69% 66%, 73% 72%, 73% 94%, 28% 94%); }
 #scene[data-room="living"] #foreground { background: var(--room-image) center / 100% 100%; filter: brightness(.88) saturate(.9); }
 #scene[data-room="outside"].player-behind-cars #foreground { display: block; }
+/* The TV and its cabinet, traced in game.js, cover the player behind them;
+   the channel picture stays on top of the TV. */
+#tv-foreground { display: none; position: absolute; inset: 0; z-index: 109; pointer-events: none; background: var(--room-image) center / 100% 100%; }
+#scene[data-room="living"].player-behind-tv #tv-foreground { display: block; }
+#scene[data-room="living"].player-behind-tv #living-tv { z-index: 110; }
 /* A per-pixel cutout of the three painted cars (scripts/build-outside-car-foreground.py),
    so only car pixels, never road, kerb or grass, are drawn over the player. */
 .outside-cars-foreground { display: none; position: absolute; inset: 0; background: url('assets/outside-cars-foreground-v1.png') center / 100% 100% no-repeat; }

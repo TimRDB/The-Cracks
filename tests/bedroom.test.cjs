@@ -791,8 +791,8 @@ test('living TV is right of the couch and both furniture footprints are blocked'
   assert.ok(g.run('roomObjects.tv.area[0]') > g.run('roomObjects.couch.area[0] + roomObjects.couch.area[2]'));
   assert.equal(g.run('floorPosition(50,80).x'), 50);
   assert.equal(g.run('floorPosition(50,80).y'), 62);
-  assert.equal(g.run('floorPosition(90,75).x'), 78);
-  assert.equal(g.run('floorPosition(90,75).y'), 75);
+  assert.equal(g.run('isFloorPoint(floorPosition(90,75), apartmentRooms.living)'), true);
+  assert.equal(g.run('insidePolygon(floorPosition(90,75), apartmentRooms.living.obstacles[1])'), false);
   assert.equal(g.run('Object.values(roomObjects).filter(object => /plant/i.test(object.name)).length'), 1);
   assert.equal(g.run('roomObjects.plant.name'), 'living room plant');
   g.run('showRoom("bedroom")');
@@ -1262,7 +1262,7 @@ test('crumpled clothes remain transparent, lighting-matched, portable and persis
 
 test('wardrobe actions switch all six player sheets and keep worn items in inventory', () => {
   const assets = path.join(__dirname, '..', 'assets');
-  for (const file of ['player-sheet-keyed-v1.png','player-sheet-underwear-socks-v6.png','player-sheet-clothes-barefoot-v8.png','player-sheet-clothes-socks-v11.png','player-sheet-clean-barefoot-v10.png','player-sheet-clean-socks-v13.png']) {
+  for (const file of ['player-sheet-keyed-v1.png','player-sheet-underwear-socks-v6.png','player-sheet-clothes-barefoot-v9.png','player-sheet-clothes-socks-v12.png','player-sheet-clean-barefoot-v11.png','player-sheet-clean-socks-v14.png']) {
     const png = fs.readFileSync(path.join(assets, file));
     assert.equal(png.readUInt32BE(16), 1619, file + ' width');
     assert.equal(png.readUInt32BE(20), 971, file + ' height');
@@ -1273,7 +1273,7 @@ test('wardrobe actions switch all six player sheets and keep worn items in inven
   assert.equal(g.run('gameState.outfit'), 'crumpled');
   assert.equal(g.run("gameState.itemPlacements.crumpledClothes.kind"), 'worn');
   assert.equal(g.run("gameState.inventory.includes('crumpledClothes')"), true);
-  assert.match(g.get('player').querySelector().style['--player-sheet'], /player-sheet-clothes-barefoot-v8/);
+  assert.match(g.get('player').querySelector().style['--player-sheet'], /player-sheet-clothes-barefoot-v9/);
   g.run('renderInventory()');
   assert.equal(g.get('inventoryItems').children[0].children[1].children[1].textContent, 'You are wearing these');
   g.advance(300);
@@ -1298,13 +1298,13 @@ test('wardrobe actions switch all six player sheets and keep worn items in inven
   g.run("setVerb('use');handleTarget('drawers')"); g.finish();
 
   g.run("wearCrumpledClothes()"); g.advance(250);
-  assert.match(g.get('player').querySelector().style['--player-sheet'], /player-sheet-clothes-socks-v11/);
+  assert.match(g.get('player').querySelector().style['--player-sheet'], /player-sheet-clothes-socks-v12/);
   g.advance(300);
   g.run("interactionSelection.itemId='socks';setVerb('place',{keepItem:true});handleTarget('drawers')"); g.finish(); g.advance(250);
   assert.equal(g.run('gameState.socksOn'), false);
   assert.equal(g.run("gameState.itemPlacements.socks.kind"), 'stored');
   assert.equal(g.run("gameState.inventory.includes('socks')"), false);
-  assert.match(g.get('player').querySelector().style['--player-sheet'], /player-sheet-clothes-barefoot-v8/);
+  assert.match(g.get('player').querySelector().style['--player-sheet'], /player-sheet-clothes-barefoot-v9/);
 });
 
 
@@ -1318,7 +1318,7 @@ test('worn clothes and socks persist through save/load and reset to the original
   assert.equal(g.run("gameState.itemPlacements.crumpledClothes.kind"), 'worn');
   assert.equal(g.run("gameState.itemPlacements.socks.kind"), 'worn');
   assert.equal(g.run("gameState.inventory.includes('crumpledClothes') && gameState.inventory.includes('socks')"), true);
-  assert.match(g.get('player').querySelector().style['--player-sheet'], /player-sheet-clothes-socks-v11/);
+  assert.match(g.get('player').querySelector().style['--player-sheet'], /player-sheet-clothes-socks-v12/);
   g.run('resetGame()');
   assert.equal(g.run('gameState.outfit'), 'underwear');
   assert.equal(g.run('gameState.socksOn'), false);
@@ -1372,7 +1372,7 @@ test('the Wardrobe toggles clean clothes and swaps clean and crumpled outfits sa
   assert.equal(g.run('gameState.outfit'), 'clean');
   assert.equal(g.run("gameState.itemPlacements.cleanClothes.kind"), 'worn');
   assert.equal(g.run("gameState.inventory.includes('cleanClothes')"), true);
-  assert.match(g.get('player').querySelector().style['--player-sheet'], /player-sheet-clean-barefoot-v10/);
+  assert.match(g.get('player').querySelector().style['--player-sheet'], /player-sheet-clean-barefoot-v11/);
   g.advance(300);
   g.run('wearCleanClothes()');
   assert.equal(g.get('messageBox').textContent, "You're already wearing clean clothes.");
@@ -1403,7 +1403,7 @@ test('the Wardrobe toggles clean clothes and swaps clean and crumpled outfits sa
 
   g.run("setVerb('use');handleTarget('drawers')"); g.finish();
   g.run("setVerb('use');handleTarget('cupboard')"); g.finish(); g.advance(240);
-  assert.match(g.get('player').querySelector().style['--player-sheet'], /player-sheet-clean-socks-v13/);
+  assert.match(g.get('player').querySelector().style['--player-sheet'], /player-sheet-clean-socks-v14/);
 });
 test('clean clothes and socks survive save, load, and reset', () => {
   const g = game();
@@ -1414,9 +1414,37 @@ test('clean clothes and socks survive save, load, and reset', () => {
   assert.equal(g.run("gameState.itemPlacements.cleanClothes.kind"), 'worn');
   assert.equal(g.run("gameState.itemPlacements.socks.kind"), 'worn');
   assert.equal(g.run("gameState.inventory.includes('cleanClothes') && gameState.inventory.includes('socks')"), true);
-  assert.match(g.get('player').querySelector().style['--player-sheet'], /player-sheet-clean-socks-v13/);
+  assert.match(g.get('player').querySelector().style['--player-sheet'], /player-sheet-clean-socks-v14/);
   g.run('resetGame()');
   assert.equal(g.run('gameState.outfit'), 'underwear');
   assert.equal(g.run('gameState.socksOn'), false);
   assert.equal(g.run("gameState.itemPlacements.cleanClothes.kind"), 'stored');
+});
+test('living-room floor reaches the hallway and behind the TV, which hides the player there', () => {
+  const g = game();
+  g.run('showRoom("living")');
+  for (const [x, y] of [[91, 42], [90, 48], [95, 60], [93, 74], [97.5, 79.5]]) {
+    assert.deepEqual(JSON.parse(g.run(`JSON.stringify(floorPosition(${x},${y}))`)), { x, y }, `${x},${y} is walkable`);
+  }
+  assert.ok(g.run('floorPosition(100,70).x') <= 98.6, 'no further right than the cabinet');
+  assert.ok(g.run('floorPosition(91,30).y') >= 39.8, 'no further than the front door');
+  // Routes go around the cabinet instead of through it.
+  g.run('movement.x=90; movement.y=92; movePlayerTo(93,74)');
+  const route = JSON.parse(g.run('JSON.stringify([{x:90,y:92},movement.destination,...movement.route])'));
+  assert.ok(route.length > 2);
+  for (let i = 1; i < route.length; i++) assert.equal(g.run(`floorSegmentClear(${JSON.stringify(route[i-1])},${JSON.stringify(route[i])},apartmentRooms.living)`), true);
+  g.finish();
+  assert.ok(g.get('scene').classList.contains('player-behind-tv'));
+  g.run('movePlayerTo(85,90)'); g.finish();
+  assert.equal(g.get('scene').classList.contains('player-behind-tv'), false);
+  g.run('movePlayerTo(91,44)'); g.finish();
+  assert.ok(g.get('scene').classList.contains('player-behind-tv'), 'the hallway is behind the TV');
+  assert.match(g.get('tv-foreground').style.clipPath, /^polygon\(/);
+  assert.match(styles, /player-behind-tv #tv-foreground \{ display: block; \}/);
+  // The hotspot follows the TV's outline so the floor behind it stays clickable.
+  g.run('buildHotspots()');
+  const tvButton = g.get('hotspots').children.find(button => button.dataset.target === 'tv');
+  assert.match(tvButton.style.clipPath, /^polygon\(/);
+  g.run('showRoom("bedroom"); renderPlayer()');
+  assert.equal(g.get('scene').classList.contains('player-behind-tv'), false);
 });

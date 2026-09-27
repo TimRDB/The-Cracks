@@ -455,8 +455,8 @@ function renderInventory() {
   });
 }
 function playerSheetForState() {
-  if (gameState.outfit === 'crumpled') return gameState.socksOn ? 'assets/player-sheet-clothes-socks-v11.png' : 'assets/player-sheet-clothes-barefoot-v8.png';
-  if (gameState.outfit === 'clean') return gameState.socksOn ? 'assets/player-sheet-clean-socks-v13.png' : 'assets/player-sheet-clean-barefoot-v10.png';
+  if (gameState.outfit === 'crumpled') return gameState.socksOn ? 'assets/player-sheet-clothes-socks-v12.png' : 'assets/player-sheet-clothes-barefoot-v9.png';
+  if (gameState.outfit === 'clean') return gameState.socksOn ? 'assets/player-sheet-clean-socks-v14.png' : 'assets/player-sheet-clean-barefoot-v11.png';
   return gameState.socksOn ? 'assets/player-sheet-underwear-socks-v6.png' : 'assets/player-sheet-keyed-v1.png';
 }
 
@@ -1032,9 +1032,27 @@ function renderPlayer(walking = false) {
   player.style.setProperty('--depth', perspective.depth);
   player.style.setProperty('--player-light', playerLightLevel());
   scene.classList.toggle('player-behind-cars', outdoors && movement.y < CAR_GROUND_LINE);
+  scene.classList.toggle('player-behind-tv', playerBehindOccluder(apartmentRooms[gameState.currentRoom]?.tvOccluder));
   player.style.zIndex = Math.round(movement.y);
   syncStreetDoors();
 }
+
+// True when the player's feet are behind an occluder's front ground line
+// (a left-to-right polyline, extended flat beyond its ends).
+function playerBehindOccluder(occluder) {
+  if (!occluder) return false;
+  const line = occluder.groundLine;
+  if (movement.x <= line[0][0]) return movement.y < line[0][1];
+  for (let i = 1; i < line.length; i++) {
+    const [x0, y0] = line[i - 1], [x1, y1] = line[i];
+    if (movement.x <= x1) return movement.y < y0 + (y1 - y0) * (movement.x - x0) / (x1 - x0);
+  }
+  return movement.y < line[line.length - 1][1];
+}
+
+const polygonClipPath = (points, [left, top, width, height] = [0, 0, 100, 100]) =>
+  `polygon(${points.map(([x, y]) => `${(x - left) / width * 100}% ${(y - top) / height * 100}%`).join(', ')})`;
+document.getElementById('tv-foreground').style.clipPath = polygonClipPath(apartmentRooms.living.tvOccluder.silhouette);
 
 function floorPosition(x, y) {
   if (gameState.currentRoom === 'street') {
@@ -1049,21 +1067,122 @@ function floorPosition(x, y) {
     const point = outsideProjection(x, y);
     return { x: point.x, y: point.y };
   }
-  const [left, right, top, bottom] = apartmentRooms[gameState.currentRoom].floor;
-  const point = { x: Math.max(left, Math.min(right, x)), y: Math.max(top, Math.min(bottom, y)) };
-  for (const [obstacleX, obstacleY, width, height] of apartmentRooms[gameState.currentRoom].obstacles || []) {
-    if (point.x >= obstacleX && point.x <= obstacleX + width && point.y >= obstacleY && point.y <= obstacleY + height) {
-      const options = [
-        { distance: point.x - obstacleX, x: obstacleX - 2, y: point.y },
-        { distance: obstacleX + width - point.x, x: obstacleX + width + 2, y: point.y },
-        { distance: point.y - obstacleY, x: point.x, y: obstacleY - 2 }
-      ].filter(option => option.x >= left && option.x <= right && option.y >= top && option.y <= bottom);
-      const nearest = options.sort((a, b) => a.distance - b.distance)[0];
-      point.x = nearest.x;
-      point.y = nearest.y;
-    }
+  const room = apartmentRooms[gameState.currentRoom];
+  const point = { x, y };
+  if (isFloorPoint(point, room)) return point;
+  // Otherwise take the nearest walkable point on the floor edge, or just
+  // outside the nearest obstacle edge.
+  const candidates = [];
+  const area = roomWalkArea(room);
+  area.forEach((a, i) => candidates.push(closestOnSegment(point, a, area[(i + 1) % area.length])));
+  for (const obstacle of roomObstacles(room)) {
+    const cx = obstacle.reduce((sum, p) => sum + p[0], 0) / obstacle.length;
+    const cy = obstacle.reduce((sum, p) => sum + p[1], 0) / obstacle.length;
+    obstacle.forEach((a, i) => {
+      const b = obstacle[(i + 1) % obstacle.length];
+      const edge = closestOnSegment(point, a, b);
+      const length = Math.hypot(b[0] - a[0], b[1] - a[1]);
+      let nx = (b[1] - a[1]) / length, ny = -(b[0] - a[0]) / length;
+      if (nx * ((a[0] + b[0]) / 2 - cx) + ny * ((a[1] + b[1]) / 2 - cy) < 0) { nx = -nx; ny = -ny; }
+      candidates.push({ x: edge.x + nx * 2, y: edge.y + ny * 2 });
+    });
   }
-  return point;
+  const valid = candidates.filter(candidate => isFloorPoint(candidate, room));
+  const pool = valid.length ? valid : candidates;
+  return pool.sort((a, b) => Math.hypot(a.x - x, a.y - y) - Math.hypot(b.x - x, b.y - y))[0];
+}
+
+// Apartment floors are polygons in scene percentages. Rooms without a walkArea
+// use their floor rectangle; obstacles are [x, y, width, height] rectangles or
+// polygons.
+function roomWalkArea(room) {
+  if (room.walkArea) return room.walkArea;
+  const [left, right, top, bottom] = room.floor;
+  return [[left, top], [right, top], [right, bottom], [left, bottom]];
+}
+
+function roomObstacles(room) {
+  return (room.obstacles || []).map(obstacle => Array.isArray(obstacle[0]) ? obstacle
+    : [[obstacle[0], obstacle[1]], [obstacle[0] + obstacle[2], obstacle[1]], [obstacle[0] + obstacle[2], obstacle[1] + obstacle[3]], [obstacle[0], obstacle[1] + obstacle[3]]]);
+}
+
+function closestOnSegment(point, a, b) {
+  const dx = b[0] - a[0], dy = b[1] - a[1];
+  const t = Math.max(0, Math.min(1, ((point.x - a[0]) * dx + (point.y - a[1]) * dy) / (dx * dx + dy * dy)));
+  return { x: a[0] + dx * t, y: a[1] + dy * t };
+}
+
+function onPolygonEdge(point, polygon) {
+  return polygon.some((a, i) => {
+    const edge = closestOnSegment(point, a, polygon[(i + 1) % polygon.length]);
+    return Math.hypot(edge.x - point.x, edge.y - point.y) < 1e-6;
+  });
+}
+
+function insidePolygon(point, polygon) {
+  let inside = false;
+  for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+    const [xi, yi] = polygon[i], [xj, yj] = polygon[j];
+    if ((yi > point.y) !== (yj > point.y) && point.x < (xj - xi) * (point.y - yi) / (yj - yi) + xi) inside = !inside;
+  }
+  return inside;
+}
+
+// The floor's edge is walkable; an obstacle's edge is not.
+function isFloorPoint(point, room) {
+  const area = roomWalkArea(room);
+  if (!insidePolygon(point, area) && !onPolygonEdge(point, area)) return false;
+  return !roomObstacles(room).some(obstacle => insidePolygon(point, obstacle) || onPolygonEdge(point, obstacle));
+}
+
+function floorSegmentClear(a, b, room) {
+  const steps = Math.ceil(Math.hypot(b.x - a.x, b.y - a.y) / .4);
+  for (let i = 1; i < steps; i++) {
+    if (!isFloorPoint({ x: a.x + (b.x - a.x) * i / steps, y: a.y + (b.y - a.y) * i / steps }, room)) return false;
+  }
+  return true;
+}
+
+// Shortest route across an apartment floor, turning just outside obstacle
+// corners and inside the floor's corners (such as the hallway opening).
+function apartmentRoute(from, to, room) {
+  const start = isFloorPoint(from, room) ? { x: from.x, y: from.y } : floorPosition(from.x, from.y);
+  const lead = start.x === from.x && start.y === from.y ? [] : [start];
+  if (floorSegmentClear(start, to, room)) return [...lead, to];
+  const nodes = [start, to];
+  for (const polygon of [roomWalkArea(room), ...roomObstacles(room)]) {
+    polygon.forEach((v, i) => {
+      const prev = polygon[(i + polygon.length - 1) % polygon.length], next = polygon[(i + 1) % polygon.length];
+      const ax = v[0] - prev[0], ay = v[1] - prev[1], bx = v[0] - next[0], by = v[1] - next[1];
+      const la = Math.hypot(ax, ay), lb = Math.hypot(bx, by);
+      let dx = ax / la + bx / lb, dy = ay / la + by / lb;
+      const length = Math.hypot(dx, dy) || 1;
+      dx /= length; dy /= length;
+      for (const side of [1, -1]) {
+        const node = { x: v[0] + dx * side * 2.5, y: v[1] + dy * side * 2.5 };
+        if (isFloorPoint(node, room)) nodes.push(node);
+      }
+    });
+  }
+  // Screen distance: the scene is 16:9, so a vertical percent is shorter.
+  const cost = (a, b) => Math.hypot(a.x - b.x, (a.y - b.y) * 9 / 16);
+  const distance = nodes.map(() => Infinity), previous = nodes.map(() => -1), done = nodes.map(() => false);
+  distance[0] = 0;
+  for (;;) {
+    let current = -1;
+    nodes.forEach((_, i) => { if (!done[i] && distance[i] < Infinity && (current < 0 || distance[i] < distance[current])) current = i; });
+    if (current < 0 || current === 1) break;
+    done[current] = true;
+    nodes.forEach((node, i) => {
+      if (done[i]) return;
+      const total = distance[current] + cost(nodes[current], node);
+      if (total < distance[i] && floorSegmentClear(nodes[current], node, room)) { distance[i] = total; previous[i] = current; }
+    });
+  }
+  if (previous[1] < 0) return [...lead, to];
+  const path = [];
+  for (let i = 1; i > 0; i = previous[i]) path.unshift({ x: nodes[i].x, y: nodes[i].y });
+  return [...lead, ...path];
 }
 
 function cancelPendingAction() {
@@ -1087,17 +1206,14 @@ function movePlayerTo(x, y, callback) {
   if (transition || roomSwitch) return;
   cancelPendingAction();
   callback = streetArrival(x, y, callback);
-  if (gameState.currentRoom === 'outside' || gameState.currentRoom === 'street' || gameState.currentRoom === 'alley') {
-    movement.route = gameState.currentRoom === 'street' ? streetRoute(movement, { x, y })
-      : gameState.currentRoom === 'alley' ? alleyRoute(movement, { x, y })
-      : outsideRoute(movement, { x, y });
-    if (!movement.route.length) { stopWalking(); if (callback) callback(); return; }
-    movement.route[movement.route.length-1].callback = callback;
-    movement.destination = movement.route.shift();
-    movement.segmentStart = { x: movement.x, y: movement.y };
-  } else {
-  movement.destination = { ...floorPosition(x, y), callback };
-  }
+  movement.route = gameState.currentRoom === 'street' ? streetRoute(movement, { x, y })
+    : gameState.currentRoom === 'alley' ? alleyRoute(movement, { x, y })
+    : gameState.currentRoom === 'outside' ? outsideRoute(movement, { x, y })
+    : apartmentRoute(movement, floorPosition(x, y), apartmentRooms[gameState.currentRoom]);
+  if (!movement.route.length) { stopWalking(); if (callback) callback(); return; }
+  movement.route[movement.route.length-1].callback = callback;
+  movement.destination = movement.route.shift();
+  movement.segmentStart = { x: movement.x, y: movement.y };
   const dx = (movement.destination.x - movement.x) * scene.clientWidth;
   const dy = (movement.destination.y - movement.y) * scene.clientHeight;
   movement.facing = movementFacing(dx, dy);
@@ -1586,6 +1702,7 @@ for (const [target, object] of Object.entries(roomObjects)) {
   button.setAttribute('aria-label', displayName(targetObjectName(target, object)));
   const [left, top, width, height] = object.area;
   Object.assign(button.style, { left: `${left}%`, top: `${top}%`, width: `${width}%`, height: `${height}%` });
+  if (object.shape) button.style.clipPath = polygonClipPath(object.shape, object.area);
   button.addEventListener('mouseenter', () => updateStatus(target));
   button.addEventListener('focus', () => updateStatus(target));
   button.addEventListener('mouseleave', () => updateStatus());
