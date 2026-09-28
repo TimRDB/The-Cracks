@@ -109,6 +109,9 @@ body.game-started #game { opacity: 1; }
 #tv-foreground { display: none; position: absolute; inset: 0; z-index: 109; pointer-events: none; background: var(--room-image) center / 100% 100%; }
 #scene[data-room="living"].player-behind-tv #tv-foreground { display: block; }
 #scene[data-room="living"].player-behind-tv #living-tv { z-index: 110; }
+/* The bedroom couch, clipped to its traced outline, drawn over the player behind it. */
+#couch-foreground { display: none; position: absolute; inset: 0; z-index: 109; pointer-events: none; background: var(--room-image) center / 100% 100%; }
+#scene[data-room="bedroom"].player-behind-couch #couch-foreground { display: block; }
 /* A per-pixel cutout of the three painted cars (scripts/build-outside-car-foreground.py),
    so only car pixels, never road, kerb or grass, are drawn over the player. */
 .outside-cars-foreground { display: none; position: absolute; inset: 0; background: url('assets/used/outside-cars-foreground-v1.png') center / 100% 100% no-repeat; }

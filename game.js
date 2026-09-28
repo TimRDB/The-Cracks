@@ -178,6 +178,9 @@ function resetWorldState() {
   });
 }
 
+// Traced outline of the bedroom couch, its blanket and cushion
+// (scripts/build-bedroom-couch-outline.py).
+const bedroomCouchSilhouette = [[71.35,59.99],[71.47,59.78],[71.59,59.69],[71.83,59.63],[72.19,59.59],[72.31,59.53],[72.67,59.18],[73.27,58.82],[73.5,58.77],[73.62,58.79],[73.74,58.83],[73.86,58.93],[74.1,59.26],[74.22,59.36],[74.58,59.45],[74.82,59.54],[75.06,59.69],[75.18,59.8],[75.3,59.95],[75.54,60.41],[75.66,60.58],[75.78,60.66],[76.14,60.71],[76.73,60.97],[77.33,61.35],[77.69,61.54],[77.81,61.64],[77.93,61.78],[78.17,62.18],[78.29,62.31],[78.41,62.37],[78.77,62.4],[79.13,62.52],[79.49,62.75],[79.96,63.02],[80.08,63.14],[80.2,63.33],[80.44,63.89],[80.56,64.06],[80.68,64.1],[81.04,63.81],[81.28,63.76],[81.64,63.77],[82,63.85],[82.36,63.88],[82.48,63.92],[82.6,64.03],[82.83,64.43],[82.95,64.53],[83.43,64.51],[83.67,64.57],[83.79,64.63],[83.91,64.73],[84.15,65],[84.27,65.08],[84.51,65.17],[84.63,65.27],[84.87,65.7],[84.99,65.83],[85.11,65.87],[85.59,65.78],[85.83,65.79],[85.94,65.83],[86.42,66.08],[86.54,66.2],[86.9,66.82],[87.14,67.07],[87.38,67.23],[87.74,67.39],[87.86,67.47],[88.1,67.72],[88.22,67.79],[88.46,67.85],[88.7,67.96],[88.82,67.99],[88.94,67.97],[89.06,67.92],[89.53,67.48],[89.89,67.29],[90.61,67],[91.57,66.76],[92.05,66.6],[92.52,66.38],[93.96,65.79],[94.32,65.58],[94.68,65.29],[94.8,65.23],[94.92,65.23],[95.04,65.28],[95.16,65.39],[95.63,65.95],[96.11,66.43],[96.35,66.61],[96.47,66.65],[96.95,66.62],[97.91,66.46],[98.62,66.38],[100,66.3],[100,100],[92.2,100.25],[74,83.75],[73.6,84.2],[72.5,83.95],[71.5,83.35],[70.72,82.4],[70.8,81.1],[70.3,80.35],[70.33,80.35],[70.42,65.58],[70.43,65.44],[70.46,65.32],[70.51,65.21],[70.57,65.12],[70.64,65.07],[71.16,65.05],[71.11,60.95],[71.23,60.4]];
 // Positions and hit areas are percentages of the uncropped 16:9 bedroom.
 const bedroomObjects = {
   bed: { name: 'bed', area: [8, 40, 36, 24], walk: [28, 72], description: 'A single bed, an unmade duvet, and a pillow that has seen better mornings.' },
@@ -185,9 +188,9 @@ const bedroomObjects = {
   drawers: { name: 'chest of drawers', area: [44.5, 31, 11, 30], walk: [49, 69], description: 'The drawers at the foot of the bed hold T-shirts, socks, and the odd forgotten cable.' },
   cupboard: { name: 'wardrobe', area: [56, 12, 12, 49], walk: [61, 69], description: 'A narrow wardrobe holding your cleaner work clothes on hangers, with folded clothes and shoes on the shelves below.' },
   door: { ...door('living room door', [72.8,14,9.5,42.5], [68,69], 'living', 'bedroomDoor'), description: 'A painted interior door leading from the bedroom into the living room and kitchen.', panel: [72.9665,14.0276,9.2105,43.2519], hinge: 'right', destinationSwing: true },
-  couch: { name: 'couch', area: [78.5, 57, 21.5, 38], walk: [72, 81], description: 'A shortened well-worn couch facing the TV. The blanket has claimed one end.' },
-  tv: { name: 'TV', area: [89.8, 29, 10, 23], walk: [67, 76], description: 'The TV sits against the right wall, within easy reach of the couch.' },
-  console: { name: 'gaming console', area: [87, 52, 12, 9], walk: [67, 76], description: 'A console, a controller, and several games you keep meaning to finish.' },
+  couch: { name: 'couch', area: [70.2, 59.6, 29.8, 40.4], walk: [68.5, 82], shape: bedroomCouchSilhouette, description: 'A shortened well-worn couch facing the TV. The blanket has claimed one end.' },
+  tv: { name: 'TV', area: [89.8, 29, 10, 23], walk: [90, 68.5], description: 'The TV sits against the right wall, within easy reach of the couch.' },
+  console: { name: 'gaming console', area: [87, 52, 12, 9], walk: [90, 68.5], description: 'A console, a controller, and several games you keep meaning to finish.' },
   guitar: { name: 'guitar', area: [66.5, 33, 5, 27], walk: [66, 69], description: 'An acoustic guitar leaning beside the wardrobe. It could use a little practice.' },
   books: { name: 'books', area: [0.6, 70, 5, 9], walk: [12, 82], description: 'A small stack of books. Some finished, some bookmarked halfway through.' },
   bookshelf: { name: 'small bookshelf', area: [0.2, 45.5, 4.7, 24.5], walk: [10, 73], description: 'A narrow wooden bookshelf beside the lamp table, filled with well-read paperbacks.' },
@@ -196,7 +199,28 @@ const bedroomObjects = {
   curtains: { name: 'bedroom curtains', area: [18.8, 8, 23.8, 33], walk: [32, 68], description: 'Heavy curtains cover the bedroom window and keep the grey morning light outside.', curtainRoom: 'bedroom' },
   mainLightSwitch: { name: 'bedroom light switch', area: [69.6, 28.5, 2.5, 7], walk: [68,69], description: 'A wall switch to the left of the bedroom door controls the overhead light.', lightCircuit: 'bedroomMain' }
 };
-apartmentRooms.bedroom = { name: 'Bedroom', image: 'assets/used/bedroom_bg_reversed_door.png', imageOff: 'assets/used/bedroom_bg_lamp_off_reversed_door.png', floor: [10,68,66,94], objects: bedroomObjects };
+apartmentRooms.bedroom = {
+  name: 'Bedroom', image: 'assets/used/bedroom_bg_reversed_door.png', imageOff: 'assets/used/bedroom_bg_lamp_off_reversed_door.png', floor: [10,68,66,94],
+  // The floor runs in front of the drawers and wardrobe, past the couch's left arm
+  // to the door, behind the couch along its seat to just under the TV stand, and
+  // over the carpet in front of the couch.
+  walkArea: [[10,66],[44,66],[46,62],[56,61.5],[66,61.2],[70,60.2],[72,59.5],[84,59.5],[85.5,62],[86.2,65.4],[90,65.5],[99.5,65.6],[99.5,97],[60,97],[56,94],[10,94]],
+  obstacles: [
+    // The couch's floor footprint: its painted base, wooden leg and left arm, and
+    // its hidden seat side, which tapers from the left arm toward the right edge so
+    // that standing right behind the backrest hides about the lower third of the body.
+    [[70.33,78.5],[100.5,95],[100.5,101],[92.2,100.25],[74,83.75],[73.6,84.2],[72.5,83.95],[71.5,83.35],[70.72,82.4],[70.33,80.35]],
+    // Beside the left arm and its front corner, the player stops a little short of
+    // the arm, with only the edge of their body overlapping it.
+    [[67.7,78.5],[70.5,78.5],[76,86.5],[72,93],[67.7,93]]
+  ],
+  // Drawn over the player whenever they stand behind the couch's left arm and base.
+  couchOccluder: {
+    silhouette: bedroomCouchSilhouette,
+    groundLine: [[70.33,78.5],[70.72,82.4],[71.5,83.35],[72.5,83.95],[73.6,84.2],[92.2,100.25]]
+  },
+  objects: bedroomObjects
+};
 let roomObjects = bedroomObjects;
 let transition = null;
 const channels = ['Weather: another grey morning', 'Cooking: something better than toast', 'Films: an old black-and-white favourite'];
@@ -1033,6 +1057,7 @@ function renderPlayer(walking = false) {
   player.style.setProperty('--player-light', playerLightLevel());
   scene.classList.toggle('player-behind-cars', outdoors && movement.y < CAR_GROUND_LINE);
   scene.classList.toggle('player-behind-tv', playerBehindOccluder(apartmentRooms[gameState.currentRoom]?.tvOccluder));
+  scene.classList.toggle('player-behind-couch', playerBehindOccluder(apartmentRooms[gameState.currentRoom]?.couchOccluder));
   player.style.zIndex = Math.round(movement.y);
   syncStreetDoors();
 }
@@ -1053,6 +1078,7 @@ function playerBehindOccluder(occluder) {
 const polygonClipPath = (points, [left, top, width, height] = [0, 0, 100, 100]) =>
   `polygon(${points.map(([x, y]) => `${(x - left) / width * 100}% ${(y - top) / height * 100}%`).join(', ')})`;
 document.getElementById('tv-foreground').style.clipPath = polygonClipPath(apartmentRooms.living.tvOccluder.silhouette);
+document.getElementById('couch-foreground').style.clipPath = polygonClipPath(apartmentRooms.bedroom.couchOccluder.silhouette);
 
 function floorPosition(x, y) {
   if (gameState.currentRoom === 'street') {

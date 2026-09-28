@@ -573,7 +573,7 @@ test('the regenerated right-hinged bedroom door animates clear of the shortened 
   assert.equal(g.run('JSON.stringify(apartmentRooms.bedroom.objects.door.area)'), '[72.8,14,9.5,42.5]');
   assert.equal(g.run('JSON.stringify(apartmentRooms.bedroom.objects.door.panel)'), '[72.9665,14.0276,9.2105,43.2519]');
   assert.equal(g.run('apartmentRooms.bedroom.objects.door.foreground'), undefined);
-  assert.equal(g.run('JSON.stringify(apartmentRooms.bedroom.objects.couch.area)'), '[78.5,57,21.5,38]');
+  assert.equal(g.run('JSON.stringify(apartmentRooms.bedroom.objects.couch.area)'), '[70.2,59.6,29.8,40.4]');
   g.run('interact("door", "use");');
   assert.equal(g.get('doorway').style.left, '72.9665%');
   assert.equal(g.get('doorway').style.top, '14.0276%');
@@ -1449,4 +1449,34 @@ test('living-room floor reaches the hallway and behind the TV, which hides the p
   assert.match(tvButton.style.clipPath, /^polygon\(/);
   g.run('showRoom("bedroom"); renderPlayer()');
   assert.equal(g.get('scene').classList.contains('player-behind-tv'), false);
+});
+
+test('bedroom floor reaches behind the couch to the TV, and the couch hides the player there', () => {
+  const g = game();
+  g.run('showRoom("bedroom")');
+  // Beside the left arm, in front of the door, behind the backrest, at the TV stand's feet and in front of the couch.
+  for (const [x, y] of [[60, 62], [64.5, 80], [78, 61], [80, 70], [80, 81], [85, 85], [90, 71], [95, 65.8], [97, 88], [80, 92], [85, 96.5]]) {
+    assert.deepEqual(JSON.parse(g.run(`JSON.stringify(floorPosition(${x},${y}))`)), { x, y }, `${x},${y} is walkable`);
+  }
+  assert.equal(g.run('isFloorPoint({x:85,y:90}, apartmentRooms.bedroom)'), false, 'the couch itself is not floor');
+  // Routes from the foreground go around the couch's left arm instead of through it.
+  g.run('movement.x=60; movement.y=90; movePlayerTo(90,71)');
+  const route = JSON.parse(g.run('JSON.stringify([{x:60,y:90},movement.destination,...movement.route])'));
+  assert.ok(route.length > 2);
+  for (let i = 1; i < route.length; i++) assert.equal(g.run(`floorSegmentClear(${JSON.stringify(route[i-1])},${JSON.stringify(route[i])},apartmentRooms.bedroom)`), true);
+  g.finish();
+  assert.ok(g.get('scene').classList.contains('player-behind-couch'));
+  g.run('movePlayerTo(69.5,84)'); g.finish();
+  assert.ok(g.run('movement.x') <= 67.7, 'the player stops a little short of the arm');
+  assert.equal(g.get('scene').classList.contains('player-behind-couch'), false, 'beside the arm, in front of the couch');
+  g.run('movePlayerTo(80,92)'); g.finish();
+  assert.equal(g.get('scene').classList.contains('player-behind-couch'), false, 'in front of the couch');
+  assert.match(g.get('couch-foreground').style.clipPath, /^polygon\(/);
+  assert.match(styles, /player-behind-couch #couch-foreground \{ display: block; \}/);
+  // The hotspot follows the couch's outline so the floor behind it stays clickable.
+  g.run('buildHotspots()');
+  const couchButton = g.get('hotspots').children.find(button => button.dataset.target === 'couch');
+  assert.match(couchButton.style.clipPath, /^polygon\(/);
+  g.run('showRoom("living"); renderPlayer()');
+  assert.equal(g.get('scene').classList.contains('player-behind-couch'), false);
 });
