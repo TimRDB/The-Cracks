@@ -1,6 +1,6 @@
 param(
-  [string]$Source = (Join-Path $PSScriptRoot '..\assets\bedroom_player.png'),
-  [string]$Output = (Join-Path $PSScriptRoot '..\assets\player-sheet-keyed-v1.png')
+  [string]$Source = (Join-Path $PSScriptRoot '..\assets\unused\bedroom_player.png'),
+  [string]$Output = (Join-Path $PSScriptRoot '..\assets\used\player-sheet-keyed-v1.png')
 )
 
 $ErrorActionPreference = 'Stop'

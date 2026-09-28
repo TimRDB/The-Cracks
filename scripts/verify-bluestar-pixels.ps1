@@ -7,8 +7,8 @@ using System;
 using System.Drawing;
 public static class BluestarVisualChecks {
   public static void Run(string root) {
-    using(var a=new Bitmap(root+"/assets/street_bg.png"))
-    using(var b=new Bitmap(root+"/assets/street_bg_counter_v2.png")) {
+    using(var a=new Bitmap(root+"/assets/used/street_bg.png"))
+    using(var b=new Bitmap(root+"/assets/used/street_bg_counter_v2.png")) {
       if(a.Size!=b.Size) throw new Exception("Street resolution changed.");
       int same=0,changed=0;
       for(int y=0;y<a.Height;y++) for(int x=0;x<a.Width;x++) {
@@ -22,7 +22,7 @@ public static class BluestarVisualChecks {
       Console.WriteLine("Background: "+same+" unchanged pixels; "+changed+" changed counter-window pixels; native resolution "+a.Width+" x "+a.Height+".");
     }
     foreach(string side in new[]{"left","right"}) {
-      using(var frame=new Bitmap(root+"/assets/bluestar-door-"+side+"-v2.png")) {
+      using(var frame=new Bitmap(root+"/assets/used/bluestar-door-"+side+"-v2.png")) {
         int count=0;
         // Broad glass regions must be truly empty, not sampled store shelves.
         for(int y=15;y<130;y++) for(int x=12;x<40;x++) {

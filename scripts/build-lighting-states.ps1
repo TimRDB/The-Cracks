@@ -172,10 +172,12 @@ public static class LightingStateBuilder {
 
 Add-Type -TypeDefinition $type -ReferencedAssemblies System.Drawing
 
-$assetRoot = Join-Path $ProjectRoot 'assets'
-$lightingRoot = Join-Path $assetRoot 'lighting'
-$outputRoot = Join-Path $lightingRoot 'hard-states-v7'
-New-Item -ItemType Directory -Path $outputRoot -Force | Out-Null
+$lightingRoot = Join-Path $ProjectRoot 'assets\unused\lighting'
+$usedLightingRoot = Join-Path $ProjectRoot 'assets\used\lighting'
+$outputRoot = Join-Path $usedLightingRoot 'hard-states-v7'
+# The game loads bedroom lighting from bedroom-states-v14, so these bedroom renders are kept as unused.
+$bedroomOutputRoot = Join-Path $lightingRoot 'hard-states-v7'
+New-Item -ItemType Directory -Path $outputRoot,$bedroomOutputRoot -Force | Out-Null
 
 $bedroomSourceRoot = Join-Path $lightingRoot 'bedroom-source-states'
 $bedroomStool = Join-Path $lightingRoot 'bedroom-stool.png'
@@ -192,7 +194,7 @@ foreach ($curtains in @($false, $true)) {
       $prepared = [LightingStateBuilder]::Prepare($bedroomSources[$sourceKey], $bedroomStool, 'bedroom', ($lamp -or $main))
       $rendered = [LightingStateBuilder]::Render($prepared, 'bedroom', $curtains, $lamp, $main, $false, $false)
       $name = 'bedroom-c{0}-l{1}-m{2}.png' -f [int]$curtains,[int]$lamp,[int]$main
-      $rendered.Save((Join-Path $outputRoot $name), [System.Drawing.Imaging.ImageFormat]::Png)
+      $rendered.Save((Join-Path $bedroomOutputRoot $name), [System.Drawing.Imaging.ImageFormat]::Png)
       $rendered.Dispose(); $prepared.Dispose()
     }
   }
@@ -200,7 +202,7 @@ foreach ($curtains in @($false, $true)) {
 
 $livingSourceRoot = Join-Path $lightingRoot 'living-source-states-v2'
 $toasterPatchRoot = Join-Path $lightingRoot 'toaster-clean-patches-v2'
-$toasterStateRoot = Join-Path $lightingRoot 'toaster-states-v2'
+$toasterStateRoot = Join-Path $usedLightingRoot 'toaster-states-v2'
 New-Item -ItemType Directory -Path $toasterStateRoot -Force | Out-Null
 $livingSources = @{
   '000' = Join-Path $livingSourceRoot 'living-m0-b0-h0.png'
@@ -264,7 +266,7 @@ $manifest = [ordered]@{
   method = 'complete versioned hard renders; living circuits share one high-detail fixed-geometry master and an 82x82 toaster clean plate'
   files = [ordered]@{}
 }
-Get-ChildItem -LiteralPath $outputRoot -Filter '*.png' | Sort-Object Name | ForEach-Object {
+Get-ChildItem -LiteralPath $outputRoot,$bedroomOutputRoot -Filter '*.png' | Sort-Object Name | ForEach-Object {
   $manifest.files[$_.Name] = (Get-FileHash -Algorithm SHA256 -LiteralPath $_.FullName).Hash.ToLower()
 }
 $manifestJson = $manifest | ConvertTo-Json -Depth 4

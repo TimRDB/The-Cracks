@@ -1,7 +1,7 @@
 param(
-  [string]$Original = (Join-Path $PSScriptRoot '..\assets\alley-bg-v1.png'),
-  [string]$CleanSource = (Join-Path $PSScriptRoot '..\assets\alley-clean-source-v1.png'),
-  [string]$Output = (Join-Path $PSScriptRoot '..\assets\alley-bg-npc-v2.png')
+  [string]$Original = (Join-Path $PSScriptRoot '..\assets\unused\alley-bg-v1.png'),
+  [string]$CleanSource = (Join-Path $PSScriptRoot '..\assets\unused\alley-clean-source-v1.png'),
+  [string]$Output = (Join-Path $PSScriptRoot '..\assets\used\alley-bg-npc-v2.png')
 )
 
 $ErrorActionPreference = 'Stop'

@@ -1,5 +1,5 @@
 param(
-  [string]$Sprite = (Join-Path $PSScriptRoot '..\assets\alley-man-sprite-v6.png')
+  [string]$Sprite = (Join-Path $PSScriptRoot '..\assets\used\alley-man-sprite-v6.png')
 )
 
 $ErrorActionPreference = 'Stop'

@@ -1,6 +1,6 @@
 param(
-  [string]$Source = (Join-Path $PSScriptRoot '..\assets\alley-man-open-source-v6.png'),
-  [string]$Output = (Join-Path $PSScriptRoot '..\assets\alley-man-sprite-v6.png')
+  [string]$Source = (Join-Path $PSScriptRoot '..\assets\unused\alley-man-open-source-v6.png'),
+  [string]$Output = (Join-Path $PSScriptRoot '..\assets\used\alley-man-sprite-v6.png')
 )
 
 $ErrorActionPreference = 'Stop'

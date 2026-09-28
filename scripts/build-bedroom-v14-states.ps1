@@ -90,9 +90,9 @@ public static class BedroomV14Builder {
 
 Add-Type -TypeDefinition $type -ReferencedAssemblies System.Drawing
 
-$lightingRoot = Join-Path $ProjectRoot 'assets\lighting'
+$lightingRoot = Join-Path $ProjectRoot 'assets\unused\lighting'
 $sourceRoot = Join-Path $lightingRoot 'bedroom-source-v14'
-$outputRoot = Join-Path $lightingRoot 'bedroom-states-v14'
+$outputRoot = Join-Path $ProjectRoot 'assets\used\lighting\bedroom-states-v14'
 $chairPath = Join-Path $lightingRoot 'bedroom-stool.png'
 [IO.Directory]::CreateDirectory($outputRoot) | Out-Null
 

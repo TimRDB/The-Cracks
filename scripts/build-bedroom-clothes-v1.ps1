@@ -95,10 +95,10 @@ public static class BedroomClothesBuilder {
 
 Add-Type -TypeDefinition $type -ReferencedAssemblies System.Drawing
 
-$keyPath = Join-Path $ProjectRoot 'assets\bedroom-crumpled-clothes-key-v1.png'
-$basePath = Join-Path $ProjectRoot 'assets\bedroom-crumpled-clothes-v1.png'
-$roomRoot = Join-Path $ProjectRoot 'assets\lighting\bedroom-states-v14'
-$outputRoot = Join-Path $ProjectRoot 'assets\lighting\bedroom-clothes-v1'
+$keyPath = Join-Path $ProjectRoot 'assets\unused\bedroom-crumpled-clothes-key-v1.png'
+$basePath = Join-Path $ProjectRoot 'assets\used\bedroom-crumpled-clothes-v1.png'
+$roomRoot = Join-Path $ProjectRoot 'assets\used\lighting\bedroom-states-v14'
+$outputRoot = Join-Path $ProjectRoot 'assets\used\lighting\bedroom-clothes-v1'
 [IO.Directory]::CreateDirectory($outputRoot) | Out-Null
 
 $base = [BedroomClothesBuilder]::ExtractChromaKey($keyPath)

@@ -58,6 +58,6 @@ public static class WhiteSockRecolor {
 }
 '@
 $assets=Join-Path $ProjectRoot 'assets'
-[WhiteSockRecolor]::Build((Join-Path $assets 'player-underwear-socks-dark-source-v1.png'),(Join-Path $assets 'bedroom_player.png'),(Join-Path $assets 'player-underwear-socks-key-v1.png'))
-[WhiteSockRecolor]::Build((Join-Path $assets 'player-clothes-socks-dark-source-v1.png'),(Join-Path $assets 'player-clothes-barefoot-key-v1.png'),(Join-Path $assets 'player-clothes-socks-key-v1.png'))
+[WhiteSockRecolor]::Build((Join-Path $assets 'unused/player-underwear-socks-dark-source-v1.png'),(Join-Path $assets 'unused/bedroom_player.png'),(Join-Path $assets 'unused/player-underwear-socks-key-v1.png'))
+[WhiteSockRecolor]::Build((Join-Path $assets 'unused/player-clothes-socks-dark-source-v1.png'),(Join-Path $assets 'unused/player-clothes-barefoot-key-v1.png'),(Join-Path $assets 'unused/player-clothes-socks-key-v1.png'))
 Write-Host 'Recolored only sock pixels to white; dimensions, poses and alpha geometry were unchanged.'

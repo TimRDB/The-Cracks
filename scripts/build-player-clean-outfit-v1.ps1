@@ -141,7 +141,7 @@ public static class CleanOutfitRecolorV3 {
 }
 "@
 $assets=Join-Path $ProjectRoot 'assets'
-[CleanOutfitRecolorV3]::Build((Join-Path $assets 'player-sheet-clothes-barefoot-v1.png'),(Join-Path $assets 'player-sheet-clean-barefoot-v1.png'))
-[CleanOutfitRecolorV3]::AddSocks((Join-Path $assets 'player-sheet-clean-barefoot-v1.png'),(Join-Path $assets 'player-sheet-clothes-barefoot-v1.png'),(Join-Path $assets 'player-sheet-clothes-socks-v1.png'),(Join-Path $assets 'player-sheet-clean-socks-v1.png'))
-$sheet=[Drawing.Bitmap]::FromFile((Join-Path $assets 'player-sheet-clean-barefoot-v1.png'));try{$cellW=[int][Math]::Floor($sheet.Width/5.0);$cellH=[int][Math]::Floor($sheet.Height/3.0);$icon=$sheet.Clone((New-Object Drawing.Rectangle(0,$cellH,$cellW,$cellH)),[Drawing.Imaging.PixelFormat]::Format32bppArgb);try{$icon.Save((Join-Path $assets 'clean-clothes-icon-v1.png'),[Drawing.Imaging.ImageFormat]::Png)}finally{$icon.Dispose()}}finally{$sheet.Dispose()}
+[CleanOutfitRecolorV3]::Build((Join-Path $assets 'unused/player-sheet-clothes-barefoot-v1.png'),(Join-Path $assets 'unused/player-sheet-clean-barefoot-v1.png'))
+[CleanOutfitRecolorV3]::AddSocks((Join-Path $assets 'unused/player-sheet-clean-barefoot-v1.png'),(Join-Path $assets 'unused/player-sheet-clothes-barefoot-v1.png'),(Join-Path $assets 'unused/player-sheet-clothes-socks-v1.png'),(Join-Path $assets 'unused/player-sheet-clean-socks-v1.png'))
+$sheet=[Drawing.Bitmap]::FromFile((Join-Path $assets 'unused/player-sheet-clean-barefoot-v1.png'));try{$cellW=[int][Math]::Floor($sheet.Width/5.0);$cellH=[int][Math]::Floor($sheet.Height/3.0);$icon=$sheet.Clone((New-Object Drawing.Rectangle(0,$cellH,$cellW,$cellH)),[Drawing.Imaging.PixelFormat]::Format32bppArgb);try{$icon.Save((Join-Path $assets 'used/clean-clothes-icon-v1.png'),[Drawing.Imaging.ImageFormat]::Png)}finally{$icon.Dispose()}}finally{$sheet.Dispose()}
 Write-Host 'Built clean outfit v3 at native resolution.'

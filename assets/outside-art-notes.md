@@ -1,6 +1,6 @@
 # Apartment exterior
 
-Current game asset: `assets/outside_bg.png`. Generated using the built-in image-generation tool, with the user's Screenshot 2026-09-17 170559.png as a style reference. No existing room image was replaced.
+Current game asset: `assets/used/outside_bg.png`. Generated using the built-in image-generation tool, with the user's Screenshot 2026-09-17 170559.png as a style reference. No existing room image was replaced.
 
 The rightmost exterior front door matches the neighbouring doors: hinges on the left and handle on the right, with its centered mail slot unchanged. Its reciprocal living-room face has hinges on the right and handle on the left. Both faces use an explicit inward swing so the exterior closing animation stays inside the apartment.
 

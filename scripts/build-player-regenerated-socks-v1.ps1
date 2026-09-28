@@ -46,12 +46,12 @@ public static class RegeneratedSockLayer {
   }
   public static string Build(string referencePath,string underwear,string crumpled,string clean,string assets){
     using(Bitmap loaded=new Bitmap(referencePath))using(Bitmap reference=loaded.Clone(new Rectangle(0,0,Math.Min(1619,loaded.Width),Math.Min(971,loaded.Height)),PixelFormat.Format32bppArgb))using(Bitmap layer=new Bitmap(reference.Width,reference.Height,PixelFormat.Format32bppArgb)){
-      bool[,] mask=Extract(reference,layer);string layerPath=assets+"/player-socks-layer-v1.png";layer.Save(layerPath,ImageFormat.Png);
-      Apply(underwear,assets+"/player-sheet-underwear-socks-v3.png",layer,mask);Apply(crumpled,assets+"/player-sheet-clothes-socks-v4.png",layer,mask);Apply(clean,assets+"/player-sheet-clean-socks-v6.png",layer,mask);
+      bool[,] mask=Extract(reference,layer);string layerPath=assets+"/unused/player-socks-layer-v1.png";layer.Save(layerPath,ImageFormat.Png);
+      Apply(underwear,assets+"/unused/player-sheet-underwear-socks-v3.png",layer,mask);Apply(crumpled,assets+"/unused/player-sheet-clothes-socks-v4.png",layer,mask);Apply(clean,assets+"/unused/player-sheet-clean-socks-v6.png",layer,mask);
       int count=0;for(int y=0;y<layer.Height;y++)for(int x=0;x<layer.Width;x++)if(mask[x,y])count++;return String.Format("sock layer {0}x{1}; isolated pixels={2}",layer.Width,layer.Height,count);
     }
   }
 }
 "@
 $assets=Join-Path $ProjectRoot 'assets'
-[RegeneratedSockLayer]::Build((Join-Path $assets 'player-socks-regenerated-reference-v1.png'),(Join-Path $assets 'player-sheet-keyed-v1.png'),(Join-Path $assets 'player-sheet-clothes-barefoot-v4.png'),(Join-Path $assets 'player-sheet-clean-barefoot-v6.png'),$assets)
+[RegeneratedSockLayer]::Build((Join-Path $assets 'unused/player-socks-regenerated-reference-v1.png'),(Join-Path $assets 'used/player-sheet-keyed-v1.png'),(Join-Path $assets 'unused/player-sheet-clothes-barefoot-v4.png'),(Join-Path $assets 'unused/player-sheet-clean-barefoot-v6.png'),$assets)

@@ -5,7 +5,7 @@ const streetDoors = {
   bluestar: { panel:[62.2009569378,48.9904357067,6.5789473684,16.3655685441], x:65.48, threshold:65.4, inside:63.6 }
 };
 apartmentRooms.street = {
-  name:'Laundry & Bluestar', image:'assets/street_bg_counter_v2.png', floor:[1,99,56,74],
+  name:'Laundry & Bluestar', image:'assets/used/street_bg_counter_v2.png', floor:[1,99,56,74],
   objects:{
     apartments:{...item('footpath back to the apartments',[0,60,4,9],[1,streetFootY(1)],'The footpath leads back to the apartment forecourt.'),streetExit:'outside'},
     laundry:{...item('Laundry glass door',[40.3,48,4.5,17],[42.53,streetFootY(42.53)],'A glass-panelled door leads into the dollar laundry. It opens by hand when you enter.'),streetDoor:'laundry'},

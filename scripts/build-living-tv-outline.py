@@ -1,5 +1,5 @@
 """Traces the living-room TV, its stand and cabinet out of
-assets/lighting/living-master-v2.png and writes the outline into rooms.js as
+assets/used/lighting/living-master-v2.png and writes the outline into rooms.js as
 livingTvSilhouette (scene percentages). The outline clips the copy of the room
 drawn over the player behind the TV, and shapes the TV hotspot.
 
@@ -24,7 +24,7 @@ import cv2
 import numpy as np
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
-SOURCE = os.path.join(ROOT, "assets", "lighting", "living-master-v2.png")
+SOURCE = os.path.join(ROOT, "assets", "used", "lighting", "living-master-v2.png")
 ROOMS = os.path.join(ROOT, "rooms.js")
 
 # Hand-traced outline, accurate to a few pixels.

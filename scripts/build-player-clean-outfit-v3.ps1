@@ -77,6 +77,6 @@ public static class ExactCharacterCleanOutfit {
 }
 "@
 $assets=Join-Path $ProjectRoot 'assets'
-$result=[ExactCharacterCleanOutfit]::Build((Join-Path $assets 'player-sheet-clothes-barefoot-v1.png'),(Join-Path $assets 'player-sheet-clothes-socks-v1.png'),(Join-Path $assets 'player-sheet-clean-barefoot-v3.png'),(Join-Path $assets 'player-sheet-clean-socks-v3.png'))
-$sheet=[Drawing.Bitmap]::FromFile((Join-Path $assets 'player-sheet-clean-barefoot-v3.png'));try{$cw=[int][Math]::Floor($sheet.Width/5.0);$ch=[int][Math]::Floor($sheet.Height/3.0);$icon=$sheet.Clone((New-Object Drawing.Rectangle(0,$ch,$cw,$ch)),[Drawing.Imaging.PixelFormat]::Format32bppArgb);try{$icon.Save((Join-Path $assets 'clean-clothes-icon-v1.png'),[Drawing.Imaging.ImageFormat]::Png)}finally{$icon.Dispose()}}finally{$sheet.Dispose()}
+$result=[ExactCharacterCleanOutfit]::Build((Join-Path $assets 'unused/player-sheet-clothes-barefoot-v1.png'),(Join-Path $assets 'unused/player-sheet-clothes-socks-v1.png'),(Join-Path $assets 'unused/player-sheet-clean-barefoot-v3.png'),(Join-Path $assets 'unused/player-sheet-clean-socks-v3.png'))
+$sheet=[Drawing.Bitmap]::FromFile((Join-Path $assets 'unused/player-sheet-clean-barefoot-v3.png'));try{$cw=[int][Math]::Floor($sheet.Width/5.0);$ch=[int][Math]::Floor($sheet.Height/3.0);$icon=$sheet.Clone((New-Object Drawing.Rectangle(0,$ch,$cw,$ch)),[Drawing.Imaging.PixelFormat]::Format32bppArgb);try{$icon.Save((Join-Path $assets 'used/clean-clothes-icon-v1.png'),[Drawing.Imaging.ImageFormat]::Png)}finally{$icon.Dispose()}}finally{$sheet.Dispose()}
 Write-Host $result

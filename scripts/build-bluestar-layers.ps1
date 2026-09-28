@@ -13,9 +13,9 @@ public static class BluestarLayers {
   }
   static bool Poster(int x,int y) {return x>=922 && x<973 && y>=467 && y<543;}
   public static void Build(string root) {
-    using(var original=new Bitmap(root+"/assets/street_bg.png"))
-    using(var open=new Bitmap(root+"/assets/street_doors_open.png"))
-    using(var generated=new Bitmap(root+"/assets/street-counter-source-v2.png"))
+    using(var original=new Bitmap(root+"/assets/used/street_bg.png"))
+    using(var open=new Bitmap(root+"/assets/used/street_doors_open.png"))
+    using(var generated=new Bitmap(root+"/assets/unused/street-counter-source-v2.png"))
     using(var patch=new Bitmap(447,201,PixelFormat.Format32bppArgb))
     using(var result=original.Clone(new Rectangle(0,0,original.Width,original.Height),PixelFormat.Format32bppArgb)) {
       using(var g=Graphics.FromImage(patch)) {
@@ -33,7 +33,7 @@ public static class BluestarLayers {
           changed++;
         }
       }
-      result.Save(root+"/assets/street_bg_counter_v2.png",ImageFormat.Png);
+      result.Save(root+"/assets/used/street_bg_counter_v2.png",ImageFormat.Png);
       Console.WriteLine("Changed "+changed+" window pixels; all other pixels, including the milk poster, are identical.");
       // The static interior remains untransformed, including during partial opening.
       using(var interior=open.Clone(new Rectangle(1040,461,110,154),PixelFormat.Format32bppArgb)) {
@@ -41,7 +41,7 @@ public static class BluestarLayers {
         // visible return at the left edge, never the aisle or distant shelves.
         for(int y=484;y<600;y++) for(int x=1043;x<1057;x++)
           interior.SetPixel(x-1040,y-461,patch.GetPixel(x-902,y-427));
-        interior.Save(root+"/assets/bluestar-interior-v2.png",ImageFormat.Png);
+        interior.Save(root+"/assets/used/bluestar-interior-v2.png",ImageFormat.Png);
       }
       for(int leaf=0;leaf<2;leaf++) {
         int left=1040+leaf*55;
@@ -55,7 +55,7 @@ public static class BluestarLayers {
             // Exact original metal pixels; the glass contains no background RGB.
             frame.SetPixel(x,y,glass&&!handle?Color.Transparent:original.GetPixel(gx,gy));
           }
-          frame.Save(root+"/assets/bluestar-door-"+(leaf==0?"left":"right")+"-v2.png",ImageFormat.Png);
+          frame.Save(root+"/assets/used/bluestar-door-"+(leaf==0?"left":"right")+"-v2.png",ImageFormat.Png);
         }
       }
     }

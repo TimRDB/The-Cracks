@@ -9,7 +9,7 @@ body.game-started #game { opacity: 1; }
 
 /* Title screen */
 .title-screen { position: fixed; inset: 0; z-index: 1000; display: grid; place-items: center; overflow: hidden; background: #080503; isolation: isolate; }
-.title-backdrop { position: absolute; inset: -2%; z-index: -2; background: #0c0805 url('assets/title-screen-bg.png') center / cover no-repeat; transform: scale(1.02); transition: filter .55s ease, transform .55s ease; }
+.title-backdrop { position: absolute; inset: -2%; z-index: -2; background: #0c0805 url('assets/used/title-screen-bg.png') center / cover no-repeat; transform: scale(1.02); transition: filter .55s ease, transform .55s ease; }
 .title-backdrop::after { content: ""; position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 42%, transparent 5%, #05030138 58%, #020100c7 100%), linear-gradient(180deg, #0003, transparent 36%, #0007); }
 .title-content { display: flex; flex-direction: column; align-items: center; gap: clamp(2.6rem, 8vh, 5.5rem); width: min(90vw, 900px); padding-bottom: 3vh; transition: filter .55s ease, transform .55s ease, opacity .35s ease; }
 .game-title { position: relative; margin: 0; color: #a94919; font-family: Georgia, "Times New Roman", serif; font-size: clamp(4.5rem, 11vw, 10.5rem); font-weight: 900; font-stretch: condensed; line-height: .82; letter-spacing: -.075em; text-transform: uppercase; text-align: center; text-shadow: 0 2px 0 #d17a39, 0 6px 0 #55200d, 0 10px 16px #000, 0 0 40px #8e3d1766; transform: scaleX(.9); }
@@ -38,12 +38,12 @@ body.game-started #game { opacity: 1; }
 #sceneViewport { flex: 1; min-height: 0; display: grid; place-items: center; container-type: size; background: #101113; }
 #scene { position: relative; width: min(100cqw, calc(100cqh * 16 / 9)); aspect-ratio: 16 / 9; overflow: hidden; image-rendering: pixelated; cursor: crosshair; }
 #room-art { position: absolute; inset: 0; pointer-events: none; }
-#room-background { position: absolute; inset: 0; z-index: 0; background: #08090b var(--room-image, url('assets/lighting/bedroom-states-v14/bedroom-c0-l0-m0.png')) center / 100% 100% no-repeat; }
-.room-background-layer { position: absolute; inset: 0; background: url('assets/lighting/bedroom-states-v14/bedroom-c0-l0-m0.png') center / 100% 100% no-repeat; opacity: 0; transition: opacity 1.4s cubic-bezier(.45,0,.2,1); will-change: opacity; }
+#room-background { position: absolute; inset: 0; z-index: 0; background: #08090b var(--room-image, url('assets/used/lighting/bedroom-states-v14/bedroom-c0-l0-m0.png')) center / 100% 100% no-repeat; }
+.room-background-layer { position: absolute; inset: 0; background: url('assets/used/lighting/bedroom-states-v14/bedroom-c0-l0-m0.png') center / 100% 100% no-repeat; opacity: 0; transition: opacity 1.4s cubic-bezier(.45,0,.2,1); will-change: opacity; }
 .room-background-layer.is-visible { opacity: 1; }
 #bedroom-clothes { display:none; position:absolute; z-index:2; left:18%; top:72%; width:14.5%; aspect-ratio:1237 / 547; filter:drop-shadow(1px 2px 2px #0008); }
 #scene[data-room="bedroom"] #bedroom-clothes:not(.is-away) { display:block; }
-.clothes-state-layer { position:absolute; inset:0; background:url('assets/lighting/bedroom-clothes-v1/bedroom-c0-l0-m0.png') center / 100% 100% no-repeat; opacity:0; transition:opacity 1.4s cubic-bezier(.45,0,.2,1); will-change:opacity; }
+.clothes-state-layer { position:absolute; inset:0; background:url('assets/used/lighting/bedroom-clothes-v1/bedroom-c0-l0-m0.png') center / 100% 100% no-repeat; opacity:0; transition:opacity 1.4s cubic-bezier(.45,0,.2,1); will-change:opacity; }
 .clothes-state-layer.is-visible { opacity:1; }
 #living-toaster { display: none; position: absolute; z-index: 2; left: 44.378%; top: 29.331%; width: 4.904%; height: 8.714%; }
 #scene[data-room="living"] #living-toaster:not(.is-taken) { display: block; }
@@ -70,7 +70,7 @@ body.game-started #game { opacity: 1; }
 #scene[data-room="outside"] .player-frame { translate: 0 var(--step-lift, 0%); rotate: var(--stair-lean, 0deg); }
 /* The sheet's green screen is keyed out at build time (scripts/build-player-keyed-sheet.ps1),
    so no live filter has to re-render the character when its pose, size or room changes. */
-.player-frame { position: absolute; inset: 0; background: var(--player-sheet, url('assets/player-sheet-keyed-v1.png')) no-repeat; background-size: 500% 300%; }
+.player-frame { position: absolute; inset: 0; background: var(--player-sheet, url('assets/used/player-sheet-keyed-v1.png')) no-repeat; background-size: 500% 300%; }
 #messageBox { position: absolute; z-index: 150; left: 50%; bottom: 3%; transform: translateX(-50%); width: min(700px, 88%); max-height: calc(100% - 44px); overflow-y: auto; padding: 9px 12px; border: 2px solid #a89675; background: #0a0c10ed; text-align: center; font-size: 14px; line-height: 1.4; }
 .hidden { display: none; }
 [hidden] { display: none !important; }
@@ -111,7 +111,7 @@ body.game-started #game { opacity: 1; }
 #scene[data-room="living"].player-behind-tv #living-tv { z-index: 110; }
 /* A per-pixel cutout of the three painted cars (scripts/build-outside-car-foreground.py),
    so only car pixels, never road, kerb or grass, are drawn over the player. */
-.outside-cars-foreground { display: none; position: absolute; inset: 0; background: url('assets/outside-cars-foreground-v1.png') center / 100% 100% no-repeat; }
+.outside-cars-foreground { display: none; position: absolute; inset: 0; background: url('assets/used/outside-cars-foreground-v1.png') center / 100% 100% no-repeat; }
 #scene[data-room="outside"].player-behind-cars .outside-cars-foreground { display: block; }
 #interface { flex: 0 0 auto; display: grid; grid-template-columns: minmax(0, 1.5fr) auto auto; align-items: center; gap: 8px; padding: 6px 8px; max-height: 50%; overflow-y: auto; font-size: 12px; background: linear-gradient(#2d2b29, #1a1a1d); border-top: 2px solid #554f44; }
 #verbs { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)) 32px; gap: 4px; }
@@ -134,18 +134,18 @@ body.game-started #game { opacity: 1; }
 /* Street doors use painted clean plates within their exact leaf rectangles. */
 .street-door { display:none; position:absolute; z-index:3; overflow:hidden; perspective:600px; background-repeat:no-repeat; pointer-events:none; }
 #scene[data-room="street"] .street-door { display:block; }
-#alley-npc { display:none; position:absolute; left:39%; top:34%; z-index:59; width:20%; aspect-ratio:1374/1145; pointer-events:none; background-image:url(assets/alley-man-sprite-v6.png); background-size:200% 100%; background-position:0 0; background-repeat:no-repeat; filter:drop-shadow(2px 3px 1px #0007); }
+#alley-npc { display:none; position:absolute; left:39%; top:34%; z-index:59; width:20%; aspect-ratio:1374/1145; pointer-events:none; background-image:url(assets/used/alley-man-sprite-v6.png); background-size:200% 100%; background-position:0 0; background-repeat:no-repeat; filter:drop-shadow(2px 3px 1px #0007); }
 #scene[data-room="alley"] #alley-npc { display:block; animation:alley-npc-blink 6s step-end infinite; }
 @keyframes alley-npc-blink { 0%,91%,95%,100% { background-position:0 0; } 92%,94% { background-position:100% 0; } }
 @media (prefers-reduced-motion:reduce) { #scene[data-room="alley"] #alley-npc { animation:none; } }
 .street-leaf { position:absolute; inset:0; background-repeat:no-repeat; transition:transform .65s ease-in-out; backface-visibility:hidden; }
-#street-laundry { left:40.67%;top:49%;width:3.72%;height:15.3%;background-image:url('assets/street_doors_open.png');background-size:2688.1720430107525% 653.59477124183%;background-position:42.241379310344826% 57.85123966942149%; }
-#street-laundry .street-leaf { transform-origin:left center;background-image:url('assets/street_bg.png');background-size:2688.1720430107525% 653.59477124183%;background-position:42.241379310344826% 57.85123966942149%; }
+#street-laundry { left:40.67%;top:49%;width:3.72%;height:15.3%;background-image:url('assets/used/street_doors_open.png');background-size:2688.1720430107525% 653.59477124183%;background-position:42.241379310344826% 57.85123966942149%; }
+#street-laundry .street-leaf { transform-origin:left center;background-image:url('assets/used/street_bg.png');background-size:2688.1720430107525% 653.59477124183%;background-position:42.241379310344826% 57.85123966942149%; }
 #street-laundry.is-open .street-leaf { transform:rotateY(-86deg); }
-#street-bluestar { left:62.2009569378%;top:48.9904357067%;width:6.5789473684%;height:16.3655685441%;background-image:url('assets/bluestar-interior-v2.png');background-size:100% 100%;background-position:center; }
+#street-bluestar { left:62.2009569378%;top:48.9904357067%;width:6.5789473684%;height:16.3655685441%;background-image:url('assets/used/bluestar-interior-v2.png');background-size:100% 100%;background-position:center; }
 #street-bluestar .street-leaf { width:50%; }
-#street-bluestar .left { background-image:url('assets/bluestar-door-left-v2.png');background-size:100% 100%;background-position:center; }
-#street-bluestar .right { left:50%;background-image:url('assets/bluestar-door-right-v2.png');background-size:100% 100%;background-position:center; }
+#street-bluestar .left { background-image:url('assets/used/bluestar-door-left-v2.png');background-size:100% 100%;background-position:center; }
+#street-bluestar .right { left:50%;background-image:url('assets/used/bluestar-door-right-v2.png');background-size:100% 100%;background-position:center; }
 #street-bluestar.is-open .left { transform:translateX(-100%); }
 #street-bluestar.is-open .right { transform:translateX(100%); }
 @media (prefers-reduced-motion:reduce) { .street-leaf { transition-duration:.15s; } }
@@ -156,12 +156,12 @@ body.game-started #game { opacity: 1; }
 
 /* Intro art is a native-size bed-only composite over the untouched bedroom.
    The normal curtain layer stays above it; no filters/resampling are applied. */
-#wakeup-bed { position:absolute;inset:0;z-index:1;background:url('assets/bedroom-wakeup-v1.png') center/100% 100% no-repeat; }
+#wakeup-bed { position:absolute;inset:0;z-index:1;background:url('assets/used/bedroom-wakeup-v1.png') center/100% 100% no-repeat; }
 .wakeup-active #curtains { z-index:2; }
 .wakeup-active:not(.wakeup-standing) #player { visibility:hidden; }
 .wakeup-active #hotspots { pointer-events:none; }
 .wakeup-active #statusText, .wakeup-active #messageBox { visibility:hidden; }
-#alarm-closeup { position:absolute;z-index:160;left:50%;top:50%;width:49%;aspect-ratio:3/2;transform:translate(-50%,-50%);background:url('assets/alarm-closeup-v1.png') center/100% 100% no-repeat;border:2px solid #7d7464;box-shadow:0 8px 28px #000b;pointer-events:none;image-rendering:auto; }
+#alarm-closeup { position:absolute;z-index:160;left:50%;top:50%;width:49%;aspect-ratio:3/2;transform:translate(-50%,-50%);background:url('assets/used/alarm-closeup-v1.png') center/100% 100% no-repeat;border:2px solid #7d7464;box-shadow:0 8px 28px #000b;pointer-events:none;image-rendering:auto; }
 #alarm-digits { position:absolute;left:28%;top:40.5%;width:48%;height:18.2%; }
 #alarm-digits svg { display:block;width:100%;height:100%; }
 #wakeup-fade { position:absolute;inset:0;z-index:170;pointer-events:none;background:#08090b;opacity:0;transition:opacity .8s ease-in-out; }
@@ -206,10 +206,10 @@ body.game-paused #game *, body.game-paused #game *::before, body.game-paused #ga
 .inventory-card { display:grid; grid-template-columns:68px 1fr; gap:10px; min-height:88px; padding:9px; text-align:left; cursor:pointer; }
 .inventory-card:hover,.inventory-card:focus-visible { border-color:#d4b478; background:#332d24; outline:none; }
 .inventory-item-icon { width:68px; height:68px; border:1px solid #4e483e; background-color:#111; background-repeat:no-repeat; box-shadow:inset 0 0 10px #0008; }
-.inventory-item-icon.item-toaster { background-image:url('assets/lighting/living-master-v2.png'); background-size:2380.952% 1333.333%; background-position:47.286% 32.649%; }
-.inventory-item-icon.item-crumpled-clothes { background-image:url('assets/bedroom-crumpled-clothes-v1.png'); background-position:center; background-size:contain; }
-.inventory-item-icon.item-clean-clothes { background-image:url('assets/clean-clothes-icon-v1.png'); background-position:center; background-size:contain; }
-.inventory-item-icon.item-socks { background-image:url('assets/socks-icon-v1.png'); background-position:center; background-size:contain; }
+.inventory-item-icon.item-toaster { background-image:url('assets/used/lighting/living-master-v2.png'); background-size:2380.952% 1333.333%; background-position:47.286% 32.649%; }
+.inventory-item-icon.item-crumpled-clothes { background-image:url('assets/used/bedroom-crumpled-clothes-v1.png'); background-position:center; background-size:contain; }
+.inventory-item-icon.item-clean-clothes { background-image:url('assets/used/clean-clothes-icon-v1.png'); background-position:center; background-size:contain; }
+.inventory-item-icon.item-socks { background-image:url('assets/used/socks-icon-v1.png'); background-position:center; background-size:contain; }
 .inventory-item-copy strong { display:block; margin:2px 0 5px; color:#eee2cf; font-size:.95rem; }
 .inventory-item-copy span { color:#aaa193; font-size:.8rem; line-height:1.35; }
 .inventory-use-prompt { margin:0 0 10px; color:#d4b478; font-size:.85rem; }
@@ -220,4 +220,4 @@ body.game-paused #game *, body.game-paused #game *::before, body.game-paused #ga
 body.highlight-objects #scene .hotspot { opacity:1; border:2px dotted #f0c45c; background:#f0c45c18; box-shadow:inset 0 0 0 1px #15120bbb,0 0 5px #0008; }
 body.highlight-objects #scene .hotspot:hover,
 body.highlight-objects #scene .hotspot:focus-visible { opacity:1; border-color:#fff0a6; background:#f0c45c2b; outline:none; }
-.inventory-item-icon.item-keys { background-image:url('assets/lighting/living-master-v2.png'); background-size:2500% 2000%; background-position:80.938% 27.895%; }
+.inventory-item-icon.item-keys { background-image:url('assets/used/lighting/living-master-v2.png'); background-size:2500% 2000%; background-position:80.938% 27.895%; }

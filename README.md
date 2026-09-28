@@ -32,41 +32,43 @@ The title screen's New Game button begins with the character asleep under the co
 
 ## Files
 
+Graphics are split between `assets/used/` (only what the game loads) and `assets/unused/` (sources, keys, references and superseded versions), mirroring the same subpaths. New art starts in `unused/` and moves to `used/` when the game references it. `node scripts/sort-assets.cjs` re-sorts both folders from the game's references, and `tests/assets.test.cjs` fails if they drift. See `AGENTS.md`.
+
 - `game.js`: movement, door animations, room interactions, and save/load
 - `rooms.js`: living room/kitchen, bathroom and exterior objects and door connections
 - `outside.js`: artwork-aligned paths, stair treads, free parking-lot regions (including the slanted parking line beside the burgundy car) and obstacle-avoiding route selection
-- `assets/outside-cars-foreground-v1.png`: transparent cutout of the three parked cars, built by `scripts/build-outside-car-foreground.py` from `assets/outside_bg.png` using OpenCV GrabCut guided by the traced outlines in `scripts/outside-car-hints.json` (requires `pip install opencv-python-headless numpy`)
-- `scripts/build-living-tv-outline.py`: traces the living-room TV and cabinet outline (`livingTvSilhouette` in `rooms.js`) from `assets/lighting/living-master-v2.png` with OpenCV GrabCut, trimmed to the measured painted edges and rounded at the corners (requires `pip install opencv-python-headless numpy`)
-- `assets/outside_bg.png`: exterior background; generation prompt in `assets/outside-art-notes.md`
+- `assets/used/outside-cars-foreground-v1.png`: transparent cutout of the three parked cars, built by `scripts/build-outside-car-foreground.py` from `assets/used/outside_bg.png` using OpenCV GrabCut guided by the traced outlines in `scripts/outside-car-hints.json` (requires `pip install opencv-python-headless numpy`)
+- `scripts/build-living-tv-outline.py`: traces the living-room TV and cabinet outline (`livingTvSilhouette` in `rooms.js`) from `assets/used/lighting/living-master-v2.png` with OpenCV GrabCut, trimmed to the measured painted edges and rounded at the corners (requires `pip install opencv-python-headless numpy`)
+- `assets/used/outside_bg.png`: exterior background; generation prompt in `assets/outside-art-notes.md`
 - `tests/outside-browser.cjs`: optional headless Chrome smoke check; captures patio and stairs into `output/`
 - `style.css`: responsive layout, curtains, lighting, and sprite rendering
-- `assets/bedroom_bg.png`: room background
-- `assets/bedroom_bg_lamp_off.png`: matching bedroom background with the lamp and its baked wall glow switched off
-- `assets/bedroom_player.png`: green-screen master of the 5-by-3 sheet of idle and walking poses
-- `assets/player-sheet-keyed-v1.png`: the displayed transparent sheet, built from the master by `scripts/build-player-keyed-sheet.ps1` with the former runtime chroma-key rule, so the character needs no live filter
+- `assets/unused/bedroom_bg.png`: room background
+- `assets/unused/bedroom_bg_lamp_off.png`: matching bedroom background with the lamp and its baked wall glow switched off
+- `assets/unused/bedroom_player.png`: green-screen master of the 5-by-3 sheet of idle and walking poses
+- `assets/used/player-sheet-keyed-v1.png`: the displayed transparent sheet, built from the master by `scripts/build-player-keyed-sheet.ps1` with the former runtime chroma-key rule, so the character needs no live filter
 - `assets/bedroom-art-notes.md`: ImageGen prompts and source notes
 - `assets/apartment-art-notes.md`: new room artwork prompts and implementation notes
-- `assets/lighting/hard-states-v7/`: 28 versioned, native-resolution hard-rendered room backgrounds and a SHA-256 manifest; the versioned path prevents stale browser-cached lighting art
-- `assets/lighting/bedroom-source-states/`: four full-frame bedroom paintings for every bedside-lamp/main-light combination, with the ceiling fixture and left-of-door switch baked into the artwork
-- `assets/lighting/bedroom-master-v14.png`: authoritative high-resolution bedroom master with the final right-hinged door, left-side switch, lowered couch and ceiling fixture
-- `assets/lighting/bedroom-source-v14/`: four open-curtain electrical-light variants derived from the v14 master without geometry changes
-- `assets/lighting/bedroom-states-v14/`: eight native master-derived bedroom states, retaining the proven curtain layer and exact existing chair
-- `assets/lighting/bedroom-door-states/`: eight lighting-matched native 1672-by-941 clean plates used to sample the inner door with exactly the same full-canvas mapping as the correctly aligned living-room side; only the couch-concealed leaf pixels differ
-- `assets/lighting/living-master-v2.png`: the fresh, sharp, floor-lamp-free living-room master shared by every circuit state
-- `assets/lighting/living-light-fields-v2/`: three averaged low-frequency illumination fields for the main, bench and hallway circuits
-- `assets/lighting/living-source-states-v2/`: eight native full-frame source states produced from the same fixed-geometry master
-- `assets/lighting/toaster-clean-patches-v2/`: eight lighting-matched 82-by-82 counter patches with only the toaster removed
-- `assets/lighting/toaster-states-v2/`: 16 exact state-matched toaster-area crops used by the pick-up/put-back prop
-- `assets/lighting/bathroom-source-states/`: two full-frame bathroom paintings with the ceiling light genuinely off/on and one lower embedded switch
+- `assets/used/lighting/hard-states-v7/`: the 20 living-room and bathroom versioned, native-resolution hard-rendered room backgrounds and a SHA-256 manifest covering all 28 renders; the versioned path prevents stale browser-cached lighting art. The 8 superseded bedroom renders are in `assets/unused/lighting/hard-states-v7/`
+- `assets/unused/lighting/bedroom-source-states/`: four full-frame bedroom paintings for every bedside-lamp/main-light combination, with the ceiling fixture and left-of-door switch baked into the artwork
+- `assets/unused/lighting/bedroom-master-v14.png`: authoritative high-resolution bedroom master with the final right-hinged door, left-side switch, lowered couch and ceiling fixture
+- `assets/unused/lighting/bedroom-source-v14/`: four open-curtain electrical-light variants derived from the v14 master without geometry changes
+- `assets/used/lighting/bedroom-states-v14/`: eight native master-derived bedroom states, retaining the proven curtain layer and exact existing chair
+- `assets/unused/lighting/bedroom-door-states/`: eight lighting-matched native 1672-by-941 clean plates used to sample the inner door with exactly the same full-canvas mapping as the correctly aligned living-room side; only the couch-concealed leaf pixels differ
+- `assets/used/lighting/living-master-v2.png`: the fresh, sharp, floor-lamp-free living-room master shared by every circuit state
+- `assets/unused/lighting/living-light-fields-v2/`: three averaged low-frequency illumination fields for the main, bench and hallway circuits
+- `assets/unused/lighting/living-source-states-v2/`: eight native full-frame source states produced from the same fixed-geometry master
+- `assets/unused/lighting/toaster-clean-patches-v2/`: eight lighting-matched 82-by-82 counter patches with only the toaster removed
+- `assets/used/lighting/toaster-states-v2/`: 16 exact state-matched toaster-area crops used by the pick-up/put-back prop
+- `assets/unused/lighting/bathroom-source-states/`: two full-frame bathroom paintings with the ceiling light genuinely off/on and one lower embedded switch
 - `scripts/build-lighting-states.ps1`: deterministically rebuilds every lighting state from the protected masters and isolated source fixtures without resampling the room art
 - `scripts/build-bedroom-door-states.ps1`: deterministically rebuilds the complete isolated bedroom-door leaves from the native lighting states
 - `scripts/build-bedroom-v14-states.ps1`: composites the existing chair and derives both curtain-light levels from the four v14 master-matched electrical states
 - `scripts/build-living-v2-sources.ps1`: rebuilds all eight living circuit sources from the one fixed master and three illumination fields
 - `scripts/verify-toaster-pixels.ps1`: rebuilds and proves that every toaster-free background differs from its original render only inside the approved 82-by-82 counter rectangle
-- `assets/lighting/`: isolated source fixtures and generation notes in `assets/lighting-art-notes.md`
-- `assets/living_bg_hallway_fidelity.png`: preserved historical living-room reference; the active master is `assets/lighting/living-master-v2.png`
-- `assets/living_bg_hallway_glass_reversed.png`: preserved prior living-room master with only the bathroom door's two glass-pane interiors reversed
-- `assets/bathroom_bg_reversed_master.png`: exact reversed derivative of the original compact bathroom master, with a left-side door and the bath/shower on the right
+- `assets/unused/lighting/`: isolated source fixtures and generation notes in `assets/lighting-art-notes.md`
+- `assets/unused/living_bg_hallway_fidelity.png`: preserved historical living-room reference; the active master is `assets/used/lighting/living-master-v2.png`
+- `assets/unused/living_bg_hallway_glass_reversed.png`: preserved prior living-room master with only the bathroom door's two glass-pane interiors reversed
+- `assets/used/bathroom_bg_reversed_master.png`: exact reversed derivative of the original compact bathroom master, with a left-side door and the bath/shower on the right
 - `assets/background-masters.json`: hashes and dimensions for immutable approved background masters
 - `scripts/build-background-patch.ps1`: builds derived backgrounds from a master plus a localized patch without overwriting either input
 
@@ -79,7 +81,7 @@ For apartment circuit changes, edit or replace the matching bedroom or bathroom 
 Example:
 
 ```powershell
-.\scripts\build-background-patch.ps1 -Base .\assets\living_bg.png -Patch .\assets\living_bg_hallway.png -Output .\assets\living_bg_hallway_master.png
+.\scripts\build-background-patch.ps1 -Base .\assets\unused\living_bg.png -Patch .\assets\unused\living_bg_hallway.png -Output .\assets\unused\living_bg_hallway_master.png
 ```
 
 The curtain geometry is independent of the background art. The image contains unobstructed glass; the cloth panels cover it by default and compress toward the rail ends when opened.
@@ -91,8 +93,8 @@ Leave the apartment forecourt to the right along the footpath to reach the wider
 Click the Laundry glass door once to walk over, open it and step through. Bluestar’s centre-opening glass doors open on proximity and close when you leave; approaching never moves you inside automatically. Click its doorway to cross the threshold. Entry currently extends just inside each visible doorway, without separate interior rooms. Save/load preserves the street position and Laundry door.
 
 - `street.js`: routing, shop interactions and automatic-door sensor.
-- `assets/street_bg_counter_v2.png`: active street background with screened counter; the original `assets/street_bg.png` is preserved.
-- `assets/street_doors_open.png`: original opening plate, still used for Laundry. Bluestar uses a stationary `assets/bluestar-interior-v2.png` behind transparent `assets/bluestar-door-left-v2.png` and `assets/bluestar-door-right-v2.png` frame layers.
+- `assets/used/street_bg_counter_v2.png`: active street background with screened counter; the original `assets/used/street_bg.png` is preserved.
+- `assets/used/street_doors_open.png`: original opening plate, still used for Laundry. Bluestar uses a stationary `assets/used/bluestar-interior-v2.png` behind transparent `assets/used/bluestar-door-left-v2.png` and `assets/used/bluestar-door-right-v2.png` frame layers.
 - `assets/street-art-notes.md`: complete built-in image-generation prompts and layout notes.
 - `tests/street-browser.cjs`: real-browser travel, door, save/load, and alley checks, with screenshots in `output/`.
 - `tests/clicks-browser.cjs`: real mouse clicks on floor items, beside the burgundy car and on the alley man.
@@ -104,9 +106,9 @@ The Bluestar counter and tall coffee unit obscure the future cashier position fr
 Click the alley beside Bluestar to enter a separate view looking back toward the wet street. Walking is free-form across the concrete between the dumpster and the building line: clicks on open ground are kept exactly, other clicks stop at the nearest edge, and routes bend around the bins, shelter, door steps, bags and crate. The walkable area ends along a straight line from the dumpster's wheels across to the bushes. The player enters between the fence and the street opening. Their scale is calibrated so a 1.8-metre figure matches the wheelie bins, the seated man, and about 86% of the service door when standing at the foot of its steps, then grows further toward the foreground along a smooth curve. Click the visible street opening to return beside Bluestar. Arriving in either scene, the player faces the camera: into the alley, or out toward the road. A player standing at either opening turns around to face it before crossing. On the street, the alley is entered beside the front end of its wooden fence. A separately rendered, two-frame seated NPC sprite rests on the cardboard beside the wall and supports walk-up dialogue. Its body remains pixel-identical while the eyes briefly close.
 
 - `alley.js`: walkable outline and routing, reciprocal street entrance and object hit areas.
-- `assets/alley-bg-npc-v2.png`: active native 1672 x 941 alley background.
-- `assets/alley-bg-v1.png`: preserved original alley render.
-- `assets/alley-man-sprite-v6.png`: two-frame transparent seated NPC sheet; the body is identical between frames and only the eye pixels change for a brief blink.
+- `assets/used/alley-bg-npc-v2.png`: active native 1672 x 941 alley background.
+- `assets/unused/alley-bg-v1.png`: preserved original alley render.
+- `assets/used/alley-man-sprite-v6.png`: two-frame transparent seated NPC sheet; the body is identical between frames and only the eye pixels change for a brief blink.
 - `scripts/build-alley-man-v6.ps1`: removes edge-connected green plus enclosed and shadowed pockets of pure green-screen hue (the olive jacket has less green than red, so it is never touched), and builds the eye-only blink frame. `scripts/validate-alley-man-v6.ps1` rejects any remaining green-screen pixels or large holes.
 - `scripts/validate-alley-man-v6.ps1`: verifies eye-only frame changes and rejects internal transparent holes.
 - `scripts/build-alley-npc-background.ps1`: deterministic localized builder for the active background.

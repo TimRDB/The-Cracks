@@ -256,8 +256,8 @@ public static class LivingV2SourceBuilder {
 
 Add-Type -TypeDefinition $type -ReferencedAssemblies System.Drawing
 
-$lightingRoot = Join-Path $ProjectRoot 'assets\lighting'
-$masterPath = Join-Path $lightingRoot 'living-master-v2.png'
+$lightingRoot = Join-Path $ProjectRoot 'assets\unused\lighting'
+$masterPath = Join-Path $ProjectRoot 'assets\used\lighting\living-master-v2.png'
 $cleanPatchPath = Join-Path $lightingRoot 'living-master-v2-clean-patch.png'
 $fieldRoot = Join-Path $lightingRoot 'living-light-fields-v2'
 $sourceRoot = Join-Path $lightingRoot 'living-source-states-v2'

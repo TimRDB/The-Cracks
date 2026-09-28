@@ -38,4 +38,4 @@ Use case: lighting-weather. Create an otherwise identical lamp-off version of th
 
 ## Bedroom stool
 
-The four protected bedroom circuit paintings remain unchanged. `assets/lighting/bedroom-stool.png` is composited at build time immediately left of the couch, before the curtain-dependent room illumination is baked, so the same compact worn stool appears consistently in all eight bedroom lighting states without regenerating or shifting the existing room.
+The four protected bedroom circuit paintings remain unchanged. `assets/unused/lighting/bedroom-stool.png` is composited at build time immediately left of the couch, before the curtain-dependent room illumination is baked, so the same compact worn stool appears consistently in all eight bedroom lighting states without regenerating or shifting the existing room.

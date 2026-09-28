@@ -123,9 +123,9 @@ function startNewGame() {
   if (titleScreen.classList.contains('is-leaving')) return;
   prepareWakeupAudio();
   const ready = Promise.all([
-    preloadRoomImage('assets/bedroom-wakeup-v1.png'),
-    preloadRoomImage('assets/alarm-closeup-v1.png'),
-    preloadRoomImage('assets/lighting/bedroom-states-v14/bedroom-c0-l0-m0.png')
+    preloadRoomImage('assets/used/bedroom-wakeup-v1.png'),
+    preloadRoomImage('assets/used/alarm-closeup-v1.png'),
+    preloadRoomImage('assets/used/lighting/bedroom-states-v14/bedroom-c0-l0-m0.png')
   ]);
   titleScreen.classList.add('is-leaving');
   titleScreen.setAttribute('aria-busy', 'true');
@@ -196,7 +196,7 @@ const bedroomObjects = {
   curtains: { name: 'bedroom curtains', area: [18.8, 8, 23.8, 33], walk: [32, 68], description: 'Heavy curtains cover the bedroom window and keep the grey morning light outside.', curtainRoom: 'bedroom' },
   mainLightSwitch: { name: 'bedroom light switch', area: [69.6, 28.5, 2.5, 7], walk: [68,69], description: 'A wall switch to the left of the bedroom door controls the overhead light.', lightCircuit: 'bedroomMain' }
 };
-apartmentRooms.bedroom = { name: 'Bedroom', image: 'assets/bedroom_bg_reversed_door.png', imageOff: 'assets/bedroom_bg_lamp_off_reversed_door.png', floor: [10,68,66,94], objects: bedroomObjects };
+apartmentRooms.bedroom = { name: 'Bedroom', image: 'assets/used/bedroom_bg_reversed_door.png', imageOff: 'assets/used/bedroom_bg_lamp_off_reversed_door.png', floor: [10,68,66,94], objects: bedroomObjects };
 let roomObjects = bedroomObjects;
 let transition = null;
 const channels = ['Weather: another grey morning', 'Cooking: something better than toast', 'Films: an old black-and-white favourite'];
@@ -455,9 +455,9 @@ function renderInventory() {
   });
 }
 function playerSheetForState() {
-  if (gameState.outfit === 'crumpled') return gameState.socksOn ? 'assets/player-sheet-clothes-socks-v12.png' : 'assets/player-sheet-clothes-barefoot-v9.png';
-  if (gameState.outfit === 'clean') return gameState.socksOn ? 'assets/player-sheet-clean-socks-v14.png' : 'assets/player-sheet-clean-barefoot-v11.png';
-  return gameState.socksOn ? 'assets/player-sheet-underwear-socks-v6.png' : 'assets/player-sheet-keyed-v1.png';
+  if (gameState.outfit === 'crumpled') return gameState.socksOn ? 'assets/used/player-sheet-clothes-socks-v17.png' : 'assets/used/player-sheet-clothes-barefoot-v14.png';
+  if (gameState.outfit === 'clean') return gameState.socksOn ? 'assets/used/player-sheet-clean-socks-v19.png' : 'assets/used/player-sheet-clean-barefoot-v16.png';
+  return gameState.socksOn ? 'assets/used/player-sheet-underwear-socks-v6.png' : 'assets/used/player-sheet-keyed-v1.png';
 }
 
 let wardrobeChanging = false;
@@ -691,20 +691,20 @@ function curtainLightLevel(roomId = gameState.currentRoom) {
 
 function roomImageForState(roomId = gameState.currentRoom, state = gameState) {
   const bit = value => value ? 1 : 0;
-  if (roomId === 'bedroom') return `assets/lighting/bedroom-states-v14/bedroom-c${bit(state.curtainsOpen)}-l${bit(state.lampOn)}-m${bit(state.bedroomMainLightOn)}.png`;
-  if (roomId === 'living') return `assets/lighting/hard-states-v7/living-c${bit(state.livingCurtainsOpen)}-m${bit(state.livingMainLightOn)}-b${bit(state.kitchenLightsOn)}-h${bit(state.hallwayLightOn)}.png`;
-  if (roomId === 'bathroom') return `assets/lighting/hard-states-v7/bathroom-c${bit(state.bathroomCurtainsOpen)}-m${bit(state.bathroomMainLightOn)}.png`;
+  if (roomId === 'bedroom') return `assets/used/lighting/bedroom-states-v14/bedroom-c${bit(state.curtainsOpen)}-l${bit(state.lampOn)}-m${bit(state.bedroomMainLightOn)}.png`;
+  if (roomId === 'living') return `assets/used/lighting/hard-states-v7/living-c${bit(state.livingCurtainsOpen)}-m${bit(state.livingMainLightOn)}-b${bit(state.kitchenLightsOn)}-h${bit(state.hallwayLightOn)}.png`;
+  if (roomId === 'bathroom') return `assets/used/lighting/hard-states-v7/bathroom-c${bit(state.bathroomCurtainsOpen)}-m${bit(state.bathroomMainLightOn)}.png`;
   return apartmentRooms[roomId].image;
 }
 
 function toasterImageForState(state = gameState) {
   const bit = value => value ? 1 : 0;
-  return `assets/lighting/toaster-states-v2/living-c${bit(state.livingCurtainsOpen)}-m${bit(state.livingMainLightOn)}-b${bit(state.kitchenLightsOn)}-h${bit(state.hallwayLightOn)}.png`;
+  return `assets/used/lighting/toaster-states-v2/living-c${bit(state.livingCurtainsOpen)}-m${bit(state.livingMainLightOn)}-b${bit(state.kitchenLightsOn)}-h${bit(state.hallwayLightOn)}.png`;
 }
 
 function bedroomClothesImageForState(state = gameState) {
   const bit = value => value ? 1 : 0;
-  return `assets/lighting/bedroom-clothes-v1/bedroom-c${bit(state.curtainsOpen)}-l${bit(state.lampOn)}-m${bit(state.bedroomMainLightOn)}.png`;
+  return `assets/used/lighting/bedroom-clothes-v1/bedroom-c${bit(state.curtainsOpen)}-l${bit(state.lampOn)}-m${bit(state.bedroomMainLightOn)}.png`;
 }
 
 function bedroomDoorImageForState(state = gameState) {
@@ -742,7 +742,7 @@ function preloadRoomImage(path) {
 }
 
 let activeRoomBackgroundLayer = 0;
-let displayedRoomImage = 'assets/lighting/bedroom-states-v14/bedroom-c0-l0-m0.png';
+let displayedRoomImage = 'assets/used/lighting/bedroom-states-v14/bedroom-c0-l0-m0.png';
 let activeClothesStateLayer = 0;
 let displayedClothesImage = '';
 let activeToasterStateLayer = 0;
@@ -896,9 +896,9 @@ function applyRoomImage(path, immediate = false, fastLight = false) {
 // Images a room draws besides its lighting background. They are decoded with
 // the background, so no part of a room can appear before the rest of it.
 const roomOverlayImages = Object.freeze({
-  outside: Object.freeze(['assets/outside-cars-foreground-v1.png']),
-  street: Object.freeze(['assets/street_bg.png', 'assets/street_doors_open.png', 'assets/bluestar-interior-v2.png', 'assets/bluestar-door-left-v2.png', 'assets/bluestar-door-right-v2.png']),
-  alley: Object.freeze(['assets/alley-man-sprite-v6.png'])
+  outside: Object.freeze(['assets/used/outside-cars-foreground-v1.png']),
+  street: Object.freeze(['assets/used/street_bg.png', 'assets/used/street_doors_open.png', 'assets/used/bluestar-interior-v2.png', 'assets/used/bluestar-door-left-v2.png', 'assets/used/bluestar-door-right-v2.png']),
+  alley: Object.freeze(['assets/used/alley-man-sprite-v6.png'])
 });
 // Rooms reachable in one step, warmed in advance so exits switch instantly.
 const roomNeighbours = Object.freeze({

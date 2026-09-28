@@ -9,7 +9,7 @@ const alleyWalkArea = Object.freeze([
 ].map(([x, y]) => Object.freeze({ x, y })));
 
 apartmentRooms.alley = {
-  name: 'Bluestar alley', image: 'assets/alley-bg-npc-v2.png', floor: [19.5, 72.5, 47.5, 90],
+  name: 'Bluestar alley', image: 'assets/used/alley-bg-npc-v2.png', floor: [19.5, 72.5, 47.5, 90],
   objects: {
     street: {
       ...item('street beside Bluestar', [20.5, 29, 10.5, 20], [28.5, 48], 'The wet street is visible at the mouth of the alley.'),

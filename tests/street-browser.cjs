@@ -91,7 +91,7 @@ child.stderr.on('data', chunk => { log += chunk; });
     assert.equal(await evaluate('movement.facing'),'down');
     await evaluate("messageBox.classList.add('hidden')");
     await capture('street-alley-preview.png');
-    const size=await evaluate("(async()=>{const im=new Image();im.src='assets/street_doors_open.png';await im.decode();return [im.naturalWidth,im.naturalHeight]})()");
+    const size=await evaluate("(async()=>{const im=new Image();im.src='assets/used/street_doors_open.png';await im.decode();return [im.naturalWidth,im.naturalHeight]})()");
     assert.deepEqual(size,[1672,941]);
     assert.deepEqual(errors,[]);
     console.log('Street browser checks passed: travel, proximity, manual entry, laundry, save/load and alley. Screenshots in output/.');

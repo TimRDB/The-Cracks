@@ -37,9 +37,9 @@ public static class RenderedSockComposite {
     }
   }
   public static string Build(string assets){
-    return BuildOne(assets+"/player-socks-underwear-render-v2.png",assets+"/player-sheet-keyed-v1.png",assets+"/player-sheet-underwear-socks-v6.png")+Environment.NewLine+
-      BuildOne(assets+"/player-socks-crumpled-render-v2.png",assets+"/player-sheet-clothes-barefoot-v8.png",assets+"/player-sheet-clothes-socks-v11.png")+Environment.NewLine+
-      BuildOne(assets+"/player-socks-clean-render-v2.png",assets+"/player-sheet-clean-barefoot-v10.png",assets+"/player-sheet-clean-socks-v13.png");
+    return BuildOne(assets+"/unused/player-socks-underwear-render-v2.png",assets+"/used/player-sheet-keyed-v1.png",assets+"/used/player-sheet-underwear-socks-v6.png")+Environment.NewLine+
+      BuildOne(assets+"/unused/player-socks-crumpled-render-v2.png",assets+"/unused/player-sheet-clothes-barefoot-v8.png",assets+"/unused/player-sheet-clothes-socks-v11.png")+Environment.NewLine+
+      BuildOne(assets+"/unused/player-socks-clean-render-v2.png",assets+"/unused/player-sheet-clean-barefoot-v10.png",assets+"/unused/player-sheet-clean-socks-v13.png");
   }
 }
 "@

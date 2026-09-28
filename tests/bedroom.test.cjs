@@ -131,7 +131,7 @@ test('living room represents all 16 curtain and three-circuit combinations', () 
   for (let bits = 0; bits < 16; bits++) {
     g.run(`Object.assign(gameState,{livingCurtainsOpen:${!!(bits&1)},livingMainLightOn:${!!(bits&2)},kitchenLightsOn:${!!(bits&4)},hallwayLightOn:${!!(bits&8)}});syncRoom()`);
     images.add(g.get('scene').style['--room-image']);
-    assert.match(g.get('scene').style['--room-image'], /assets\/lighting\/hard-states-v7\/living-c[01]-m[01]-b[01]-h[01]\.png/);
+    assert.match(g.get('scene').style['--room-image'], /assets\/used\/lighting\/hard-states-v7\/living-c[01]-m[01]-b[01]-h[01]\.png/);
   }
   assert.equal(images.size, 16);
   assert.doesNotMatch(markup, /lighting-effects|light-effect/);
@@ -165,11 +165,13 @@ test('lighting state is saved, loaded and reset with backwards-compatible defaul
 });
 
 test('all 28 pre-rendered lighting states are native-size PNGs with verified hashes', () => {
-  const directory = path.join(__dirname, '..', 'assets', 'lighting', 'hard-states-v7');
+  // The game loads the living and bathroom states; the superseded bedroom states live in assets/unused.
+  const directory = path.join(__dirname, '..', 'assets', 'used', 'lighting', 'hard-states-v7');
+  const unusedDirectory = path.join(__dirname, '..', 'assets', 'unused', 'lighting', 'hard-states-v7');
   const manifest = JSON.parse(fs.readFileSync(path.join(directory, 'manifest.json'), 'utf8'));
   assert.equal(Object.keys(manifest.files).length, 28);
   for (const [file, expectedHash] of Object.entries(manifest.files)) {
-    const bytes = fs.readFileSync(path.join(directory, file));
+    const bytes = fs.readFileSync(path.join(file.startsWith('bedroom-') ? unusedDirectory : directory, file));
     assert.equal(bytes.subarray(1, 4).toString('ascii'), 'PNG');
     assert.equal(bytes.readUInt32BE(16), 1672);
     assert.equal(bytes.readUInt32BE(20), 941);
@@ -179,8 +181,8 @@ test('all 28 pre-rendered lighting states are native-size PNGs with verified has
 });
 
 test('living circuits share one fixed high-detail master and deterministic lighting fields', () => {
-  const lightingDirectory = path.join(__dirname, '..', 'assets', 'lighting');
-  const sourceDirectory = path.join(__dirname, '..', 'assets', 'lighting', 'living-source-states-v2');
+  const lightingDirectory = path.join(__dirname, '..', 'assets', 'used', 'lighting');
+  const sourceDirectory = path.join(__dirname, '..', 'assets', 'unused', 'lighting', 'living-source-states-v2');
   const sourceFiles = fs.readdirSync(sourceDirectory).filter(file => file.endsWith('.png')).sort();
   assert.deepEqual(sourceFiles, ['living-m0-b0-h0.png','living-m0-b0-h1.png','living-m0-b1-h0.png','living-m0-b1-h1.png','living-m1-b0-h0.png','living-m1-b0-h1.png','living-m1-b1-h0.png','living-m1-b1-h1.png']);
   for (const file of sourceFiles) {
@@ -249,7 +251,7 @@ test('all switches and the bedside lamp walk into reach before toggling', () => 
 });
 
 test('bedroom lamp and main circuits use four complete paintings with no fixture or switch overlays', () => {
-  const sourceDirectory = path.join(__dirname, '..', 'assets', 'lighting', 'bedroom-source-states');
+  const sourceDirectory = path.join(__dirname, '..', 'assets', 'unused', 'lighting', 'bedroom-source-states');
   const sourceFiles = fs.readdirSync(sourceDirectory).filter(file => file.endsWith('.png')).sort();
   assert.deepEqual(sourceFiles, ['bedroom-l0-m0.png', 'bedroom-l0-m1.png', 'bedroom-l1-m0.png', 'bedroom-l1-m1.png']);
   for (const file of sourceFiles) {
@@ -266,7 +268,7 @@ test('bedroom lamp and main circuits use four complete paintings with no fixture
 });
 
 test('bathroom light uses two complete paintings with no circular mask or switch overlay', () => {
-  const sourceDirectory = path.join(__dirname, '..', 'assets', 'lighting', 'bathroom-source-states');
+  const sourceDirectory = path.join(__dirname, '..', 'assets', 'unused', 'lighting', 'bathroom-source-states');
   const sourceFiles = fs.readdirSync(sourceDirectory).filter(file => file.endsWith('.png')).sort();
   assert.deepEqual(sourceFiles, ['bathroom-m0.png', 'bathroom-m1.png']);
   for (const file of sourceFiles) {
@@ -295,7 +297,7 @@ test('room backgrounds remain visible until the next state is decoded', () => {
 });
 
 test('the toaster is a persistent state-matched prop over clean living-room plates', () => {
-  const patchDirectory = path.join(__dirname, '..', 'assets', 'lighting', 'toaster-clean-patches-v2');
+  const patchDirectory = path.join(__dirname, '..', 'assets', 'unused', 'lighting', 'toaster-clean-patches-v2');
   const patchFiles = fs.readdirSync(patchDirectory).filter(file => file.endsWith('.png')).sort();
   assert.deepEqual(patchFiles, ['living-m0-b0-h0.png','living-m0-b0-h1.png','living-m0-b1-h0.png','living-m0-b1-h1.png','living-m1-b0-h0.png','living-m1-b0-h1.png','living-m1-b1-h0.png','living-m1-b1-h1.png']);
   for (const file of patchFiles) {
@@ -304,7 +306,7 @@ test('the toaster is a persistent state-matched prop over clean living-room plat
     assert.equal(bytes.readUInt32BE(20), 82);
   }
 
-  const toasterDirectory = path.join(__dirname, '..', 'assets', 'lighting', 'toaster-states-v2');
+  const toasterDirectory = path.join(__dirname, '..', 'assets', 'used', 'lighting', 'toaster-states-v2');
   const toasterFiles = fs.readdirSync(toasterDirectory).filter(file => file.endsWith('.png')).sort();
   assert.equal(toasterFiles.length, 16);
   for (const file of toasterFiles) {
@@ -549,8 +551,8 @@ test('bedroom travel keeps the physical door inside the bedroom in both directio
 });
 
 test('the regenerated right-hinged bedroom door animates clear of the shortened couch', () => {
-  const stateDirectory = path.join(__dirname, '..', 'assets', 'lighting', 'bedroom-states-v14');
-  const sourceDirectory = path.join(__dirname, '..', 'assets', 'lighting', 'bedroom-source-v14');
+  const stateDirectory = path.join(__dirname, '..', 'assets', 'used', 'lighting', 'bedroom-states-v14');
+  const sourceDirectory = path.join(__dirname, '..', 'assets', 'unused', 'lighting', 'bedroom-source-v14');
   const stateFiles = fs.readdirSync(stateDirectory).filter(file => file.endsWith('.png')).sort();
   const sourceFiles = fs.readdirSync(sourceDirectory).filter(file => file.endsWith('.png')).sort();
   assert.equal(stateFiles.length, 8);
@@ -561,7 +563,7 @@ test('the regenerated right-hinged bedroom door animates clear of the shortened 
     assert.equal(bytes.readUInt32BE(20), 941);
   }
   assert.match(source, /if \(bedroom\) preloadRoomImage\(bedroomDoorImageForState\(\)\)/);
-  assert.match(source, /assets\/lighting\/bedroom-states-v14\/bedroom-c/);
+  assert.match(source, /assets\/used\/lighting\/bedroom-states-v14\/bedroom-c/);
   const builder = fs.readFileSync(path.join(__dirname, '..', 'scripts', 'build-bedroom-v14-states.ps1'), 'utf8');
   assert.match(builder, /bedroom-source-v14/);
   assert.match(builder, /bedroom-stool\.png/);
@@ -718,7 +720,7 @@ test('clear parking-lot ground supports free movement without crossing parked ca
 });
 
 test('cars occlude the player through a per-pixel cutout, switching at their ground line', () => {
-  const cutout = fs.readFileSync(path.join(__dirname, '..', 'assets', 'outside-cars-foreground-v1.png'));
+  const cutout = fs.readFileSync(path.join(__dirname, '..', 'assets', 'used', 'outside-cars-foreground-v1.png'));
   assert.equal(cutout.readUInt32BE(16), 1672);
   assert.equal(cutout.readUInt32BE(20), 941);
   assert.equal(cutout[25], 6, 'RGBA with transparency outside the cars');
@@ -857,7 +859,7 @@ test('street routes stay on the pavement and alley instead of cutting across bin
 });
 
 test('the player sheet is pre-keyed so no live filter re-renders the character', () => {
-  const sheet = fs.readFileSync(path.join(__dirname, '..', 'assets', 'player-sheet-keyed-v1.png'));
+  const sheet = fs.readFileSync(path.join(__dirname, '..', 'assets', 'used', 'player-sheet-keyed-v1.png'));
   assert.equal(sheet.readUInt32BE(16), 1619);
   assert.equal(sheet.readUInt32BE(20), 971);
   assert.equal(sheet[25], 6, 'RGBA with transparency');
@@ -907,8 +909,8 @@ test('loading a save during the turn at an opening cancels the pending exit', ()
 test('room switches wait for every destination asset, then change in one step', () => {
   const g = game();
   // Each destination lists its overlays with its background.
-  assert.equal(g.run("JSON.stringify(roomAssetPaths('outside'))"), JSON.stringify(['assets/outside_bg.png', 'assets/outside-cars-foreground-v1.png']));
-  assert.ok(g.run("roomAssetPaths('alley').includes('assets/alley-man-sprite-v6.png')"));
+  assert.equal(g.run("JSON.stringify(roomAssetPaths('outside'))"), JSON.stringify(['assets/used/outside_bg.png', 'assets/used/outside-cars-foreground-v1.png']));
+  assert.ok(g.run("roomAssetPaths('alley').includes('assets/used/alley-man-sprite-v6.png')"));
   // Simulate a browser where nothing is decoded yet.
   g.run("globalThis.Image=function(){};decodedRoomImages.clear();showRoom('alley');Object.assign(movement,{x:28.5,y:48,facing:'up'});renderPlayer()");
   g.run("travelAlley('street')");
@@ -925,7 +927,7 @@ test('room switches wait for every destination asset, then change in one step', 
 });
 
 test('Bluestar alley uses a stable two-frame transparent blink sprite', () => {
-  const npc = fs.readFileSync(path.join(__dirname, '..', 'assets', 'alley-man-sprite-v6.png'));
+  const npc = fs.readFileSync(path.join(__dirname, '..', 'assets', 'used', 'alley-man-sprite-v6.png'));
   assert.equal(npc.readUInt32BE(16), 2748);
   assert.equal(npc.readUInt32BE(20), 1145);
   assert.match(markup, /id="alley-npc"/);
@@ -1236,7 +1238,7 @@ test('the developer menu includes an empty future character-stats screen', () =>
 
 
 test('crumpled clothes remain transparent, lighting-matched, portable and persistent', () => {
-  const assetRoot = path.join(__dirname, '..', 'assets');
+  const assetRoot = path.join(__dirname, '..', 'assets', 'used');
   const base = fs.readFileSync(path.join(assetRoot, 'bedroom-crumpled-clothes-v1.png'));
   assert.equal(base.readUInt32BE(16), 1237);
   assert.equal(base.readUInt32BE(20), 547);
@@ -1261,8 +1263,8 @@ test('crumpled clothes remain transparent, lighting-matched, portable and persis
 
 
 test('wardrobe actions switch all six player sheets and keep worn items in inventory', () => {
-  const assets = path.join(__dirname, '..', 'assets');
-  for (const file of ['player-sheet-keyed-v1.png','player-sheet-underwear-socks-v6.png','player-sheet-clothes-barefoot-v9.png','player-sheet-clothes-socks-v12.png','player-sheet-clean-barefoot-v11.png','player-sheet-clean-socks-v14.png']) {
+  const assets = path.join(__dirname, '..', 'assets', 'used');
+  for (const file of ['player-sheet-keyed-v1.png','player-sheet-underwear-socks-v6.png','player-sheet-clothes-barefoot-v14.png','player-sheet-clothes-socks-v17.png','player-sheet-clean-barefoot-v16.png','player-sheet-clean-socks-v19.png']) {
     const png = fs.readFileSync(path.join(assets, file));
     assert.equal(png.readUInt32BE(16), 1619, file + ' width');
     assert.equal(png.readUInt32BE(20), 971, file + ' height');
@@ -1273,7 +1275,7 @@ test('wardrobe actions switch all six player sheets and keep worn items in inven
   assert.equal(g.run('gameState.outfit'), 'crumpled');
   assert.equal(g.run("gameState.itemPlacements.crumpledClothes.kind"), 'worn');
   assert.equal(g.run("gameState.inventory.includes('crumpledClothes')"), true);
-  assert.match(g.get('player').querySelector().style['--player-sheet'], /player-sheet-clothes-barefoot-v9/);
+  assert.match(g.get('player').querySelector().style['--player-sheet'], /player-sheet-clothes-barefoot-v14/);
   g.run('renderInventory()');
   assert.equal(g.get('inventoryItems').children[0].children[1].children[1].textContent, 'You are wearing these');
   g.advance(300);
@@ -1298,13 +1300,13 @@ test('wardrobe actions switch all six player sheets and keep worn items in inven
   g.run("setVerb('use');handleTarget('drawers')"); g.finish();
 
   g.run("wearCrumpledClothes()"); g.advance(250);
-  assert.match(g.get('player').querySelector().style['--player-sheet'], /player-sheet-clothes-socks-v12/);
+  assert.match(g.get('player').querySelector().style['--player-sheet'], /player-sheet-clothes-socks-v17/);
   g.advance(300);
   g.run("interactionSelection.itemId='socks';setVerb('place',{keepItem:true});handleTarget('drawers')"); g.finish(); g.advance(250);
   assert.equal(g.run('gameState.socksOn'), false);
   assert.equal(g.run("gameState.itemPlacements.socks.kind"), 'stored');
   assert.equal(g.run("gameState.inventory.includes('socks')"), false);
-  assert.match(g.get('player').querySelector().style['--player-sheet'], /player-sheet-clothes-barefoot-v9/);
+  assert.match(g.get('player').querySelector().style['--player-sheet'], /player-sheet-clothes-barefoot-v14/);
 });
 
 
@@ -1318,7 +1320,7 @@ test('worn clothes and socks persist through save/load and reset to the original
   assert.equal(g.run("gameState.itemPlacements.crumpledClothes.kind"), 'worn');
   assert.equal(g.run("gameState.itemPlacements.socks.kind"), 'worn');
   assert.equal(g.run("gameState.inventory.includes('crumpledClothes') && gameState.inventory.includes('socks')"), true);
-  assert.match(g.get('player').querySelector().style['--player-sheet'], /player-sheet-clothes-socks-v12/);
+  assert.match(g.get('player').querySelector().style['--player-sheet'], /player-sheet-clothes-socks-v17/);
   g.run('resetGame()');
   assert.equal(g.run('gameState.outfit'), 'underwear');
   assert.equal(g.run('gameState.socksOn'), false);
@@ -1372,7 +1374,7 @@ test('the Wardrobe toggles clean clothes and swaps clean and crumpled outfits sa
   assert.equal(g.run('gameState.outfit'), 'clean');
   assert.equal(g.run("gameState.itemPlacements.cleanClothes.kind"), 'worn');
   assert.equal(g.run("gameState.inventory.includes('cleanClothes')"), true);
-  assert.match(g.get('player').querySelector().style['--player-sheet'], /player-sheet-clean-barefoot-v11/);
+  assert.match(g.get('player').querySelector().style['--player-sheet'], /player-sheet-clean-barefoot-v16/);
   g.advance(300);
   g.run('wearCleanClothes()');
   assert.equal(g.get('messageBox').textContent, "You're already wearing clean clothes.");
@@ -1403,7 +1405,7 @@ test('the Wardrobe toggles clean clothes and swaps clean and crumpled outfits sa
 
   g.run("setVerb('use');handleTarget('drawers')"); g.finish();
   g.run("setVerb('use');handleTarget('cupboard')"); g.finish(); g.advance(240);
-  assert.match(g.get('player').querySelector().style['--player-sheet'], /player-sheet-clean-socks-v14/);
+  assert.match(g.get('player').querySelector().style['--player-sheet'], /player-sheet-clean-socks-v19/);
 });
 test('clean clothes and socks survive save, load, and reset', () => {
   const g = game();
@@ -1414,7 +1416,7 @@ test('clean clothes and socks survive save, load, and reset', () => {
   assert.equal(g.run("gameState.itemPlacements.cleanClothes.kind"), 'worn');
   assert.equal(g.run("gameState.itemPlacements.socks.kind"), 'worn');
   assert.equal(g.run("gameState.inventory.includes('cleanClothes') && gameState.inventory.includes('socks')"), true);
-  assert.match(g.get('player').querySelector().style['--player-sheet'], /player-sheet-clean-socks-v14/);
+  assert.match(g.get('player').querySelector().style['--player-sheet'], /player-sheet-clean-socks-v19/);
   g.run('resetGame()');
   assert.equal(g.run('gameState.outfit'), 'underwear');
   assert.equal(g.run('gameState.socksOn'), false);

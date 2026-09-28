@@ -1,5 +1,5 @@
-"""Builds assets/outside-cars-foreground-v1.png: the three parked cars cut out
-of assets/outside_bg.png with an exact per-pixel alpha, for occluding the
+"""Builds assets/used/outside-cars-foreground-v1.png: the three parked cars cut out
+of assets/used/outside_bg.png with an exact per-pixel alpha, for occluding the
 player when they walk behind the cars.
 
 Each car is segmented with OpenCV GrabCut, guided by the hints in
@@ -20,9 +20,9 @@ import cv2
 import numpy as np
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
-SOURCE = os.path.join(ROOT, "assets", "outside_bg.png")
+SOURCE = os.path.join(ROOT, "assets", "used", "outside_bg.png")
 HINTS = os.path.join(ROOT, "scripts", "outside-car-hints.json")
-OUTPUT = os.path.join(ROOT, "assets", "outside-cars-foreground-v1.png")
+OUTPUT = os.path.join(ROOT, "assets", "used", "outside-cars-foreground-v1.png")
 
 
 def car_mask(image, car):

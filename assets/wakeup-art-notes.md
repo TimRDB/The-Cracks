@@ -2,9 +2,9 @@
 
 Built-in imagegen created two new source assets. The approved bedroom backgrounds and sprite sheet were not overwritten.
 
-- `assets/wakeup-sleeper-source-v1.png`: high-resolution localized bed edit, matching the existing main character.
-- `assets/bedroom-wakeup-v1.png`: native 1672 x 941 sleeping composite used only during the intro.
-- `assets/alarm-closeup-v1.png`: independent high-resolution clock close-up with a blank screen. Sharp SVG seven-segment digits are rendered by the game, so changing the time requires no image processing.
+- `assets/unused/wakeup-sleeper-source-v1.png`: high-resolution localized bed edit, matching the existing main character.
+- `assets/used/bedroom-wakeup-v1.png`: native 1672 x 941 sleeping composite used only during the intro.
+- `assets/used/alarm-closeup-v1.png`: independent high-resolution clock close-up with a blank screen. Sharp SVG seven-segment digits are rendered by the game, so changing the time requires no image processing.
 
 `wakeup.js` exposes `wakeupConfig.time` (currently `6:00`) and all timing values at the top. New Game preloads and decodes the images before revealing the sleeping frame. The sequence shows the bed, rings a synthesized three-pulse alarm while the close-up zooms out from the bedside position, dismisses the insert, fades fully to black, swaps back to the untouched normal bedroom and standing character, then fades in. Skip intro or Escape cancels the sequence and audio. Gameplay controls are restored after the reveal; intro state is never written into saves.
 
@@ -12,7 +12,7 @@ Built-in imagegen created two new source assets. The approved bedroom background
 
 `scripts/build-wakeup-bed.ps1` resamples only the new high-resolution bed source into its 630 x 220 working crop. It composites within a polygon confined to pillow/bedding, with a three-pixel inward matte edge. It never resamples, sharpens, blurs or filters the full bedroom. The final image has exactly 49,978 changed bed pixels and 1,523,374 pixels identical to the current starting-bedroom master. Everything outside the matte is checked pixel-for-pixel, including walls, furniture, bed frame, table, lamp and alarm clock. All source master files remain intact. During normal play the original bedroom image is shown directly, with no intro layer.
 
-Base: `assets/lighting/bedroom-states-v14/bedroom-c0-l0-m0.png`. SHA-256 at creation: `CB527CB7DBA2129EAF7D4C69AF93FEDD7682D27DAD6814B3BAE417BA7F4CF355`.
+Base: `assets/used/lighting/bedroom-states-v14/bedroom-c0-l0-m0.png`. SHA-256 at creation: `CB527CB7DBA2129EAF7D4C69AF93FEDD7682D27DAD6814B3BAE417BA7F4CF355`.
 
 ## Rebuild and verify
 

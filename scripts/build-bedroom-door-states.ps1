@@ -5,10 +5,10 @@ param(
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.Drawing
 
-$sourceRoot = Join-Path $ProjectRoot 'assets\lighting\bedroom-states-v11'
-$correctedRoot = Join-Path $ProjectRoot 'assets\lighting\bedroom-states-v12'
-$outputRoot = Join-Path $ProjectRoot 'assets\lighting\bedroom-door-states'
-$referencePath = Join-Path $ProjectRoot 'assets\lighting\bedroom-door-fresh-reference-v12.png'
+$sourceRoot = Join-Path $ProjectRoot 'assets\unused\lighting\bedroom-states-v11'
+$correctedRoot = Join-Path $ProjectRoot 'assets\unused\lighting\bedroom-states-v12'
+$outputRoot = Join-Path $ProjectRoot 'assets\unused\lighting\bedroom-door-states'
+$referencePath = Join-Path $ProjectRoot 'assets\unused\lighting\bedroom-door-fresh-reference-v12.png'
 [IO.Directory]::CreateDirectory($correctedRoot) | Out-Null
 [IO.Directory]::CreateDirectory($outputRoot) | Out-Null
 if (-not (Test-Path -LiteralPath $referencePath)) { throw "Missing clean door reference: $referencePath" }

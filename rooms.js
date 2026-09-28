@@ -5,7 +5,7 @@ const door = (name, area, walk, to, entry) => ({ name, area, walk, to, entry, de
 const livingTvSilhouette = [[84.1,41.25],[84.07,41.33],[84.07,56.73],[83.49,56.76],[83.2,56.87],[82.74,56.89],[82.6,56.97],[82.29,56.97],[81.89,57.08],[81.15,57.16],[80.96,57.24],[80.87,57.4],[80.88,58.25],[81.11,58.54],[81.12,73.07],[81.26,73.29],[81.36,73.31],[81.45,73.26],[81.51,73.13],[81.51,72.38],[81.56,72.38],[86.73,77.88],[91.51,83.41],[91.56,83.41],[91.57,85.35],[91.65,85.51],[91.84,85.67],[92.25,86.15],[92.56,86.17],[92.7,86.07],[92.92,86.07],[93.08,85.96],[93.16,85.85],[93.17,83.97],[93.22,83.86],[93.4,83.83],[93.53,83.73],[93.76,83.73],[93.89,83.62],[94.12,83.59],[94.19,83.51],[94.48,83.51],[94.61,83.41],[94.95,83.41],[95.09,83.3],[95.28,83.3],[95.42,83.41],[95.61,83.44],[95.97,84.02],[96.54,84.05],[97.09,84.66],[97.53,84.68],[97.66,84.58],[97.93,84.58],[98.02,84.52],[98.14,84.29],[98.14,82.93],[98.3,82.9],[98.32,82.37],[98.32,67.07],[98.5,66.83],[98.6,66.75],[98.68,66.59],[98.68,65.66],[98.56,65.42],[97.96,65],[97.47,64.55],[97.36,64.52],[97.21,64.33],[96.94,64.2],[96.75,64.01],[96.64,63.99],[96.33,63.7],[96.22,63.67],[95.97,63.43],[95.21,62.93],[95.09,62.79],[95.09,45.44],[94.33,45.1],[93.94,44.99],[84.97,41.35],[84.37,41.14]];
 const apartmentRooms = {
   outside: {
-    name: 'Apartment forecourt', image: 'assets/outside_bg.png', floor: [5, 96, 36, 96],
+    name: 'Apartment forecourt', image: 'assets/used/outside_bg.png', floor: [5, 96, 36, 96],
     objects: {
       frontDoor: { ...door('front door', [70.2,17.4,5,18.7], [73,37.4], 'living', 'exit'), hinge: 'left', swing: 1, description: 'The front door opens inward into the apartment.' },
       neighbourLeft: { ...item('left apartment door', [21,17.3,5,19], [23.5,37.4], 'A dark green front door with scuffed paint around the handle.'), locked: true, lockedResponse: 'The door is locked.' },
@@ -23,7 +23,7 @@ const apartmentRooms = {
     }
   },
   living: {
-    name: 'Living room & kitchen', image: 'assets/lighting/living-master-v2.png', floor: [8, 98.6, 39.8, 94],
+    name: 'Living room & kitchen', image: 'assets/used/lighting/living-master-v2.png', floor: [8, 98.6, 39.8, 94],
     // The floor runs up the recessed hallway to the front door and behind the
     // TV cabinet, out to the cabinet's right edge.
     walkArea: [[8,57],[85.8,57],[85.8,52],[86.3,46],[88,39.8],[93.4,39.8],[95.2,46],[96.8,50.5],[98.6,55],[98.6,94],[8,94]],
@@ -63,7 +63,7 @@ const apartmentRooms = {
     }
   },
   bathroom: {
-    name: 'Bathroom', image: 'assets/bathroom_bg_reversed_master.png', floor: [23, 77, 65, 82],
+    name: 'Bathroom', image: 'assets/used/bathroom_bg_reversed_master.png', floor: [23, 77, 65, 82],
     objects: {
       livingDoor: { ...door('living room door', [26.5,23.5,11,44], [32.5,77], 'living', 'bathroomDoor'), description: 'The frosted-glass door leads back to the living room and kitchen.', panel: [27.5,25.9,8.8,41.1], appearance: 'glass', hinge: 'left' },
       laundry: item('laundry basket', [36.8,52,5.8,16], [40,76], 'A woven laundry basket sits just inside the bathroom.'),

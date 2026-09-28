@@ -27,4 +27,4 @@ public static class ValidateExactCleanOutfit {
 }
 "@
 $assets=Join-Path $ProjectRoot 'assets'
-[ValidateExactCleanOutfit]::Run((Join-Path $assets 'player-sheet-clothes-barefoot-v1.png'),(Join-Path $assets 'player-sheet-clothes-socks-v1.png'),(Join-Path $assets 'player-sheet-clean-barefoot-v3.png'),(Join-Path $assets 'player-sheet-clean-socks-v3.png'))
+[ValidateExactCleanOutfit]::Run((Join-Path $assets 'unused/player-sheet-clothes-barefoot-v1.png'),(Join-Path $assets 'unused/player-sheet-clothes-socks-v1.png'),(Join-Path $assets 'unused/player-sheet-clean-barefoot-v3.png'),(Join-Path $assets 'unused/player-sheet-clean-socks-v3.png'))

@@ -1,9 +1,9 @@
 ﻿# Laundry & Bluestar street artwork
 
-Generated with the built-in image generation tool. Style reference: assets/outside_bg.png. Existing master artwork was not changed.
+Generated with the built-in image generation tool. Style reference: assets/used/outside_bg.png. Existing master artwork was not changed.
 
-Final background: assets/street_bg.png (1672 x 941).
-Door clean plate: assets/street_doors_open.png. Only the two inner leaf rectangles are displayed from this image; all surrounding pixels come from the original street background.
+Final background: assets/used/street_bg.png (1672 x 941).
+Door clean plate: assets/used/street_doors_open.png. Only the two inner leaf rectangles are displayed from this image; all surrounding pixels come from the original street background.
 
 ## Generation prompt
 
@@ -29,9 +29,9 @@ The laundry door can open, close and be walked through. Bluestar's centre-openin
 
 ## Counter and independent door layers (24 September 2026)
 
-Built-in imagegen produced a localized high-resolution counter patch, preserved as `assets/street-counter-source-v2.png`. Active background: `assets/street_bg_counter_v2.png`. Exactly 10,811 counter-window pixels change; the other 1,562,541 pixels, including the MILK $3 poster, remain identical to `assets/street_bg.png`. No whole-frame resampling or sharpening was applied. The tall opaque coffee machine and counter return screen the cashier position from outside.
+Built-in imagegen produced a localized high-resolution counter patch, preserved as `assets/unused/street-counter-source-v2.png`. Active background: `assets/used/street_bg_counter_v2.png`. Exactly 10,811 counter-window pixels change; the other 1,562,541 pixels, including the MILK $3 poster, remain identical to `assets/used/street_bg.png`. No whole-frame resampling or sharpening was applied. The tall opaque coffee machine and counter return screen the cashier position from outside.
 
-The stationary `assets/bluestar-interior-v2.png` is visible through both `assets/bluestar-door-left-v2.png` and `assets/bluestar-door-right-v2.png`. These transparent PNGs contain only the original metal and handle pixels. A faint CSS reflection represents the glass surface; no interior pixels move with the doors. Laundry still uses the original door clean plate.
+The stationary `assets/used/bluestar-interior-v2.png` is visible through both `assets/used/bluestar-door-left-v2.png` and `assets/used/bluestar-door-right-v2.png`. These transparent PNGs contain only the original metal and handle pixels. A faint CSS reflection represents the glass surface; no interior pixels move with the doors. Laundry still uses the original door clean plate.
 
 Build: `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-bluestar-layers.ps1`.
 Verification: `node tests/bluestar-browser.cjs`, then `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/verify-bluestar-pixels.ps1`. Native-resolution captures cover closed, half-open, open and entered states. Sampled interior pixels differ by mean 1.755 RGB levels and maximum 10 during opening, from the faint reflection only. Both moving panes have fully transparent glass.

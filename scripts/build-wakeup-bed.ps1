@@ -8,8 +8,8 @@ using System.Drawing.Imaging;
 using System.Drawing.Drawing2D;
 public static class WakeupBedBuilder {
   public static void Build(string root) {
-    using(var master=new Bitmap(root+"/assets/lighting/bedroom-states-v14/bedroom-c0-l0-m0.png"))
-    using(var art=new Bitmap(root+"/assets/wakeup-sleeper-source-v1.png"))
+    using(var master=new Bitmap(root+"/assets/used/lighting/bedroom-states-v14/bedroom-c0-l0-m0.png"))
+    using(var art=new Bitmap(root+"/assets/unused/wakeup-sleeper-source-v1.png"))
     using(var patch=new Bitmap(630,220,PixelFormat.Format32bppArgb))
     using(var result=master.Clone(new Rectangle(0,0,master.Width,master.Height),PixelFormat.Format32bppArgb))
     using(var path=new GraphicsPath()) {
@@ -52,7 +52,7 @@ public static class WakeupBedBuilder {
           changed++;
         }
       }
-      result.Save(root+"/assets/bedroom-wakeup-v1.png",ImageFormat.Png);
+      result.Save(root+"/assets/used/bedroom-wakeup-v1.png",ImageFormat.Png);
       Console.WriteLine("Native "+master.Width+" x "+master.Height+": "+changed+" changed bed pixels; "+(master.Width*master.Height-changed)+" pixels identical to the existing bedroom.");
     }
   }
