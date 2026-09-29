@@ -27,8 +27,8 @@ const apartmentRooms = {
     // The floor runs up the recessed hallway to the front door and behind the
     // TV cabinet, out to the cabinet's right edge.
     walkArea: [[8,57],[85.8,57],[85.8,52],[86.3,46],[88,39.8],[93.4,39.8],[95.2,46],[96.8,50.5],[98.6,55],[98.6,94],[8,94]],
-    // The couch, and the TV cabinet's angled floor footprint.
-    obstacles: [[28, 64, 45, 30], [[80.4,72.4],[87.6,68.8],[99,83.3],[92.4,85.9]]],
+    // The couch, the TV cabinet's angled floor footprint, and the shoe rack.
+    obstacles: [[28, 64, 45, 30], [[80.4,72.4],[87.6,68.8],[99,83.3],[92.4,85.9]], [[94.8,53.8],[96.4,51.1],[101.25,55.5],[101.25,58.5],[99.6,58.4]]],
     // Drawn over the player whenever they stand behind the cabinet's front ground line.
     tvOccluder: {
       silhouette: livingTvSilhouette,
@@ -59,7 +59,8 @@ const apartmentRooms = {
       livingCurtains: { ...item('living room curtains', [37,0,26,8], [50,92], 'The living room window is in the wall behind you. Its curtains control the daylight entering the room.'), curtainRoom: 'living' },
       mainLightSwitch: { ...item('main light switch', [27.3,27.5,2.5,7], [29,60], 'A plain wall switch beside the bedroom door controls the living-room ceiling light.'), lightCircuit: 'livingMain' },
       kitchenLightSwitch: { ...item('kitchen bench light switch', [65.2,26.5,2.1,6.5], [64,60], 'The switch left of the bathroom door controls the under-cupboard bench lights.'), lightCircuit: 'kitchen' },
-      hallwayLightSwitch: { ...item('hallway light switch', [82,26.5,2.2,6.5], [82,58], 'A small switch beside the key rack controls the recessed hallway light.'), lightCircuit: 'hallway' }
+      hallwayLightSwitch: { ...item('hallway light switch', [82,26.5,2.2,6.5], [82,58], 'A small switch beside the key rack controls the recessed hallway light.'), lightCircuit: 'hallway' },
+      shoeRack: { ...item('shoe rack', [95.35,41.3,4.65,16.4], [97.05,59.8], 'A three-shelf black stainless-steel shoe rack stands on caster wheels against the right-hand wall beside the TV. It holds two pairs on each shelf.'), shoeRack: true }
     }
   },
   bathroom: {

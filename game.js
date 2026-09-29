@@ -44,7 +44,9 @@ const newGameBtn = document.getElementById('newGameBtn');
 const optionsBtn = document.getElementById('optionsBtn');
 const optionsDialog = document.getElementById('optionsDialog');
 const goBackBtn = document.getElementById('goBackBtn');
-const roomBackgroundLayers = [document.getElementById('room-background-a'), document.getElementById('room-background-b')];
+// Each set is one room background layer plus the copies of it drawn over the
+// player (couch and TV), so the copies crossfade with the room when lights change.
+const roomLayerSets = ['a', 'b'].map(suffix => ['room-background', 'foreground-room', 'tv-foreground', 'couch-foreground'].map(id => document.getElementById(`${id}-${suffix}`)));
 const bedroomClothes = document.getElementById('bedroom-clothes');
 const clothesStateLayers = [document.getElementById('bedroom-clothes-a'), document.getElementById('bedroom-clothes-b')];
 const livingToaster = document.getElementById('living-toaster');
@@ -53,6 +55,10 @@ const inventoryOverlay = document.getElementById('inventoryOverlay');
 const inventoryItemsElement = document.getElementById('inventoryItems');
 const inventoryButton = document.getElementById('inventoryBtn');
 const inventoryCount = document.getElementById('inventoryCount');
+const livingShoeRack = document.getElementById('living-shoe-rack');
+const shoeChoiceOverlay = document.getElementById('shoeChoiceOverlay');
+const takeWorkShoesButton = document.getElementById('takeWorkShoesBtn');
+const takeSneakersButton = document.getElementById('takeSneakersBtn');
 
 // All modal systems share one pause owner registry. This freezes timers,
 // requestAnimationFrame movement, door travel, the wake-up sequence and CSS
@@ -168,13 +174,13 @@ const gameState = {
   alleyManSpoken: false,
   alleyManCoffeeRequested: false,
   inventory: [],
-  itemPlacements: { toaster: { kind: 'world', room: 'living', target: 'toaster' }, keys: { kind: 'world', room: 'living', target: 'keys' }, crumpledClothes: { kind: 'world', room: 'bedroom', target: 'crumpledClothes' }, cleanClothes: { kind: 'stored', room: 'bedroom', target: 'cupboard' }, socks: { kind: 'stored', room: 'bedroom', target: 'drawers' } }
+  itemPlacements: { toaster: { kind: 'world', room: 'living', target: 'toaster' }, keys: { kind: 'world', room: 'living', target: 'keys' }, workShoes: { kind: 'world', room: 'living', target: 'shoeRack' }, sneakers: { kind: 'world', room: 'living', target: 'shoeRack' }, crumpledClothes: { kind: 'world', room: 'bedroom', target: 'crumpledClothes' }, cleanClothes: { kind: 'stored', room: 'bedroom', target: 'cupboard' }, socks: { kind: 'stored', room: 'bedroom', target: 'drawers' } }
 };
 const initialWorldState = Object.freeze(Object.fromEntries(Object.entries(gameState).filter(([key]) => !['currentRoom', 'inventory', 'itemPlacements'].includes(key))));
 function resetWorldState() {
   Object.assign(gameState, initialWorldState, {
     inventory: [],
-    itemPlacements: { toaster: { kind: 'world', room: 'living', target: 'toaster' }, keys: { kind: 'world', room: 'living', target: 'keys' }, crumpledClothes: { kind: 'world', room: 'bedroom', target: 'crumpledClothes' }, cleanClothes: { kind: 'stored', room: 'bedroom', target: 'cupboard' }, socks: { kind: 'stored', room: 'bedroom', target: 'drawers' } }
+    itemPlacements: { toaster: { kind: 'world', room: 'living', target: 'toaster' }, keys: { kind: 'world', room: 'living', target: 'keys' }, workShoes: { kind: 'world', room: 'living', target: 'shoeRack' }, sneakers: { kind: 'world', room: 'living', target: 'shoeRack' }, crumpledClothes: { kind: 'world', room: 'bedroom', target: 'crumpledClothes' }, cleanClothes: { kind: 'stored', room: 'bedroom', target: 'cupboard' }, socks: { kind: 'stored', room: 'bedroom', target: 'drawers' } }
   });
 }
 
@@ -267,11 +273,23 @@ const itemDefinitions = Object.freeze({
     description: 'A neat black jacket, a smooth green work shirt, and clean brown work trousers.',
     source: Object.freeze({ room: 'bedroom', target: 'cupboard' }),
     iconClass: 'item-clean-clothes'
+  }),
+  workShoes: Object.freeze({
+    name: 'work shoes',
+    description: 'Plain black slip-on work shoes. Practical, mildly worn, and free of laces.',
+    source: Object.freeze({ room: 'living', target: 'shoeRack' }),
+    iconClass: 'item-work-shoes'
+  }),
+  sneakers: Object.freeze({
+    name: 'sneakers',
+    description: 'A pair of everyday off-white and grey sneakers with dark trim.',
+    source: Object.freeze({ room: 'living', target: 'shoeRack' }),
+    iconClass: 'item-sneakers'
   })
 });
 const placementTargets = Object.freeze({
   bedroom: Object.freeze({ crumpledClothes: 'on', drawers: 'in', cupboard: 'in' }),
-  living: Object.freeze({ toaster: 'on', keys: 'on', counter: 'in', fridge: 'in', freezer: 'in', entryDrawers: 'in' }),
+  living: Object.freeze({ toaster: 'on', keys: 'on', shoeRack: 'on', counter: 'in', fridge: 'in', freezer: 'in', entryDrawers: 'in' }),
   bathroom: Object.freeze({ sink: 'in' })
 });
 // Empty registration point for later character statistics. No stats are
@@ -331,6 +349,11 @@ const playerPerspectiveProfiles = Object.freeze({
     Object.freeze({ y: 58.5, width: 19.8, reference: 'seated man' }),
     Object.freeze({ y: 68, width: 26.5, reference: 'foot of the service-door steps' }),
     Object.freeze({ y: 90, width: 34.5, reference: 'alley foreground' })
+  ]) }),
+  garage: Object.freeze({ smooth: true, gait: Object.freeze({ pace: .68, stride: .65, depthPace: .78 }), anchors: Object.freeze([
+    Object.freeze({ y: 37.2, width: 9.2, reference: 'elevator threshold' }),
+    Object.freeze({ y: 46, width: 10.7, reference: 'back parking bays and cars' }),
+    Object.freeze({ y: 78, width: 16.4, reference: 'near edge of the central driving aisle' })
   ]) }),
   outside: Object.freeze({ anchors: Object.freeze([
     Object.freeze({ y: 37.4, width: 10.2, reference: 'exterior door thresholds and patios' }),
@@ -398,6 +421,10 @@ function targetObjectName(target, object = roomObjects[target]) {
 function updateStatus(target) {
   const object = target && roomObjects[target];
   const objectName = targetObjectName(target, object);
+  if (object?.garageCall) {
+    statusText.textContent = gameState.selectedVerb ? `${verbNames[gameState.selectedVerb]} ${objectName}` : 'Call elevator';
+    return;
+  }
   if (object && gameState.selectedVerb && (object.lightCircuit || isContextualDoor(object) || (object.curtainRoom && gameState.selectedVerb === 'look'))) {
     statusText.textContent = `${verbNames[gameState.selectedVerb]} ${objectName}`;
     return;
@@ -477,6 +504,52 @@ function renderInventory() {
     card.addEventListener('click', () => selectInventoryItem(id));
     inventoryItemsElement.appendChild(card);
   });
+}
+function shoesAreOnRack(id) {
+  const placement = gameState.itemPlacements[id];
+  return placement?.kind === 'world' && placement.room === 'living' && placement.target === 'shoeRack';
+}
+function syncShoeRack() {
+  livingShoeRack.classList.toggle('work-shoes-away', !shoesAreOnRack('workShoes'));
+  livingShoeRack.classList.toggle('sneakers-away', !shoesAreOnRack('sneakers'));
+  // The rack art is painted brighter than the room, so the main light lifts it less.
+  const light = playerLightLevel('living', 97.8, 55.3);
+  livingShoeRack.style.setProperty('--shoe-rack-light', gameState.livingMainLightOn ? light * .82 : light);
+}
+function shoeRackDescription() {
+  const work = shoesAreOnRack('workShoes'), sneakers = shoesAreOnRack('sneakers');
+  if (work && sneakers) return 'A narrow rack of familiar shoes. The black slip-on work shoes and your everyday sneakers are both here.';
+  if (work) return 'The sneakers are gone, leaving the black slip-on work shoes among the other pairs.';
+  if (sneakers) return 'The work shoes are gone. Your everyday sneakers remain on the rack.';
+  return 'The rack still holds several old pairs, but the work shoes and sneakers are both gone.';
+}
+function openShoeChoice() {
+  const work = shoesAreOnRack('workShoes'), sneakers = shoesAreOnRack('sneakers');
+  if (!work && !sneakers) { showMessage(shoeRackDescription()); return; }
+  if (shoeChoiceOverlay.hidden === false) return;
+  pauseWorld('shoe-choice');
+  game.inert = true;
+  takeWorkShoesButton.disabled = !work;
+  takeSneakersButton.disabled = !sneakers;
+  shoeChoiceOverlay.hidden = false;
+  (work ? takeWorkShoesButton : takeSneakersButton).focus?.();
+}
+function closeShoeChoice(options = {}) {
+  if (shoeChoiceOverlay.hidden !== false) return;
+  shoeChoiceOverlay.hidden = true;
+  game.inert = false;
+  if (options.resume !== false) resumeWorld('shoe-choice');
+}
+function takeShoesFromRack(id) {
+  if (!shoesAreOnRack(id)) return;
+  gameState.itemPlacements = { ...gameState.itemPlacements, [id]: { kind: 'inventory' } };
+  if (!gameState.inventory.includes(id)) gameState.inventory.push(id);
+  closeShoeChoice();
+  setVerb(null);
+  syncRoom();
+  renderInventory();
+  updateStatus('shoeRack');
+  showMessage('You take the ' + itemDefinitions[id].name + ' from the shoe rack.');
 }
 function playerSheetForState() {
   if (gameState.outfit === 'crumpled') return gameState.socksOn ? 'assets/used/player-sheet-clothes-socks-v17.png' : 'assets/used/player-sheet-clothes-barefoot-v14.png';
@@ -598,7 +671,7 @@ function setInventoryMode(mode) {
   document.getElementById('inventoryPlaceBtn').classList.toggle('active', mode === 'place');
 }
 function openInventory() {
-  if (inventoryOverlay.hidden === false || transition || roomSwitch || wakeup.active || wardrobeChanging) return;
+  if (inventoryOverlay.hidden === false || shoeChoiceOverlay.hidden === false || transition || roomSwitch || wakeup.active || wardrobeChanging) return;
   inventoryPreviousFocus = document.activeElement;
   setInventoryMode(['use', 'place'].includes(gameState.selectedVerb) ? gameState.selectedVerb : null);
   renderInventory();
@@ -693,6 +766,7 @@ function roomCurtainsOpen(roomId = gameState.currentRoom) {
 
 function playerLightLevel(roomId = gameState.currentRoom, x = movement.x, y = movement.y) {
   if (roomId === 'outside' || roomId === 'street' || roomId === 'alley') return .88;
+  if (roomId === 'garage') return .72;
   let level = roomCurtainsOpen(roomId) ? .96 : .58;
   if (roomId === 'bedroom') {
     if (gameState.bedroomMainLightOn) level = Math.max(level, 1.04);
@@ -872,31 +946,32 @@ function commitRoomImage(path, immediate = false, fastLight = false) {
   if (path === displayedRoomImage) return;
   gameTimers.clear(roomLayerCleanupTimer);
   if (immediate) {
-    roomBackgroundLayers.forEach((layer, index) => {
+    roomLayerSets.forEach((layers, index) => layers.forEach(layer => {
       layer.style.backgroundImage = `url('${path}')`;
       layer.style.zIndex = index === 0 ? 1 : 0;
       setLayerVisibilityImmediately(layer, index === 0);
-    });
+    }));
     activeRoomBackgroundLayer = 0;
     displayedRoomImage = path;
     return;
   }
   const nextIndex = 1 - activeRoomBackgroundLayer;
-  const current = roomBackgroundLayers[activeRoomBackgroundLayer];
-  const next = roomBackgroundLayers[nextIndex];
-  current.style.zIndex = 1;
-  next.style.zIndex = 2;
-  setLayerVisibilityImmediately(next, false);
-  next.style.backgroundImage = `url('${path}')`;
-  void next.offsetWidth;
-  next.classList.add('is-visible');
+  const current = roomLayerSets[activeRoomBackgroundLayer];
+  const next = roomLayerSets[nextIndex];
+  current.forEach(layer => { layer.style.zIndex = 1; });
+  next.forEach(layer => {
+    layer.style.zIndex = 2;
+    setLayerVisibilityImmediately(layer, false);
+    layer.style.backgroundImage = `url('${path}')`;
+  });
+  void next[0].offsetWidth;
+  next.forEach(layer => layer.classList.add('is-visible'));
   activeRoomBackgroundLayer = nextIndex;
   displayedRoomImage = path;
   const transitionMs = fastLight ? FAST_LIGHT_TRANSITION_MS : 1400;
   roomLayerCleanupTimer = gameTimers.schedule(() => {
-    setLayerVisibilityImmediately(current, false);
-    next.style.zIndex = 1;
-    current.style.zIndex = 0;
+    current.forEach(layer => { setLayerVisibilityImmediately(layer, false); layer.style.zIndex = 0; });
+    next.forEach(layer => { layer.style.zIndex = 1; });
     roomLayerCleanupTimer = null;
   }, transitionMs + 30);
 }
@@ -922,12 +997,14 @@ function applyRoomImage(path, immediate = false, fastLight = false) {
 const roomOverlayImages = Object.freeze({
   outside: Object.freeze(['assets/used/outside-cars-foreground-v1.png']),
   street: Object.freeze(['assets/used/street_bg.png', 'assets/used/street_doors_open.png', 'assets/used/bluestar-interior-v2.png', 'assets/used/bluestar-door-left-v2.png', 'assets/used/bluestar-door-right-v2.png']),
-  alley: Object.freeze(['assets/used/alley-man-sprite-v6.png'])
+  living: Object.freeze(['assets/used/living-shoe-rack-v3.png', 'assets/used/work-shoes-icon-v2.png', 'assets/used/sneakers-icon-v2.png']),
+  alley: Object.freeze(['assets/used/alley-man-sprite-v6.png']),
+  garage: Object.freeze([])
 });
 // Rooms reachable in one step, warmed in advance so exits switch instantly.
 const roomNeighbours = Object.freeze({
   bedroom: ['living'], living: ['bedroom', 'bathroom', 'outside'], bathroom: ['living'],
-  outside: ['living', 'street'], street: ['outside', 'alley'], alley: ['street']
+  outside: ['living', 'street'], street: ['outside', 'alley'], alley: ['street'], garage: []
 });
 
 function roomAssetPaths(roomId, state = gameState) {
@@ -972,6 +1049,7 @@ function syncRoom(options = {}) {
   const bedroom = gameState.currentRoom === 'bedroom';
   const curtainsOpen = roomCurtainsOpen();
   scene.dataset.room = gameState.currentRoom;
+  syncGarageScene();
   scene.classList.toggle('curtains-open', curtainsOpen);
   scene.classList.toggle('curtains-closed', !curtainsOpen);
   scene.classList.toggle('tv-on', gameState.tvOn);
@@ -981,6 +1059,7 @@ function syncRoom(options = {}) {
   const clothesHotspot = [...document.getElementById('hotspots').children].find(button => button.dataset.target === 'crumpledClothes');
   clothesHotspot?.setAttribute('aria-label', displayName(targetObjectName('crumpledClothes', bedroomObjects.crumpledClothes)));
   livingToaster.classList.toggle('is-taken', gameState.toasterTaken);
+  syncShoeRack();
   renderInventory();
   scene.style.setProperty('--curtain-light', curtainLightLevel());
   player.style.setProperty('--player-light', playerLightLevel());
@@ -1032,8 +1111,35 @@ function movementFacing(dx, dy) {
   return dx < 0 ? 'left' : 'right';
 }
 
+// Decoded sheets are kept referenced so switching outfit or socks never draws
+// an undecoded sheet, which blanks the player for a frame.
+const playerSheets = new Map();
+let displayedPlayerSheet = null;
+function warmPlayerSheets() {
+  if (typeof Image === 'undefined') return;
+  for (const path of ['assets/used/player-sheet-keyed-v1.png', 'assets/used/player-sheet-underwear-socks-v6.png', 'assets/used/player-sheet-clothes-barefoot-v14.png', 'assets/used/player-sheet-clothes-socks-v17.png', 'assets/used/player-sheet-clean-barefoot-v16.png', 'assets/used/player-sheet-clean-socks-v19.png']) {
+    const image = new Image();
+    image.src = path;
+    const sheet = { image, decoded: false };
+    sheet.ready = (typeof image.decode === 'function' ? image.decode() : Promise.resolve()).catch(() => {}).then(() => { sheet.decoded = true; });
+    playerSheets.set(path, sheet);
+  }
+}
+// Keeps showing the current sheet until the new one is decoded.
+function syncPlayerSheet() {
+  const path = playerSheetForState();
+  if (path === displayedPlayerSheet) return;
+  const sheet = playerSheets.get(path);
+  const show = () => {
+    if (playerSheetForState() !== path || displayedPlayerSheet === path) return;
+    displayedPlayerSheet = path;
+    playerFrame.style.setProperty('--player-sheet', `url('${path}')`);
+  };
+  if (!sheet || sheet.decoded) show(); else sheet.ready.then(show);
+}
+
 function renderPlayer(walking = false) {
-  playerFrame.style.setProperty('--player-sheet', `url('${playerSheetForState()}')`);
+  syncPlayerSheet();
   const outdoors = gameState.currentRoom === 'outside';
   const perspective = playerPerspective(gameState.currentRoom, movement.y);
   const stairProgress = movement.stairProgress || 0;
@@ -1079,6 +1185,7 @@ const polygonClipPath = (points, [left, top, width, height] = [0, 0, 100, 100]) 
   `polygon(${points.map(([x, y]) => `${(x - left) / width * 100}% ${(y - top) / height * 100}%`).join(', ')})`;
 document.getElementById('tv-foreground').style.clipPath = polygonClipPath(apartmentRooms.living.tvOccluder.silhouette);
 document.getElementById('couch-foreground').style.clipPath = polygonClipPath(apartmentRooms.bedroom.couchOccluder.silhouette);
+warmPlayerSheets();
 
 function floorPosition(x, y) {
   if (gameState.currentRoom === 'street') {
@@ -1306,6 +1413,7 @@ function interact(target, verb) {
   if (fixedReply) { showMessage(fixedReply); return; }
   if (handleAlleyTarget(target, object, verb)) return;
   if (handleStreetTarget(object, verb)) return;
+  if (handleGarageTarget(target, object, verb)) return;
   if (object.locked) {
     if (verb === 'look' || verb === 'walk') showMessage(object.description);
     else if (verb === 'use') showMessage(object.lockedResponse || 'It is locked.');
@@ -1418,11 +1526,21 @@ function scenePoint(event) {
 }
 
 function handleTarget(target, event) {
-  if (wakeup.active || transition || roomSwitch || wardrobeChanging || worldPause.owners.size) return;
+  if (wakeup.active || transition || roomSwitch || wardrobeChanging || garageSequenceActive || worldPause.owners.size) return;
   const object = roomObjects[target];
   const verb = gameState.selectedVerb;
   const lightControl = Boolean(object?.lightCircuit);
   const switchOrDoor = Boolean(isLightSwitch(object) || isContextualDoor(object));
+  if (object?.shoeRack && !interactionSelection.itemId && (verb === 'pickup' || verb === 'use')) {
+    walkTo(target, openShoeChoice);
+    return;
+  }
+  if (object?.garageCall) {
+    if (verb === 'look') { walkTo(target, () => interact(target, 'look')); return; }
+    if (verb && verb !== 'use') { walkTo(target, () => showMessage(fixedContextualReply(verb) || interactionReply(target, object, verb))); return; }
+    walkTo(target, () => { if (verb === 'use') setVerb(null); beginGarageElevatorRide(); });
+    return;
+  }
   if (verb === 'look' && (lightControl || object?.curtainRoom || isContextualDoor(object))) {
     walkTo(target, () => interact(target, 'look'));
     return;
@@ -1481,7 +1599,7 @@ function handleTarget(target, event) {
 
 function saveGame() {
   if (wakeup.active) return;
-  if (transition || roomSwitch || wardrobeChanging) { showMessage('Finish going through the doorway before saving.'); return; }
+  if (transition || roomSwitch || wardrobeChanging || garageSequenceActive) { showMessage('Finish the current transition before saving.'); return; }
   try {
     localStorage.setItem(SAVE_KEY, JSON.stringify({ version: 7, state: gameState, systems: gameSystems, player: { x: movement.x, y: movement.y, facing: movement.facing } }));
     showMessage('Apartment saved.');
@@ -1496,6 +1614,7 @@ function loadGame() {
     const saved = JSON.parse(raw);
     if (![1,2,3,4,5,6,7].includes(saved.version) || !saved.state || !saved.player) throw new Error('Invalid save');
     cancelTransition();
+    cancelGarageElevatorRide();
     cancelWardrobeChange();
     stopWalking();
     gameState.laundryDoorOpen = false; // Saves from before the street start with its door closed.
@@ -1526,7 +1645,9 @@ function loadGame() {
         keys: gameState.keysTaken ? { kind: 'inventory' } : { kind: 'world', room: 'living', target: 'keys' },
         crumpledClothes: { kind: 'world', room: 'bedroom', target: 'crumpledClothes' },
         cleanClothes: { kind: 'stored', room: 'bedroom', target: 'cupboard' },
-        socks: { kind: 'stored', room: 'bedroom', target: 'drawers' }
+        socks: { kind: 'stored', room: 'bedroom', target: 'drawers' },
+        workShoes: { kind: 'world', room: 'living', target: 'shoeRack' },
+        sneakers: { kind: 'world', room: 'living', target: 'shoeRack' }
       };
     }
     syncPortableState();
@@ -1547,7 +1668,10 @@ function loadGame() {
 
 function resetGame() {
   cancelWakeup();
+  closeShoeChoice({ resume: false });
+  resumeWorld('shoe-choice');
   cancelWardrobeChange();
+  cancelGarageElevatorRide();
   cancelTransition();
   cancelRoomSwitch();
   stopWalking();
@@ -1565,6 +1689,7 @@ function resetGame() {
 }
 
 function showRoom(id) {
+  if (id !== 'garage' && garageSequenceActive) cancelGarageElevatorRide();
   // Room lighting must already be correct when the transition fade reveals it.
   // Curtain toggles still use their normal animated transition outside this block.
   gameState.currentRoom = id;
@@ -1576,6 +1701,7 @@ function showRoom(id) {
 }
 
 function interactApartment(target, verb, object) {
+  if (target === 'shoeRack' && (verb === 'look' || verb === 'walk')) { showMessage(shoeRackDescription()); return; }
   if (target === 'toaster' && (verb === 'look' || verb === 'walk')) {
     showMessage(gameState.toasterTaken ? 'A clear patch of bench remains beside the stove. The toaster is elsewhere.' : object.description);
     return;
@@ -1740,7 +1866,7 @@ for (const [target, object] of Object.entries(roomObjects)) {
 document.querySelectorAll('#verbs button[data-verb]').forEach(button => button.addEventListener('click', () => setVerb(button.dataset.verb)));
 document.getElementById('clearVerb').addEventListener('click', () => setVerb(null));
 scene.addEventListener('click', event => {
-  if (event.target.closest('button, #messageBox') || worldPause.owners.size) return;
+  if (event.target.closest('button, #messageBox') || garageSequenceActive || worldPause.owners.size) return;
   movePlayerTo(...scenePoint(event));
 });
 curtainToggle.addEventListener('click', () => {
@@ -1748,7 +1874,10 @@ curtainToggle.addEventListener('click', () => {
   const target = gameState.currentRoom === 'bedroom' ? 'curtains' : gameState.currentRoom === 'living' ? 'livingCurtains' : 'bathroomCurtains';
   walkTo(target, () => setCurtains(!roomCurtainsOpen()));
 });
-document.getElementById('saveBtn').addEventListener('click', saveGame);
+takeWorkShoesButton.addEventListener('click', () => takeShoesFromRack('workShoes'));
+takeSneakersButton.addEventListener('click', () => takeShoesFromRack('sneakers'));
+document.getElementById('cancelShoeChoiceBtn').addEventListener('click', () => closeShoeChoice());
+shoeChoiceOverlay.addEventListener('click', event => { if (event.target === shoeChoiceOverlay) closeShoeChoice(); });document.getElementById('saveBtn').addEventListener('click', saveGame);
 document.getElementById('loadBtn').addEventListener('click', loadGame);
 document.getElementById('resetBtn').addEventListener('click', resetGame);
 inventoryButton.addEventListener('click', openInventory);
@@ -1757,6 +1886,7 @@ document.getElementById('inventoryUseBtn').addEventListener('click', () => setIn
 document.getElementById('inventoryPlaceBtn').addEventListener('click', () => setInventoryMode('place'));
 inventoryOverlay.addEventListener('click', event => { if (event.target === inventoryOverlay) closeInventory(); });
 document.addEventListener?.('keydown', event => {
+  if (event.key === 'Escape' && shoeChoiceOverlay.hidden === false) { event.preventDefault(); event.stopImmediatePropagation(); closeShoeChoice(); return; }
   if (event.key === 'Escape' && inventoryOverlay.hidden === false) { event.preventDefault(); event.stopImmediatePropagation(); closeInventory(); }
 }, true);
 // Every fresh launch starts here, without restoring an old level or auto-loading a save.

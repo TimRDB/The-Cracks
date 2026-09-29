@@ -62,6 +62,13 @@
             <div id="living-toaster-a" class="toaster-state-layer is-visible"></div>
             <div id="living-toaster-b" class="toaster-state-layer"></div>
           </div>
+          <div id="living-shoe-rack" aria-hidden="true">
+            <div class="shoe-rack-base"></div>
+            <div class="shoe-rack-pair shoe-rack-sneakers"></div>
+            <div class="shoe-rack-overlay shoe-rack-over-sneakers"></div>
+            <div class="shoe-rack-pair shoe-rack-work"></div>
+            <div class="shoe-rack-overlay shoe-rack-over-work"></div>
+          </div>
           <div id="curtains">
             <div class="curtain-panel curtain-left"></div>
             <div class="curtain-panel curtain-right"></div>
@@ -72,6 +79,13 @@
           <div id="bedroom-door-foreground"></div>
           <div id="street-laundry" class="street-door" aria-hidden="true"><div class="street-leaf"></div></div>
           <div id="street-bluestar" class="street-door" aria-hidden="true"><div class="street-leaf left"></div><div class="street-leaf right"></div></div>
+          <div id="garage-elevator" aria-hidden="true">
+            <div class="garage-elevator-interior"></div>
+            <div class="garage-elevator-leaf left"></div>
+            <div class="garage-elevator-leaf right"></div>
+          </div>
+          <div id="garage-up-indicator" aria-hidden="true"></div>
+          <div id="garage-camera-light" aria-hidden="true"></div>
         </div>
         <div id="alley-npc" aria-hidden="true"></div>
         <div id="statusText">Pick up</div>
@@ -80,10 +94,13 @@
           <div class="player-frame"></div>
         </div>
         <div id="foreground" aria-hidden="true">
+          <div id="foreground-room-a" class="room-background-layer room-copy is-visible"></div><div id="foreground-room-b" class="room-background-layer room-copy"></div>
           <div class="outside-cars-foreground"></div>
+          <div class="garage-car-foreground garage-car-left"></div>
+          <div class="garage-car-foreground garage-car-right"></div>
         </div>
-        <div id="tv-foreground" aria-hidden="true"></div>
-        <div id="couch-foreground" aria-hidden="true"></div>
+        <div id="tv-foreground" aria-hidden="true"><div id="tv-foreground-a" class="room-background-layer room-copy is-visible"></div><div id="tv-foreground-b" class="room-background-layer room-copy"></div></div>
+        <div id="couch-foreground" aria-hidden="true"><div id="couch-foreground-a" class="room-background-layer room-copy is-visible"></div><div id="couch-foreground-b" class="room-background-layer room-copy"></div></div>
         <div id="messageBox" class="hidden" role="status" aria-live="polite"></div>
         <div id="scene-fade" aria-hidden="true"></div>
         <div id="alarm-closeup" hidden role="img" aria-label="Alarm clock ringing at 6:00"><div id="alarm-digits"></div></div>
@@ -127,6 +144,17 @@
       <div id="inventoryItems" class="inventory-items"></div>
     </section>
   </div>
+  <div id="shoeChoiceOverlay" class="shoe-choice-overlay" role="dialog" aria-modal="true" aria-labelledby="shoeChoiceHeading" hidden>
+    <section class="shoe-choice-panel">
+      <h2 id="shoeChoiceHeading">Choose shoes</h2>
+      <p>Which pair do you want to take?</p>
+      <div class="shoe-choice-options">
+        <button id="takeWorkShoesBtn">Work shoes</button>
+        <button id="takeSneakersBtn">Sneakers</button>
+        <button id="cancelShoeChoiceBtn">Cancel</button>
+      </div>
+    </section>
+  </div>
   <div id="devTools" class="dev-overlay" role="dialog" aria-modal="true" aria-labelledby="devToolsHeading" hidden>
     <div class="dev-panel">
       <section id="devMenu" class="dev-screen">
@@ -155,6 +183,7 @@
   <script src="outside.js"></script>
   <script src="street.js"></script>
   <script src="alley.js"></script>
+  <script src="garage.js"></script>
   <script src="wakeup.js"></script>
   <script src="game.js"></script>
   <script src="devtools.js"></script>

@@ -14,7 +14,8 @@ const devScenes = [
   { id: 'bathroom', label: 'Bathroom', note: 'Inside the living room door', start: { x: 32.5, y: 77, facing: 'right' } },
   { id: 'outside', label: 'Apartment forecourt', note: 'On the patio by the front door', start: { x: 73, y: 37.4, facing: 'down' } },
   { id: 'street', label: 'Laundry & Bluestar', note: 'Arriving along the footpath', start: { x: 3, y: streetFootY(3), facing: 'right' } },
-  { id: 'alley', label: 'Bluestar alley', note: 'Looking back toward the street', start: { x: 28.5, y: 48, facing: 'down' } }
+  { id: 'alley', label: 'Bluestar alley', note: 'Looking back toward the street', start: { x: 28.5, y: 48, facing: 'down' } },
+  { id: 'garage', label: 'Workplace parking garage', note: 'Beside the elevator and parking bays', start: { x: 24, y: 54, facing: 'right' } }
 ];
 
 function pauseGame() {
@@ -42,6 +43,7 @@ function openDevTools() {
   const fadingIntoGame = titleScreen.classList.contains('is-leaving') && !document.body.classList.contains('game-started');
   if (devTools.open || fadingIntoGame) return;
   if (inventoryOverlay.hidden === false) closeInventory();
+  if (shoeChoiceOverlay.hidden === false) closeShoeChoice();
   devTools.open = true;
   devTools.fromTitle = !document.body.classList.contains('game-started');
   devTools.previousFocus=document.activeElement;
@@ -110,11 +112,22 @@ function teleportToScene(target) {
   gameTimers.clearAll();
   gameTimers.resume();
   cancelWakeup();
+  cancelGarageElevatorRide();
   cancelTransition();
   stopWalking();
-  const appearance=Object.fromEntries(Object.entries(gameState).filter(([key])=>/clothes|clothing|outfit|appearance|wearing|costume/i.test(key)));
-  resetWorldState(); Object.assign(gameState, appearance);
-  setVerb('pickup');
+  const appearance = { outfit: gameState.outfit, socksOn: gameState.socksOn };
+  resetWorldState();
+  Object.assign(gameState, appearance);
+  const wornItems = [
+    appearance.outfit === 'crumpled' && 'crumpledClothes',
+    appearance.outfit === 'clean' && 'cleanClothes',
+    appearance.socksOn && 'socks'
+  ].filter(Boolean);
+  for (const id of wornItems) {
+    gameState.itemPlacements[id] = { kind: 'worn' };
+    if (!gameState.inventory.includes(id)) gameState.inventory.push(id);
+  }
+  setVerb(null);
   cancelRoomSwitch();
   if (target.id === 'wakeup') { prepareWakeupAudio(); beginWakeup(); return; }
   whenRoomReady(target.id, () => {

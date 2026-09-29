@@ -45,13 +45,39 @@ body.game-started #game { opacity: 1; }
 #scene[data-room="bedroom"] #bedroom-clothes:not(.is-away) { display:block; }
 .clothes-state-layer { position:absolute; inset:0; background:url('assets/used/lighting/bedroom-clothes-v1/bedroom-c0-l0-m0.png') center / 100% 100% no-repeat; opacity:0; transition:opacity 1.4s cubic-bezier(.45,0,.2,1); will-change:opacity; }
 .clothes-state-layer.is-visible { opacity:1; }
+/* The shoe rack stands with its back against the right-hand wall: the back bottom
+   edge of its lowest shelf lies on the line where the wall meets the floor. The
+   TV hides its left end, and the right edge of the scene cuts its shelves about
+   halfway between their front and back. Its layer is the depth of its front casters (y 58), so
+   the player is hidden behind it or drawn over it by the same depth rule as the
+   rest of the room. Its lighting fades with the room art, and it keeps its own
+   compositing layer (will-change) so the shelves and shoes are drawn once and only
+   their brightness changes; otherwise the browser redraws them mid-fade and they
+   shimmer and shift. */
+#living-shoe-rack { display:none; position:absolute; z-index:58; left:93.82%; top:40.71%; width:8.2%; aspect-ratio:1145/1374; pointer-events:none; filter:brightness(var(--shoe-rack-light,.72)) drop-shadow(1px 2px 1px #0009); transition:filter 1.4s cubic-bezier(.45,0,.2,1); will-change:filter; }
+#scene[data-room="living"] #living-shoe-rack { display:block; }
+.shoe-rack-base { position:absolute; inset:0; background:url('assets/used/living-shoe-rack-v3.png') center/contain no-repeat; }
+/* The removable pairs stand on the open right side of the top and middle shelves,
+   the same size as the painted pairs. Over each pair lies a cut-out of the rack
+   parts in front of it (scripts/build-shoe-rack-overlays.py): the sneakers sit
+   under the top shelf, behind the front post and the middle shelf's lip, and the
+   work shoes behind the front post and the top shelf's lip. */
+.shoe-rack-overlay { position:absolute; inset:0; background-position:center; background-size:contain; background-repeat:no-repeat; }
+.shoe-rack-over-sneakers { background-image:url('assets/used/living-shoe-rack-v3-over-sneakers.png'); }
+.shoe-rack-over-work { background-image:url('assets/used/living-shoe-rack-v3-over-work.png'); }
+.shoe-rack-pair { position:absolute; background-position:center; background-size:contain; background-repeat:no-repeat; }
+.shoe-rack-work { left:40.93%; top:21.25%; width:34.49%; aspect-ratio:1448/1086; background-image:url('assets/used/work-shoes-icon-v2.png'); }
+.shoe-rack-sneakers { left:39.63%; top:44.56%; width:36.90%; aspect-ratio:1536/1024; background-image:url('assets/used/sneakers-icon-v2.png'); }
+#living-shoe-rack.work-shoes-away .shoe-rack-work,
+#living-shoe-rack.sneakers-away .shoe-rack-sneakers { display:none; }
 #living-toaster { display: none; position: absolute; z-index: 2; left: 44.378%; top: 29.331%; width: 4.904%; height: 8.714%; }
 #scene[data-room="living"] #living-toaster:not(.is-taken) { display: block; }
 .toaster-state-layer { position: absolute; inset: 0; background: center / 100% 100% no-repeat; opacity: 0; transition: opacity 1.4s cubic-bezier(.45,0,.2,1); will-change: opacity; }
 .toaster-state-layer.is-visible { opacity: 1; }
 #scene.light-switching .room-background-layer,
 #scene.light-switching .clothes-state-layer,
-#scene.light-switching .toaster-state-layer { transition-duration: .22s; transition-timing-function: ease-out; }
+#scene.light-switching .toaster-state-layer,
+#scene.light-switching #living-shoe-rack { transition-duration: .22s; transition-timing-function: ease-out; }
 #scene.light-switching .curtain-panel { transition-duration: 1.4s, .22s; transition-timing-function: cubic-bezier(.45,0,.2,1), ease-out; }
 #scene.light-switching .sprite { transition-duration: .20s; transition-timing-function: ease-out; }
 #scene::after { content: ""; position: absolute; inset: 0; pointer-events: none; box-shadow: inset 0 0 70px #090c1655; }
@@ -102,20 +128,58 @@ body.game-started #game { opacity: 1; }
 #scene[aria-busy="true"] { cursor: wait; }
 #foreground { display: none; position: absolute; inset: 0; z-index: 110; pointer-events: none; }
 #scene[data-room="living"] #foreground { display: block; clip-path: polygon(28% 73%, 31% 67%, 36% 64%, 48% 66%, 55% 64%, 69% 66%, 73% 72%, 73% 94%, 28% 94%); }
-#scene[data-room="living"] #foreground { background: var(--room-image) center / 100% 100%; filter: brightness(.88) saturate(.9); }
+#scene[data-room="living"] #foreground { filter: brightness(.88) saturate(.9); }
+/* Copies of the room art drawn over the player; they crossfade with the room background layers. */
+#foreground > .room-copy { display: none; }
+#scene[data-room="living"] #foreground > .room-copy { display: block; }
 #scene[data-room="outside"].player-behind-cars #foreground { display: block; }
 /* The TV and its cabinet, traced in game.js, cover the player behind them;
-   the channel picture stays on top of the TV. */
-#tv-foreground { display: none; position: absolute; inset: 0; z-index: 109; pointer-events: none; background: var(--room-image) center / 100% 100%; }
-#scene[data-room="living"].player-behind-tv #tv-foreground { display: block; }
+   the channel picture stays on top of the TV. The copy is always shown and only
+   moves above the player, because Chrome draws it a fraction of a pixel apart
+   from the room layer, so showing and hiding it would visibly shift the TV. It
+   sits just above the shoe rack behind it; anyone near enough to overlap it in
+   front stands at depth 72 or more, so the player is only ever drawn over it
+   when in front. */
+#tv-foreground { display: none; position: absolute; inset: 0; z-index: 60; pointer-events: none; }
+#scene[data-room="living"] #tv-foreground { display: block; }
+#scene[data-room="living"] #living-tv { z-index: 61; }
+#scene[data-room="living"].player-behind-tv #tv-foreground { z-index: 109; }
 #scene[data-room="living"].player-behind-tv #living-tv { z-index: 110; }
-/* The bedroom couch, clipped to its traced outline, drawn over the player behind it. */
-#couch-foreground { display: none; position: absolute; inset: 0; z-index: 109; pointer-events: none; background: var(--room-image) center / 100% 100%; }
-#scene[data-room="bedroom"].player-behind-couch #couch-foreground { display: block; }
+/* The bedroom couch, clipped to its traced outline, likewise always shown and
+   moved above the player behind it. */
+#couch-foreground { display: none; position: absolute; inset: 0; z-index: 3; pointer-events: none; }
+#scene[data-room="bedroom"] #couch-foreground { display: block; }
+#scene[data-room="bedroom"].player-behind-couch #couch-foreground { z-index: 109; }
 /* A per-pixel cutout of the three painted cars (scripts/build-outside-car-foreground.py),
    so only car pixels, never road, kerb or grass, are drawn over the player. */
 .outside-cars-foreground { display: none; position: absolute; inset: 0; background: url('assets/used/outside-cars-foreground-v1.png') center / 100% 100% no-repeat; }
 #scene[data-room="outside"].player-behind-cars .outside-cars-foreground { display: block; }
+#scene[data-room="garage"] #foreground { display:block; }
+.garage-car-foreground { display:none; position:absolute; inset:0; background:url('assets/used/workplace-garage-bg-v3.png') center/100% 100% no-repeat; }
+#scene[data-room="garage"] .garage-car-foreground { display:block; }
+.garage-car-left { clip-path:polygon(0 49%,12% 52%,18% 63%,22% 100%,0 100%); }
+.garage-car-right { clip-path:polygon(100% 56%,89% 58%,81% 69%,75% 100%,100% 100%); }
+
+/* The closed leaves sample the native garage painting exactly. A stationary
+   lift interior sits behind them, so only the metal panels move. */
+#garage-elevator { display:none; position:absolute; left:8.6%; top:15.3%; width:10%; height:25.7%; overflow:hidden; pointer-events:none; }
+#scene[data-room="garage"] #garage-elevator { display:block; }
+.garage-elevator-interior { position:absolute; inset:0; z-index:3; background:linear-gradient(90deg,#262a2c 0 11%,#676c6c 12% 14%,#3b4042 15% 85%,#6d7272 86% 88%,#222628 89%),linear-gradient(#777d7d 0 5%,#34393b 6% 78%,#1b1f21 79%); box-shadow:inset 0 0 18px #000,inset 0 14px 12px #dce4dc22; }
+.garage-elevator-interior::before { content:''; position:absolute; left:18%; right:18%; top:7%; height:5%; background:#d9ddd1; box-shadow:0 0 9px #e5ead0aa; }
+.garage-elevator-interior::after { content:''; position:absolute; left:12%; right:12%; bottom:0; height:25%; background:linear-gradient(160deg,#44494a,#25292a); clip-path:polygon(0 18%,100% 0,100% 100%,0 100%); }
+.garage-elevator-leaf { position:absolute; top:0; bottom:0; width:50.1%; z-index:70; background-image:url('assets/used/workplace-garage-bg-v3.png'); background-repeat:no-repeat; background-size:1996% 389.1%; transition:transform .72s cubic-bezier(.45,0,.2,1); backface-visibility:hidden; }
+.garage-elevator-leaf.left { left:0; background-position:9.06% 20.59%; }
+.garage-elevator-leaf.right { right:0; background-position:14.39% 20.59%; }
+#garage-elevator.is-open .garage-elevator-leaf.left { transform:translateX(-101%); }
+#garage-elevator.is-open .garage-elevator-leaf.right { transform:translateX(101%); }
+#garage-elevator.is-closing .garage-elevator-leaf { transition-duration:.72s; }
+#garage-up-indicator { display:none; position:absolute; z-index:72; left:14.15%; top:13.15%; width:.8%; aspect-ratio:1; opacity:0; background:#f3c66a; clip-path:polygon(50% 0,100% 100%,0 100%); filter:drop-shadow(0 0 3px #ffc95a); transition:opacity .15s; pointer-events:none; }
+#scene[data-room="garage"] #garage-up-indicator { display:block; }
+#scene[data-room="garage"] #garage-elevator.is-called ~ #garage-up-indicator { opacity:.95; }
+#garage-camera-light { display:none; position:absolute; z-index:6; left:73.45%; top:5.45%; width:.24%; aspect-ratio:1; border-radius:50%; background:#d92219; box-shadow:0 0 3px #ff2b20; opacity:0; pointer-events:none; }
+#scene[data-room="garage"] #garage-camera-light { display:block; animation:garage-camera-flash 17s step-end infinite; }
+@keyframes garage-camera-flash { 0%,95.7%,96.5%,100% { opacity:0; } 95.9%,96.25% { opacity:.85; } }
+@media (prefers-reduced-motion:reduce) { #garage-camera-light { animation:none !important; } .garage-elevator-leaf { transition-duration:.15s; } }
 #interface { flex: 0 0 auto; display: grid; grid-template-columns: minmax(0, 1.5fr) auto auto; align-items: center; gap: 8px; padding: 6px 8px; max-height: 50%; overflow-y: auto; font-size: 12px; background: linear-gradient(#2d2b29, #1a1a1d); border-top: 2px solid #554f44; }
 #verbs { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)) 32px; gap: 4px; }
 #interface button { min-height: 32px; padding: 5px 8px; white-space: nowrap; border: 1px solid #736653; background: linear-gradient(#393631, #222226); }
@@ -194,6 +258,15 @@ body.game-paused #game *, body.game-paused #game *::before, body.game-paused #ga
 
 /* Inventory is a paused modal. It lives outside #game so its controls remain
    active while the scene and bottom bar are inert. */
+.shoe-choice-overlay { position:fixed; inset:0; z-index:1002; display:grid; place-items:center; padding:16px; background:#050506b8; backdrop-filter:blur(3px); }
+.shoe-choice-overlay[hidden] { display:none; }
+.shoe-choice-panel { width:min(420px,100%); padding:20px; border:1px solid #736653; background:linear-gradient(#26241f,#151517); box-shadow:0 16px 60px #000c; text-align:center; }
+.shoe-choice-panel h2 { margin:0; color:#d4b478; font-size:1.15rem; letter-spacing:.14em; text-transform:uppercase; }
+.shoe-choice-panel p { margin:8px 0 16px; color:#aaa193; }
+.shoe-choice-options { display:grid; gap:7px; }
+.shoe-choice-options button { min-height:38px; padding:7px 12px; border:1px solid #5c5446; background:#1e1d1b; color:#e6dccb; }
+.shoe-choice-options button:hover,.shoe-choice-options button:focus-visible { border-color:#d4b478; background:#3a3226; color:#fff; outline:none; }
+.shoe-choice-options button:disabled { opacity:.38; cursor:default; }
 .inventory-overlay { position:fixed; inset:0; z-index:1000; display:grid; place-items:center; padding:16px; background:#050506b8; backdrop-filter:blur(3px); }
 .inventory-overlay[hidden] { display:none; }
 .inventory-panel { width:min(620px,100%); max-height:min(78vh,680px); overflow-y:auto; padding:18px; border:1px solid #736653; background:linear-gradient(#26241f,#151517); box-shadow:0 16px 60px #000c; }
@@ -212,7 +285,9 @@ body.game-paused #game *, body.game-paused #game *::before, body.game-paused #ga
 .inventory-item-icon.item-toaster { background-image:url('assets/used/lighting/living-master-v2.png'); background-size:2380.952% 1333.333%; background-position:47.286% 32.649%; }
 .inventory-item-icon.item-crumpled-clothes { background-image:url('assets/used/bedroom-crumpled-clothes-v1.png'); background-position:center; background-size:contain; }
 .inventory-item-icon.item-clean-clothes { background-image:url('assets/used/clean-clothes-icon-v1.png'); background-position:center; background-size:contain; }
-.inventory-item-icon.item-socks { background-image:url('assets/used/socks-icon-v1.png'); background-position:center; background-size:contain; }
+.inventory-item-icon.item-socks { background-image:url('assets/used/socks-icon-v2.png'); background-position:center; background-size:contain; }
+.inventory-item-icon.item-work-shoes { background-image:url('assets/used/work-shoes-icon-v2.png'); background-position:center; background-size:contain; }
+.inventory-item-icon.item-sneakers { background-image:url('assets/used/sneakers-icon-v2.png'); background-position:center; background-size:contain; }
 .inventory-item-copy strong { display:block; margin:2px 0 5px; color:#eee2cf; font-size:.95rem; }
 .inventory-item-copy span { color:#aaa193; font-size:.8rem; line-height:1.35; }
 .inventory-use-prompt { margin:0 0 10px; color:#d4b478; font-size:.85rem; }

@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
 const vm = require('node:vm');
-const source = ['rooms.js', 'outside.js', 'street.js', 'alley.js', 'wakeup.js', 'game.js'].map(file => fs.readFileSync(path.join(__dirname, '..', file), 'utf8')).join('\n');
+const source = ['rooms.js', 'outside.js', 'street.js', 'alley.js', 'garage.js', 'wakeup.js', 'game.js'].map(file => fs.readFileSync(path.join(__dirname, '..', file), 'utf8')).join('\n');
 const styles = fs.readFileSync(path.join(__dirname, '..', 'style.css'), 'utf8');
 const markup = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
 
@@ -27,7 +27,7 @@ function game(storage = new Map()) {
   function element() {
     return { style: { setProperty(k, v) { this[k] = v; } }, dataset: {}, attributes: {}, events: {}, children: [],
       classList: { values: new Set(), add(c) { this.values.add(c); }, remove(c) { this.values.delete(c); }, contains(c) { return this.values.has(c); }, toggle(c, on) { on ? this.values.add(c) : this.values.delete(c); } },
-      setAttribute(k, v) { this.attributes[k] = v; }, appendChild(el) { this.children.push(el); }, replaceChildren() { this.children = []; },
+      setAttribute(k, v) { this.attributes[k] = v; }, removeAttribute(k) { delete this.attributes[k]; }, appendChild(el) { this.children.push(el); }, replaceChildren() { this.children = []; },
       addEventListener(k, cb) { this.events[k] = cb; }, querySelector() { return this.child ||= element(); },
       clientWidth: 1000, clientHeight: 562.5, offsetWidth: 240
     };
@@ -1442,7 +1442,8 @@ test('living-room floor reaches the hallway and behind the TV, which hides the p
   g.run('movePlayerTo(91,44)'); g.finish();
   assert.ok(g.get('scene').classList.contains('player-behind-tv'), 'the hallway is behind the TV');
   assert.match(g.get('tv-foreground').style.clipPath, /^polygon\(/);
-  assert.match(styles, /player-behind-tv #tv-foreground \{ display: block; \}/);
+  assert.match(styles, /\[data-room="living"\] #tv-foreground \{ display: block; \}/);
+  assert.match(styles, /player-behind-tv #tv-foreground \{ z-index: 109; \}/);
   // The hotspot follows the TV's outline so the floor behind it stays clickable.
   g.run('buildHotspots()');
   const tvButton = g.get('hotspots').children.find(button => button.dataset.target === 'tv');
@@ -1472,11 +1473,86 @@ test('bedroom floor reaches behind the couch to the TV, and the couch hides the 
   g.run('movePlayerTo(80,92)'); g.finish();
   assert.equal(g.get('scene').classList.contains('player-behind-couch'), false, 'in front of the couch');
   assert.match(g.get('couch-foreground').style.clipPath, /^polygon\(/);
-  assert.match(styles, /player-behind-couch #couch-foreground \{ display: block; \}/);
+  assert.match(styles, /\[data-room="bedroom"\] #couch-foreground \{ display: block; \}/);
+  assert.match(styles, /player-behind-couch #couch-foreground \{ z-index: 109; \}/);
   // The hotspot follows the couch's outline so the floor behind it stays clickable.
   g.run('buildHotspots()');
   const couchButton = g.get('hotspots').children.find(button => button.dataset.target === 'couch');
   assert.match(couchButton.style.clipPath, /^polygon\(/);
   g.run('showRoom("living"); renderPlayer()');
   assert.equal(g.get('scene').classList.contains('player-behind-couch'), false);
+});
+
+test('workplace garage keeps clothing, routes beside the Lonza and completes its temporary elevator ride', () => {
+  const g = game();
+  g.run("gameState.outfit='clean';gameState.socksOn=true;showRoom('garage');Object.assign(movement,{x:24,y:54,facing:'right'});renderPlayer()");
+  assert.equal(g.run('gameState.currentRoom'), 'garage');
+  assert.match(g.get('player').querySelector().style['--player-sheet'], /player-sheet-clean-socks-v19/);
+  assert.deepEqual(JSON.parse(g.run('JSON.stringify(floorPosition(79.2,46))')), { x: 79.2, y: 46 });
+  assert.ok(g.run("playerPerspective('garage',46).width < playerPerspective('outside',55).width"));
+  assert.equal(g.run("roomImageForState('garage')"), 'assets/used/workplace-garage-bg-v3.png');
+  assert.equal(g.run("apartmentRooms.garage.objects.blueCar.walk[0]"), 79.2);
+
+  g.run("setVerb(null);handleTarget('elevatorCall')"); g.finish();
+  assert.equal(g.run('garageSequenceActive'), true);
+  g.advance(650);
+  assert.ok(g.get('garage-elevator').classList.contains('is-called'));
+  g.advance(550);
+  assert.ok(g.get('garage-elevator').classList.contains('is-open'));
+  g.advance(750); g.finish();
+  assert.equal(g.run('movement.y'), 37.2);
+  g.advance(980);
+  assert.ok(g.get('garage-elevator').classList.contains('is-called'), 'up stays lit until the doors have closed');
+  g.advance(100);
+  assert.equal(g.get('garage-elevator').classList.contains('is-called'), false, 'up turns off just after the doors close');
+  g.advance(970);
+  assert.equal(g.run('movement.x'), 20.4);
+  assert.equal(g.run('gameState.currentRoom'), 'garage');
+  assert.match(g.get('player').querySelector().style['--player-sheet'], /player-sheet-clean-socks-v19/);
+  g.advance(680);
+  assert.equal(g.run('garageSequenceActive'), false);
+  assert.equal(g.get('scene').attributes['aria-busy'], undefined);
+  assert.match(styles, /garage-camera-flash 17s/);
+  assert.match(styles, /#garage-up-indicator \{[^}]*left:14\.15%/);
+  assert.match(markup, /id="garage-elevator"/);
+});
+test('the living-room shoe rack offers persistent work shoes and sneakers', () => {
+  const g = game();
+  g.run("showRoom('living');Object.assign(movement,{x:80,y:70});renderPlayer()");
+  assert.equal(g.run("shoesAreOnRack('workShoes') && shoesAreOnRack('sneakers')"), true);
+  assert.equal(g.get('living-shoe-rack').classList.contains('work-shoes-away'), false);
+  assert.equal(g.get('living-shoe-rack').classList.contains('sneakers-away'), false);
+  assert.match(g.run('shoeRackDescription()'), /work shoes and your everyday sneakers/);
+
+  g.run("setVerb('pickup');handleTarget('shoeRack')"); g.finish();
+  assert.equal(g.get('shoeChoiceOverlay').hidden, false);
+  assert.equal(g.run("worldPause.owners.has('shoe-choice')"), true);
+  assert.equal(g.get('takeWorkShoesBtn').disabled, false);
+  assert.equal(g.get('takeSneakersBtn').disabled, false);
+
+  g.run("takeShoesFromRack('workShoes')");
+  assert.equal(g.get('shoeChoiceOverlay').hidden, true);
+  assert.equal(g.run("gameState.inventory.includes('workShoes')"), true);
+  assert.equal(g.run("gameState.itemPlacements.workShoes.kind"), 'inventory');
+  assert.ok(g.get('living-shoe-rack').classList.contains('work-shoes-away'));
+  assert.equal(g.get('living-shoe-rack').classList.contains('sneakers-away'), false);
+
+  g.run("setVerb('use');handleTarget('shoeRack')"); g.finish();
+  assert.equal(g.get('takeWorkShoesBtn').disabled, true);
+  g.run("takeShoesFromRack('sneakers')");
+  assert.equal(g.run("gameState.inventory.includes('sneakers')"), true);
+  assert.ok(g.get('living-shoe-rack').classList.contains('sneakers-away'));
+
+  g.run("placeInventoryItem('workShoes','shoeRack',apartmentRooms.living.objects.shoeRack)");
+  assert.equal(g.run("shoesAreOnRack('workShoes')"), true);
+  assert.equal(g.run("gameState.inventory.includes('workShoes')"), false);
+  assert.equal(g.get('living-shoe-rack').classList.contains('work-shoes-away'), false);
+
+  g.run("saveGame();resetWorldState();loadGame()");
+  assert.equal(g.run("shoesAreOnRack('workShoes')"), true);
+  assert.equal(g.run("gameState.itemPlacements.sneakers.kind"), 'inventory');
+  assert.equal(g.run("gameState.inventory.includes('sneakers')"), true);
+  assert.match(styles, /item-work-shoes[^}]*work-shoes-icon-v2/);
+  assert.match(styles, /item-sneakers[^}]*sneakers-icon-v2/);
+  assert.match(markup, /id="shoeChoiceOverlay"/);
 });
