@@ -1,4 +1,4 @@
-﻿// Coordinates measured against the street painting; original backgrounds stay intact.
+// Coordinates measured against the street painting; original backgrounds stay intact.
 const streetFootY = x => 64 + .09*x;
 const streetDoors = {
   laundry: { panel:[40.67,49,3.72,15.3], x:42.53, threshold:64.3, inside:62.5 },
@@ -113,10 +113,10 @@ function handleStreetTarget(object,verb,onAction) {
     } else if(verb==='close'||verb==='open') {
       showMessage('The sensor keeps the doors open while you stand nearby. Walk into the opening to enter.');return;
     }
-    movePlayerTo(d.x,d.inside,()=>showMessage(key==='laundry'
-      ?'You step inside the Laundry entrance. The machines hum. Click the footpath to step back outside.'
-      :'You step inside Bluestar. Shelves of groceries line the entrance. Click the footpath to step back outside.'));
+    movePlayerTo(d.x,d.inside,()=>{
+      if(key==='bluestar') { travelBluestar('bluestar'); return; }
+      travelLaundry('laundry');
+    });
   });
   return true;
 }
-

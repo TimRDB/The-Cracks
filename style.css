@@ -221,6 +221,12 @@ body.game-started #game { opacity: 1; }
    the stationary parent; this faint transparent sheen is the glass surface. */
 #street-bluestar .street-leaf::after { content:'';position:absolute;inset:5% 11% 9%;pointer-events:none;background:linear-gradient(112deg,transparent 25%,rgba(200,224,234,.055) 43%,transparent 49%); }
 
+.bluestar-foreground { display:none; position:absolute; inset:0; pointer-events:none; background-position:center; background-size:100% 100%; background-repeat:no-repeat; }
+#scene[data-room="bluestar"] .bluestar-foreground { display:block; }
+#bluestar-counter-foreground { z-index:78; background-image:url('assets/used/bluestar-counter-foreground-v2.png'); }
+#bluestar-shelves-foreground { z-index:73; background-image:url('assets/used/bluestar-shelves-foreground-v2.png'); }
+#bluestar-freezer-foreground { z-index:84; background-image:url('assets/used/bluestar-freezer-foreground-v2.png'); }
+
 /* Intro art is a native-size bed-only composite over the untouched bedroom.
    The normal curtain layer stays above it; no filters/resampling are applied. */
 #wakeup-bed { position:absolute;inset:0;z-index:1;background:url('assets/used/bedroom-wakeup-v1.png') center/100% 100% no-repeat; }

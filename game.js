@@ -334,6 +334,16 @@ const playerPerspectiveProfiles = Object.freeze({
     Object.freeze({ y: 64.3, width: 8.5, reference: 'street shop thresholds' }),
     Object.freeze({ y: 74, width: 10.0, reference: 'near footpath' })
   ]) }),
+  bluestar: Object.freeze({ smooth: true, gait: Object.freeze({ pace: .68, stride: .65, depthPace: .74 }), anchors: Object.freeze([
+    Object.freeze({ y: 31, width: 8.2, reference: 'back-wall drinks aisle' }),
+    Object.freeze({ y: 55, width: 11.8, reference: 'central store aisles' }),
+    Object.freeze({ y: 86, width: 17.2, reference: 'entrance mat' })
+  ]) }),
+  laundry: Object.freeze({ smooth: true, gait: Object.freeze({ pace: .68, stride: .65, depthPace: .74 }), anchors: Object.freeze([
+    Object.freeze({ y: 49, width: 10.5, reference: 'back washing machines' }),
+    Object.freeze({ y: 65, width: 13.8, reference: 'folding table aisles' }),
+    Object.freeze({ y: 87, width: 18.3, reference: 'entry mat' })
+  ]) }),
   // Painted height is width * 1.63 percent of the scene height. A 1.8 m player
   // is 1.8 / 1.07 times the 107 px wheelie bins, about 1.85 times the seated
   // man's 180 px, and 86% of the 470 px service door at the foot of its steps.
@@ -400,7 +410,7 @@ function setVerb(verb, options = {}) {
 }
 
 function isContextualDoor(object) {
-  return Boolean(object && (object.portal || object.streetDoor || object.streetExit || object.alleyExit || (object.locked && /door/i.test(object.name))));
+  return Boolean(object && (object.portal || object.streetDoor || object.streetExit || object.alleyExit || object.bluestarExit || object.laundryExit || (object.locked && /door/i.test(object.name))));
 }
 function isLightSwitch(object) {
   return Boolean(object?.lightCircuit && /switch/i.test(object.name));
@@ -435,7 +445,11 @@ function updateStatus(target) {
     return;
   }
   if (isContextualDoor(object)) {
-    const action = object.streetDoor === 'laundry' && gameState.laundryDoorOpen ? 'Close' : 'Open';
+    if (object.laundryExit || object.bluestarExit) {
+      statusText.textContent = 'Exit to street';
+      return;
+    }
+    const action = object.streetDoor === 'laundry' && gameState.laundryDoorOpen ? 'Enter' : 'Open';
     statusText.textContent = `${action} ${object.name}`;
     return;
   }
@@ -999,12 +1013,14 @@ const roomOverlayImages = Object.freeze({
   street: Object.freeze(['assets/used/street_bg.png', 'assets/used/street_doors_open.png', 'assets/used/bluestar-interior-v2.png', 'assets/used/bluestar-door-left-v2.png', 'assets/used/bluestar-door-right-v2.png']),
   living: Object.freeze(['assets/used/living-shoe-rack-v3.png', 'assets/used/work-shoes-icon-v2.png', 'assets/used/sneakers-icon-v2.png']),
   alley: Object.freeze(['assets/used/alley-man-sprite-v6.png']),
+  bluestar: Object.freeze(['assets/used/bluestar-counter-foreground-v2.png', 'assets/used/bluestar-shelves-foreground-v2.png', 'assets/used/bluestar-freezer-foreground-v2.png']),
+  laundry: Object.freeze([]),
   garage: Object.freeze([])
 });
 // Rooms reachable in one step, warmed in advance so exits switch instantly.
 const roomNeighbours = Object.freeze({
   bedroom: ['living'], living: ['bedroom', 'bathroom', 'outside'], bathroom: ['living'],
-  outside: ['living', 'street'], street: ['outside', 'alley'], alley: ['street'], garage: []
+  outside: ['living', 'street'], street: ['outside', 'laundry', 'bluestar', 'alley'], laundry: ['street'], bluestar: ['street'], alley: ['street'], garage: []
 });
 
 function roomAssetPaths(roomId, state = gameState) {
@@ -1413,6 +1429,8 @@ function interact(target, verb) {
   if (fixedReply) { showMessage(fixedReply); return; }
   if (handleAlleyTarget(target, object, verb)) return;
   if (handleStreetTarget(object, verb)) return;
+  if (handleBluestarTarget(object, verb)) return;
+  if (handleLaundryTarget(object, verb)) return;
   if (handleGarageTarget(target, object, verb)) return;
   if (object.locked) {
     if (verb === 'look' || verb === 'walk') showMessage(object.description);
@@ -1485,8 +1503,8 @@ function interact(target, verb) {
 
 const quietTalkTargets = new Set(['tv', 'console', 'channelBox', 'blueCar', 'burgundyCar', 'silverCar', 'parkedCars']);
 const liftBrieflyTargets = new Set(['books', 'guitar', 'towels', 'picture']);
-const heavyObjectPattern = /bed|couch|chair|table|drawers|fridge|freezer|stove|oven|microwave|machine|dumpster|car|bath|toilet|cabinet|bookshelf/i;
-const fixedObjectPattern = /switch|door|window|curtain|sink|basin|mirror|tree|bush|fence|steps|hydrant|lawn|rug|mat|parking|footpath|alley|street/i;
+const heavyObjectPattern = /bed|couch|chair|table|drawers|fridge|freezer|stove|oven|microwave|machine|dumpster|car|bath|toilet|cabinet|bookshelf|counter|shelf|cooler|ATM/i;
+const fixedObjectPattern = /switch|door|window|curtain|sink|basin|mirror|tree|bush|fence|steps|hydrant|lawn|rug|mat|parking|footpath|alley|street|camera|extinguisher|light|terminal|display/i;
 
 function interactionReply(target, object, verb) {
   const custom = object.interactions?.[verb];
@@ -1574,8 +1592,9 @@ function handleTarget(target, event) {
   }
   if (isContextualDoor(object)) {
     const clearSelection = verb === 'use' ? () => setVerb(null) : null;
-    if (object.streetDoor === 'laundry' && gameState.laundryDoorOpen) { handleStreetTarget(object, 'close', clearSelection); return; }
     if (object.alleyExit) { handleAlleyTarget(target, object, 'use', clearSelection); return; }
+    if (object.bluestarExit) { handleBluestarTarget(object, 'use', clearSelection); return; }
+    if (object.laundryExit) { handleLaundryTarget(object, 'use', clearSelection); return; }
     if (object.streetExit || object.streetDoor) { handleStreetTarget(object, 'use', clearSelection); return; }
     walkTo(target, () => { if (clearSelection) clearSelection(); interact(target, 'use'); });
     return;
@@ -1854,6 +1873,7 @@ for (const [target, object] of Object.entries(roomObjects)) {
   button.setAttribute('aria-label', displayName(targetObjectName(target, object)));
   const [left, top, width, height] = object.area;
   Object.assign(button.style, { left: `${left}%`, top: `${top}%`, width: `${width}%`, height: `${height}%` });
+  if (object.hotspotZ) button.style.zIndex = object.hotspotZ;
   if (object.shape) button.style.clipPath = polygonClipPath(object.shape, object.area);
   button.addEventListener('mouseenter', () => updateStatus(target));
   button.addEventListener('focus', () => updateStatus(target));

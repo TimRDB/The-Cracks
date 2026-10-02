@@ -14,6 +14,8 @@ const devScenes = [
   { id: 'bathroom', label: 'Bathroom', note: 'Inside the living room door', start: { x: 32.5, y: 77, facing: 'right' } },
   { id: 'outside', label: 'Apartment forecourt', note: 'On the patio by the front door', start: { x: 73, y: 37.4, facing: 'down' } },
   { id: 'street', label: 'Laundry & Bluestar', note: 'Arriving along the footpath', start: { x: 3, y: streetFootY(3), facing: 'right' } },
+  { id: 'laundry', label: 'Dollar Laundry interior', note: 'Inside the entrance, beside the door mat', start: { x: 50, y: 87, facing: 'up' } },
+  { id: 'bluestar', label: 'Bluestar interior', note: 'Inside the automatic entrance', start: { x: 43, y: 86, facing: 'up' } },
   { id: 'alley', label: 'Bluestar alley', note: 'Looking back toward the street', start: { x: 28.5, y: 48, facing: 'down' } },
   { id: 'garage', label: 'Workplace parking garage', note: 'Beside the elevator and parking bays', start: { x: 24, y: 54, facing: 'right' } }
 ];

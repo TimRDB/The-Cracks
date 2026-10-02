@@ -1,0 +1,27 @@
+# Dollar Laundry interior
+
+The interior was generated with the built-in image generation tool. The user's Laundry exterior screenshot was the identity and front-window reference; the adjacent Bluestar room was the rendering and width reference. All six full-frame generations are preserved under `assets/unused/`. The selected 1672 x 941 master is `laundry-room-source-v6.png`. Source v5 is a rejected darker lighting draft.
+
+Build with `python scripts/build-laundry-room.py`. It copies the master byte for byte to `assets/used/laundry-room-bg-v3.png`. There is no local resampling, supersampling, masking, pixel compositing or PNG re-encoding. The former foreground cutouts and backgrounds remain in `assets/unused/` and are no longer loaded.
+
+## Original concept prompt (superseded)
+
+Use case: stylized-concept. Asset type: finished 16:9 adventure-game room background, no character or UI. Image 1 is the exterior of the small dollar Laundry shop. Image 2 is the adjacent Bluestar interior, a composition and rendering-style reference only. Create a new dollar Laundry interior matching the detailed painterly realistic look, rainy grey daylight, warm fluorescent light, weathered materials, restrained blue-grey palette and floor reflections. Show a slightly elevated cutaway view from the entrance toward the back, with a black buffer around a long, narrow rectangular room. Put rows of round-front stainless washing machines resembling those in the exterior along the left, back and right walls, plus a few stacked dryers. Leave walkable floor along the machines. In the middle place a modest folding table with towels and wire baskets, leaving room on each side. On the right wall mount a clearly separate classic payphone with handset, cord, keypad and coin slot. Add a coin changer, detergent dispenser, $1 WASH price board, WASH DRY FOLD sign, CLEAN BRIGHTER CHEAPER poster, plants, baskets, waiting bench, clock, supplies, bin and noticeboard. Keep one dark bottom-centre door mat and an open entrance, with no visible entry door or gate. No people or UI. Crisp and believable, 1672 x 941.
+
+## Width refinement prompt (superseded)
+
+Use case: precise-object-edit. Edit the first Laundry render while keeping its contents, signs, machine rows, folding table, payphone, lighting and open entrance. The whole cutaway room should span about 78% of the 16:9 canvas width and 90% of its height, with generous pure-black buffers at left and right; Bluestar spans nearly the whole canvas. Recompose the architecture into a narrower, deeper room without squeezing the machines or signs. Keep the central walkway, side aisles and payphone clear. Output 1672 x 941, no people or UI.
+
+## Rectangular full-frame redraw prompt
+
+Use case: precise-object-edit, executed as a coherent full-frame redraw at native 1672 x 941, never a pasted local patch. The first reference is the prior Laundry interior; the second is the Laundry exterior showing baskets on front-window tables and the single narrow entrance. Recreate the prior interior as closely as possible in style, camera, lighting, wall textures, round-front machines, signs, plants, payphone, supplies and bench. Make the entire outer room silhouette a simple rectangle with straight horizontal top and bottom, vertical left and right sides, square corners and black buffer. Narrow the bottom-centre mat to match the exterior single door. Remove the complete central folding table, baskets, towels and legs, replacing them with uninterrupted matching tile. Add a waist-height metal table and white wire basket against the front-left window position and a shorter table with a separate basket against the front-right window position. Keep both side tables out of the centre aisle. Repaint as one consistent image with no seams, soft patches or ghosts. No people, UI, visible entrance door or gate.
+
+## Final full-frame refinement prompt
+
+Use case: precise-object-edit via a unified full-frame redraw. Keep the rectangular silhouette, narrow mat, front-left and front-right basket tables, completely open central floor, all three walls of machines, stacked dryers, signs, plants, detergent dispenser, blue payphone and waiting bench. Use the prior painting only as reference for its blue CHANGE coin machine. Restore a compact changer between the detergent dispenser and payphone, spacing those fixtures naturally. Preserve native 1672 x 941 detail, sharpness and lighting, with no added objects, masks, patchwork, blur or seams.
+
+## Rounded-corner and lighting refinement prompt
+
+Use case: precise-object-edit via one full-frame repaint at native 1672 x 941. The first reference is the rectangular Laundry interior, which supplies the exact layout and objects. The second is the earlier tapered Laundry interior, used only for its slightly dimmer, restrained warm-grey lighting and colour. Keep the first image's straight rectangular room, washer rows, two foreground basket tables, open centre aisle, narrow mat, signage and right-side payphone. Match the older image's modestly subdued brightness without making the scene dark or blue. Round only the four outside corners very lightly (roughly 12 to 20 pixels radius) against the same black surround. Retain fine texture and crisp small details; no seams, blur, patching or added objects.
+
+`laundry.js` defines the open walking floor and 29 inspectable targets. The exterior hinged door opens on entry; the player arrives at the inside mat and can return to the street from it.

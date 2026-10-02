@@ -60,7 +60,7 @@ child.stderr.on('data', chunk => { log += chunk; });
     await until('devTools.open');
     await evaluate("document.getElementById('devSceneSelectBtn').click()");
     assert.equal(await evaluate("document.querySelectorAll('#devSceneList [aria-current]').length"),0);
-    await evaluate("document.querySelector('#devSceneList button:nth-child(7)').click()");
+    await evaluate("document.querySelector('#devSceneList button:nth-child(9)').click()");
     await until("gameState.currentRoom==='alley'"); // Scene Select waits for the scene's images to decode.
     assert.equal(await evaluate("titleScreen.hidden && !game.inert && document.body.classList.contains('game-started')"),true);
     assert.equal(await evaluate('movement.x'),28.5);
@@ -83,7 +83,7 @@ child.stderr.on('data', chunk => { log += chunk; });
     assert.equal(await evaluate("document.getElementById('devTools').hidden"),false);
     await evaluate("document.getElementById('devSceneSelectBtn').click()");
     await capture('developer-tools-scene-select-preview.png');
-    assert.deepEqual(await evaluate("[...document.querySelectorAll('#devSceneList button')].map(b=>b.querySelector('.dev-scene-label').textContent)"),['Wake-up intro','Bedroom','Living room & kitchen','Bathroom','Apartment forecourt','Laundry & Bluestar','Bluestar alley','Workplace parking garage']);
+    assert.deepEqual(await evaluate("[...document.querySelectorAll('#devSceneList button')].map(b=>b.querySelector('.dev-scene-label').textContent)"),['Wake-up intro','Bedroom','Living room & kitchen','Bathroom','Apartment forecourt','Laundry & Bluestar','Dollar Laundry interior','Bluestar interior','Bluestar alley','Workplace parking garage']);
     await evaluate("document.getElementById('devSceneBackBtn').click();document.getElementById('devBackBtn').click()");
     assert.equal(await evaluate('devTools.open'),false);
     await delay(260);

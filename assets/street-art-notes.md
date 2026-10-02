@@ -24,7 +24,7 @@ Use case: precise-object-edit. Edit this game background ONLY inside the two sho
 
 Exit the apartment forecourt to the right along its footpath; return via the street's left edge. Character scale is measured against the smaller shop doors. Routing follows the gently sloped straight footpath, the shop entrances, and the side alley. Cars and bins are kept outside the walkable routes.
 
-The laundry door can open, close and be walked through. Bluestar's centre-opening leaves respond to proximity, without moving the player; clicking the doorway walks across the threshold. Both entrances have a small walkable area just inside the visible doorway. Full shop interior rooms are not part of this exterior scene. Laundry door state is saved; the automatic sensor is recomputed from player position.
+The laundry door can open, close and be walked through. Bluestar's centre-opening leaves respond to proximity, without moving the player; clicking the doorway walks across the threshold. Laundry door state is saved; the automatic sensor is recomputed from player position. Both shops now have separate interior rooms reached from these street entrances.
 
 
 ## Counter and independent door layers (24 September 2026)

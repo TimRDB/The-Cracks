@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
 const vm = require('node:vm');
-const source = ['rooms.js', 'outside.js', 'street.js', 'alley.js', 'garage.js', 'wakeup.js', 'game.js'].map(file => fs.readFileSync(path.join(__dirname, '..', file), 'utf8')).join('\n');
+const source = ['rooms.js', 'outside.js', 'street.js', 'bluestar.js', 'laundry.js', 'alley.js', 'garage.js', 'wakeup.js', 'game.js'].map(file => fs.readFileSync(path.join(__dirname, '..', file), 'utf8')).join('\n');
 const styles = fs.readFileSync(path.join(__dirname, '..', 'style.css'), 'utf8');
 const markup = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
 
@@ -820,7 +820,7 @@ test('street is reached from the right footpath and returns at the left edge', (
   assert.equal(g.run('gameState.currentRoom'),'outside');
   assert.equal(g.run('movement.x'),93);
 });
-test('Bluestar sensor opens without entering and walking crosses its threshold', () => {
+test('Bluestar sensor opens before the player enters the complete store interior', () => {
   const g=game();
   g.run("showRoom('street');Object.assign(movement,{x:56,y:streetFootY(56)});renderPlayer()");
   assert.equal(g.get('street-bluestar').classList.contains('is-open'),false);
@@ -829,24 +829,80 @@ test('Bluestar sensor opens without entering and walking crosses its threshold',
   assert.equal(g.run('movement.x'),62);
   assert.ok(g.run('movement.y > streetDoors.bluestar.threshold'));
   g.run("handleTarget('bluestar')");g.finish();
-  assert.equal(g.run('movement.y'),63.6);
+  assert.equal(g.run('gameState.currentRoom'),'bluestar');
+  assert.equal(g.run('movement.x'),43);
+  assert.equal(g.run('movement.y'),86);
+  assert.equal(g.run("roomObjects.coffeeMachine.name"),'coffee machine');
+  assert.ok(g.run("Object.keys(roomObjects).length >= 30"));
+  assert.ok(g.run("isFloorPoint({x:55,y:80},apartmentRooms.bluestar)"));
+  assert.equal(g.run("isFloorPoint({x:44,y:55},apartmentRooms.bluestar)"),false);
+  g.run("setVerb('use');handleTarget('entrance')");g.finish();
   assert.equal(g.run('gameState.currentRoom'),'street');
-  g.run("movePlayerTo(78,streetFootY(78))");g.finish();
-  assert.equal(g.get('street-bluestar').classList.contains('is-open'),false);
+  assert.equal(g.run('movement.x'),g.run('streetDoors.bluestar.x'));
+  assert.equal(g.run('movement.y'),g.run('streetDoors.bluestar.inside'));
+});
+
+test('Bluestar aisles reach the counter, every shelf face and the drinks wall', () => {
+  const g = game();
+  g.run("showRoom('bluestar');Object.assign(movement,{x:43,y:86})");
+  for (const [x, y] of [[35,55],[35,38],[54.5,52],[55,35],[69.5,52],[84.5,52],[84,76],[43,86]]) {
+    assert.ok(g.run(`isFloorPoint({x:${x},y:${y}},apartmentRooms.bluestar)`), `aisle point ${x},${y} is walkable`);
+    assert.ok(g.run(`apartmentRoute(movement,{x:${x},y:${y}},apartmentRooms.bluestar).every((point,index,route)=>floorSegmentClear(index?route[index-1]:movement,point,apartmentRooms.bluestar))`), `route to ${x},${y} stays in aisles`);
+    g.run(`Object.assign(movement,{x:${x},y:${y}})`);
+  }
+  assert.equal(g.run('isFloorPoint({x:44,y:55},apartmentRooms.bluestar)'), false);
+  assert.ok(g.run('Object.keys(roomObjects).length >= 40'));
+  for (const [key, object] of Object.entries(g.run('roomObjects'))) {
+    assert.ok(g.run(`isFloorPoint({x:${object.walk[0]},y:${object.walk[1]}},apartmentRooms.bluestar)`), `${key} has a reachable interaction point`);
+  }
+  for (const key of ['coffeeMachine','nuts','cashierSpace','cigarettes','vapes','atm','colaDrinks','energyDrinks','water','milk','juice','cannedGoods','flourRice','bread','cleaningGoods','oralCare','paperGoods','electronics','batteries','beer','wine','iceCream']) {
+    assert.ok(g.run(`roomObjects.${key}.description.length > 35`), `${key} has a useful look description`);
+  }
 });
 test('Laundry uses one contextual click to open, enter and persist its door state', () => {
   const g=game();
   g.run("showRoom('street');Object.assign(movement,{x:39,y:streetFootY(39)});setVerb(null);updateStatus('laundry')");
   assert.equal(g.get('statusText').textContent,'Open Laundry glass door');
   g.run("handleTarget('laundry')");g.finish();
+  assert.equal(g.run('gameState.currentRoom'),'laundry');
   assert.equal(g.run('gameState.laundryDoorOpen'),true);
-  assert.equal(g.run('movement.y'),62.5);
+  assert.equal(g.run('movement.x'),50);
+  assert.equal(g.run('movement.y'),87);
   g.run("saveGame();showRoom('bedroom');gameState.laundryDoorOpen=false;loadGame()");
-  assert.equal(g.run('gameState.currentRoom'),'street');
+  assert.equal(g.run('gameState.currentRoom'),'laundry');
   assert.equal(g.run('gameState.laundryDoorOpen'),true);
+  assert.equal(g.run('movement.y'),87);
+  g.run("handleTarget('entrance')");g.finish();
+  assert.equal(g.run('gameState.currentRoom'),'street');
   assert.equal(g.run('movement.y'),62.5);
+  g.run("handleTarget('laundry')");g.finish();
+  assert.equal(g.run('gameState.currentRoom'),'laundry');
   g.run('resetGame()');
   assert.equal(g.run('gameState.laundryDoorOpen'),false);
+});
+
+test('Laundry has a clear centre, two front basket tables and a right-wall payphone', () => {
+  const g=game();
+  g.run("showRoom('laundry');Object.assign(movement,{x:50,y:87})");
+  for (const [x,y] of [[35,78],[38,55],[50,52],[50,60],[64,54],[68,62],[66,83],[50,87]]) {
+    assert.ok(g.run(`isFloorPoint({x:${x},y:${y}},apartmentRooms.laundry)`), `Laundry floor at ${x},${y}`);
+    assert.ok(g.run(`apartmentRoute(movement,{x:${x},y:${y}},apartmentRooms.laundry).every((point,index,route)=>floorSegmentClear(index?route[index-1]:movement,point,apartmentRooms.laundry))`), `route to ${x},${y}`);
+    g.run(`Object.assign(movement,{x:${x},y:${y}})`);
+  }
+  assert.equal(g.run('isFloorPoint({x:25,y:75},apartmentRooms.laundry)'),false);
+  assert.equal(g.run('isFloorPoint({x:75,y:75},apartmentRooms.laundry)'),false);
+  for (const [key, object] of Object.entries(g.run('roomObjects'))) {
+    assert.ok(g.run(`isFloorPoint({x:${object.walk[0]},y:${object.walk[1]}},apartmentRooms.laundry)`), `${key} has a reachable interaction point`);
+    assert.ok(object.description.length > 35, `${key} has a look description`);
+  }
+  assert.ok(g.run('roomObjects.payphone.area[0] > roomObjects.rightMachines.area[0]'));
+  assert.ok(g.run('roomObjects.entrance.area[2] < 18'));
+  assert.ok(g.run('roomObjects.frontLeftTable.area[0] < roomObjects.entrance.area[0]'));
+  assert.ok(g.run('roomObjects.frontRightTable.area[0] > roomObjects.entrance.area[0]'));
+  assert.equal(g.run('Object.hasOwn(roomObjects,"foldingTable")'),false);
+  const source = fs.readFileSync(path.join(__dirname, '..', 'assets', 'unused', 'laundry-room-source-v6.png'));
+  const used = fs.readFileSync(path.join(__dirname, '..', 'assets', 'used', 'laundry-room-bg-v3.png'));
+  assert.equal(crypto.createHash('sha256').update(source).digest('hex'), crypto.createHash('sha256').update(used).digest('hex'), 'the displayed PNG is a byte-for-byte copy of the generated master');
 });
 test('street routes stay on the pavement and alley instead of cutting across bins or shops', () => {
   const g=game();
@@ -923,7 +979,9 @@ test('room switches wait for every destination asset, then change in one step', 
   assert.equal(g.run('movement.x'), 87.5);
   // Every neighbour of a room is warmed, so exits normally switch instantly.
   assert.equal(g.run('roomNeighbours.alley.join()'), 'street');
-  assert.equal(g.run('roomNeighbours.street.join()'), 'outside,alley');
+  assert.equal(g.run('roomNeighbours.street.join()'), 'outside,laundry,bluestar,alley');
+  assert.equal(g.run('roomNeighbours.laundry.join()'), 'street');
+  assert.equal(g.run('roomNeighbours.bluestar.join()'), 'street');
 });
 
 test('Bluestar alley uses a stable two-frame transparent blink sprite', () => {
