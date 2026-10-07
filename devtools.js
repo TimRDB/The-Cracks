@@ -3,6 +3,12 @@ const devMenu = document.getElementById('devMenu');
 const devSceneSelect = document.getElementById('devSceneSelect');
 const devSceneList = document.getElementById('devSceneList');
 const devStats = document.getElementById('devStats');
+const devMessages = document.getElementById('devMessages');
+const devMessageList = document.getElementById('devMessageList');
+const devMessageSearch = document.getElementById('devMessageSearch');
+const devMessageFilters = document.getElementById('devMessageFilters');
+let devMessageEntries = [];
+const devMessageCategories = new Set(Object.keys(messageCategories));
 const devTools = { open: false, fromTitle: false, paused: null, previousFocus: null };
 
 // Where the player stands when each scene starts: the new-game pose, or the
@@ -33,11 +39,68 @@ function showDevScreen(screen) {
   devMenu.hidden = screen !== devMenu;
   devSceneSelect.hidden = screen !== devSceneSelect;
   devStats.hidden = screen !== devStats;
+  devMessages.hidden = screen !== devMessages;
   screen.querySelector('button')?.focus();
 }
 function activeDevScreen() {
-  return [devMenu, devSceneSelect, devStats].find(screen => !screen.hidden) || devMenu;
+  return [devMenu, devSceneSelect, devStats, devMessages].find(screen => !screen.hidden) || devMenu;
 }
+
+function renderDevMessages() {
+  const visible = filterMessageCatalog(devMessageEntries, devMessageCategories, devMessageSearch.value || '');
+  document.getElementById('devMessageCount').textContent = `${visible.length} of ${devMessageEntries.length} entries`;
+  const fragment = document.createDocumentFragment();
+  for (const entry of visible) {
+    const row = document.createElement('article');
+    row.className = 'dev-message-row';
+    const text = document.createElement('p'); text.textContent = entry.text;
+    const trigger = document.createElement('small'); trigger.textContent = entry.trigger;
+    const metadata = document.createElement('small');
+    metadata.textContent = `${entry.categories.map(category => messageCategories[category] || category).join(', ')} • ${entry.speaker}${entry.template ? ' • Template' : ''}`;
+    row.append(text, trigger, metadata);
+    if (entry.definition) {
+      const source = document.createElement('details');
+      const summary = document.createElement('summary'); summary.textContent = 'Code definition';
+      const code = document.createElement('small'); code.textContent = entry.definition;
+      source.append(summary, code); row.append(source);
+    }
+    fragment.append(row);
+  }
+  if (!visible.length) {
+    const empty = document.createElement('p'); empty.className = 'dev-message-row';
+    empty.textContent = 'No messages match these filters.'; fragment.append(empty);
+  }
+  devMessageList.replaceChildren(fragment);
+  devMessageList.scrollTop = 0;
+}
+
+function openDevMessages() {
+  devMessageEntries = buildMessageCatalog();
+  devMessageFilters.replaceChildren();
+  const legend = document.createElement('legend'); legend.textContent = 'Categories'; devMessageFilters.append(legend);
+  for (const [category, name] of Object.entries(messageCategories)) {
+    const label = document.createElement('label');
+    const toggle = document.createElement('input'); toggle.type = 'checkbox';
+    toggle.checked = devMessageCategories.has(category);
+    toggle.addEventListener('change', () => {
+      if (toggle.checked) devMessageCategories.add(category); else devMessageCategories.delete(category);
+      renderDevMessages();
+    });
+    label.append(toggle, document.createTextNode(name)); devMessageFilters.append(label);
+  }
+  renderDevMessages(); showDevScreen(devMessages); devMessageSearch.focus();
+}
+devMessageSearch.addEventListener('input', renderDevMessages);
+function selectDevMessageCategories(all) {
+  devMessageCategories.clear();
+  if (all) Object.keys(messageCategories).forEach(category => devMessageCategories.add(category));
+  for (const input of devMessageFilters.querySelectorAll('input')) input.checked = all;
+  renderDevMessages();
+}
+document.getElementById('devMessageAllBtn').addEventListener('click', () => selectDevMessageCategories(true));
+document.getElementById('devMessageNoneBtn').addEventListener('click', () => selectDevMessageCategories(false));
+document.getElementById('devMessagesBtn').addEventListener('click', openDevMessages);
+document.getElementById('devMessagesBackBtn').addEventListener('click', () => showDevScreen(devMenu));
 
 // Available on the title screen and throughout play; only the brief New Game
 // fade (title leaving, game not yet started) is excluded.
@@ -163,7 +226,7 @@ window.addEventListener('keydown', event => {
     return;
   }
   if (devTools.open && event.key === 'Tab') {
-    const buttons=[...activeDevScreen().querySelectorAll('button')];
+    const buttons=[...activeDevScreen().querySelectorAll('button, input, [tabindex="0"], summary')];
     const index=buttons.indexOf(document.activeElement);
     event.preventDefault();
     buttons[(index+(event.shiftKey?-1:1)+buttons.length)%buttons.length]?.focus();

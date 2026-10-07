@@ -57,6 +57,7 @@ child.stderr.on('data', chunk => { log += chunk; });
     assert.equal(await evaluate('gameTimers.paused'), true);
     assert.equal(await evaluate('movement.frame'), null);
     assert.equal(await evaluate('gameState.livingMainLightOn'), true);
+
     assert.equal(await evaluate('inventoryOverlay.hidden'), false);
     assert.equal(await evaluate("document.querySelectorAll('.inventory-card').length"), 1);
     assert.match(await evaluate("getComputedStyle(document.querySelector('.inventory-item-icon')).backgroundImage"), /living-master-v2/);
@@ -72,13 +73,31 @@ child.stderr.on('data', chunk => { log += chunk; });
 
     await evaluate("inventoryBtn.click();inventoryPlaceBtn.click();document.querySelector('.inventory-card').click();handleTarget('counter')");
     await until('movement.destination===null');
-    assert.equal(await evaluate('gameState.inventory.length'), 0);
-    assert.equal(await evaluate('gameState.itemPlacements.toaster.target'), 'counter');
+    assert.equal(await evaluate('gameState.inventory.length'), 1);
+    assert.ok(["That's not where it goes.", "It doesn't go there.", "You don't want to put it there."].includes(await evaluate('messageBox.textContent')));
+    assert.equal(await evaluate('gameState.itemPlacements.toaster.kind'), 'inventory');
     assert.equal(await evaluate('gameState.toasterTaken'), true);
     await evaluate("saveGame();resetWorldState();showRoom('bedroom');loadGame()");
     await until("gameState.currentRoom==='living'");
-    assert.equal(await evaluate('gameState.itemPlacements.toaster.target'), 'counter');
+    assert.equal(await evaluate('gameState.itemPlacements.toaster.kind'), 'inventory');
     assert.equal(await evaluate('gameState.livingMainLightOn'), true);
+
+    await evaluate("setVerb('use');handleTarget('entryBottomDrawer')");
+    await until("gameState.inventory.includes('extensionCord')");
+    await evaluate("inventoryBtn.click();inventoryPlaceBtn.click();selectInventoryItem('extensionCord');document.querySelector('[data-target=counter]').click()");
+    await until('movement.destination===null');
+    assert.ok(["That's not where it goes.", "It doesn't go there.", "You don't want to put it there."].includes(await evaluate('messageBox.textContent')));
+    assert.equal(await evaluate("gameState.inventory.includes('extensionCord')"), true);
+    await evaluate("showRoom('bedroom');document.querySelector('[data-target=drawers]').click()");
+    await until('movement.destination===null');
+    assert.ok(["That's not where it goes.", "It doesn't go there.", "You don't want to put it there."].includes(await evaluate('messageBox.textContent')));
+    assert.equal(await evaluate("gameState.inventory.includes('extensionCord')"), true);
+    await evaluate("showRoom('living');updateStatus('entryTopDrawer')");
+    assert.equal(await evaluate('statusText.textContent'), 'Place extension cord in drawers');
+    await evaluate("document.querySelector('[data-target=entryTopDrawer]').click()");
+    await until('movement.destination===null');
+    assert.equal(await evaluate('messageBox.textContent'), 'You place the extension cord in the bottom drawer.');
+    assert.equal(await evaluate('gameState.itemPlacements.extensionCord.target'), 'entryBottomDrawer');
 
     await evaluate("showRoom('bedroom');setVerb(null);wearCleanClothes()");
     await until("gameState.outfit==='clean'&&!wardrobeChanging");

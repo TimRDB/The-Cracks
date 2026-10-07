@@ -166,6 +166,7 @@
         <div class="dev-options">
           <button id="devSceneSelectBtn" class="dev-choice">Scene Select</button>
           <button id="devStatsBtn" class="dev-choice">Character Stats</button>
+          <button id="devMessagesBtn" class="dev-choice">Message List</button>
           <button id="devHighlightObjectsBtn" class="dev-choice" aria-pressed="false">Highlight Objects: Off</button>
         </div>
         <button id="devBackBtn" class="dev-choice dev-back">Back</button>
@@ -180,6 +181,21 @@
         <div class="dev-stats-empty" aria-label="No character statistics configured yet"></div>
         <button id="devStatsBackBtn" class="dev-choice dev-back">Back</button>
       </section>
+      <section id="devMessages" class="dev-screen" aria-labelledby="devMessagesHeading" hidden>
+        <h2 id="devMessagesHeading">Message List</h2>
+        <p class="dev-message-note">Rebuilt from the loaded game whenever opened. Templates use {braces} for variable text; conditions show when each message appears.</p>
+        <label class="dev-message-search">Search messages, triggers or speakers
+          <input id="devMessageSearch" type="search" placeholder="e.g. toaster, door, Owen">
+        </label>
+        <fieldset id="devMessageFilters"><legend>Categories</legend></fieldset>
+        <div class="dev-message-filter-actions">
+          <button id="devMessageAllBtn" class="dev-choice">All categories</button>
+          <button id="devMessageNoneBtn" class="dev-choice">Clear categories</button>
+        </div>
+        <p id="devMessageCount" role="status"></p>
+        <div id="devMessageList" tabindex="0" aria-label="Game messages"></div>
+        <button id="devMessagesBackBtn" class="dev-choice dev-back">Back</button>
+      </section>
     </div>
   </div>
   <script src="rooms.js"></script>
@@ -191,6 +207,9 @@
   <script src="garage.js"></script>
   <script src="wakeup.js"></script>
   <script src="game.js"></script>
+  <script src="object-interactions.js"></script>
+  <script src="vendor/acorn.js"></script>
+  <script src="message-catalog.js"></script>
   <script src="devtools.js"></script>
 </body>
 </html>

@@ -26,7 +26,7 @@ apartmentRooms.alley = {
     // over the shelter, sleeping bag and bags he sits among.
     man: {
       ...item('man sheltering in the alley', [42.5, 36, 14.5, 24], [42, 64], 'A bearded man in an olive rain jacket sits on flattened cardboard beside the wall.'),
-      alleyPerson: true
+      alleyPerson: true, speaker: 'Owen'
     }
   }
 };

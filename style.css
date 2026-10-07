@@ -260,6 +260,18 @@ body.game-paused #game *, body.game-paused #game *::before, body.game-paused #ga
 .dev-scene[aria-current="true"] { border-color: #8a7550; }
 .dev-scene-note { color: #9d9484; font-size: .78rem; }
 .dev-back { align-items: center; margin-top: 6px; letter-spacing: .1em; text-transform: uppercase; }
+.dev-panel:has(#devMessages:not([hidden])) { width: min(1000px, 100%); }
+.dev-message-note, #devMessageCount { margin: 0; color: #b9b0a2; font-size: .8rem; line-height: 1.5; }
+.dev-message-search { display: grid; gap: 6px; color: #e6dccb; font-size: .85rem; }
+#devMessageSearch { width: 100%; box-sizing: border-box; padding: 9px; background: #111113; color: #fff; border: 1px solid #736653; font: inherit; }
+#devMessageFilters { display: flex; flex-wrap: wrap; gap: 8px 14px; border: 1px solid #5c5446; color: #e6dccb; font-size: .8rem; }
+#devMessageFilters label { display: flex; align-items: center; gap: 4px; }
+.dev-message-filter-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.dev-message-filter-actions .dev-choice { min-height: 30px; font-size: .8rem; }
+#devMessageList { overflow-y: auto; max-height: 48vh; min-height: 140px; border: 1px solid #5c5446; background: #111113; overscroll-behavior: contain; }
+.dev-message-row { padding: 12px; border-bottom: 1px solid #37332c; }
+.dev-message-row p { margin: 0 0 5px; color: #eee5d5; white-space: pre-wrap; overflow-wrap: anywhere; }
+.dev-message-row small { display: block; color: #aea391; line-height: 1.5; overflow-wrap: anywhere; }
 
 
 /* Inventory is a paused modal. It lives outside #game so its controls remain
@@ -294,6 +306,7 @@ body.game-paused #game *, body.game-paused #game *::before, body.game-paused #ga
 .inventory-item-icon.item-socks { background-image:url('assets/used/socks-icon-v2.png'); background-position:center; background-size:contain; }
 .inventory-item-icon.item-work-shoes { background-image:url('assets/used/work-shoes-icon-v2.png'); background-position:center; background-size:contain; }
 .inventory-item-icon.item-sneakers { background-image:url('assets/used/sneakers-icon-v2.png'); background-position:center; background-size:contain; }
+.inventory-item-icon.item-extension-cord { background-image:url('assets/used/extension-cord-icon-v15.png'); background-position:center; background-size:contain; }
 .inventory-item-copy strong { display:block; margin:2px 0 5px; color:#eee2cf; font-size:.95rem; }
 .inventory-item-copy span { color:#aaa193; font-size:.8rem; line-height:1.35; }
 .inventory-use-prompt { margin:0 0 10px; color:#d4b478; font-size:.85rem; }

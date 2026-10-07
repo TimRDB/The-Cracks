@@ -174,13 +174,13 @@ const gameState = {
   alleyManSpoken: false,
   alleyManCoffeeRequested: false,
   inventory: [],
-  itemPlacements: { toaster: { kind: 'world', room: 'living', target: 'toaster' }, keys: { kind: 'world', room: 'living', target: 'keys' }, workShoes: { kind: 'world', room: 'living', target: 'shoeRack' }, sneakers: { kind: 'world', room: 'living', target: 'shoeRack' }, crumpledClothes: { kind: 'world', room: 'bedroom', target: 'crumpledClothes' }, cleanClothes: { kind: 'stored', room: 'bedroom', target: 'cupboard' }, socks: { kind: 'stored', room: 'bedroom', target: 'drawers' } }
+  itemPlacements: { extensionCord: { kind: 'world', room: 'living', target: 'entryBottomDrawer' }, toaster: { kind: 'world', room: 'living', target: 'toaster' }, keys: { kind: 'world', room: 'living', target: 'keys' }, workShoes: { kind: 'world', room: 'living', target: 'shoeRack' }, sneakers: { kind: 'world', room: 'living', target: 'shoeRack' }, crumpledClothes: { kind: 'world', room: 'bedroom', target: 'crumpledClothes' }, cleanClothes: { kind: 'stored', room: 'bedroom', target: 'cupboard' }, socks: { kind: 'stored', room: 'bedroom', target: 'drawers' } }
 };
 const initialWorldState = Object.freeze(Object.fromEntries(Object.entries(gameState).filter(([key]) => !['currentRoom', 'inventory', 'itemPlacements'].includes(key))));
 function resetWorldState() {
   Object.assign(gameState, initialWorldState, {
     inventory: [],
-    itemPlacements: { toaster: { kind: 'world', room: 'living', target: 'toaster' }, keys: { kind: 'world', room: 'living', target: 'keys' }, workShoes: { kind: 'world', room: 'living', target: 'shoeRack' }, sneakers: { kind: 'world', room: 'living', target: 'shoeRack' }, crumpledClothes: { kind: 'world', room: 'bedroom', target: 'crumpledClothes' }, cleanClothes: { kind: 'stored', room: 'bedroom', target: 'cupboard' }, socks: { kind: 'stored', room: 'bedroom', target: 'drawers' } }
+    itemPlacements: { extensionCord: { kind: 'world', room: 'living', target: 'entryBottomDrawer' }, toaster: { kind: 'world', room: 'living', target: 'toaster' }, keys: { kind: 'world', room: 'living', target: 'keys' }, workShoes: { kind: 'world', room: 'living', target: 'shoeRack' }, sneakers: { kind: 'world', room: 'living', target: 'shoeRack' }, crumpledClothes: { kind: 'world', room: 'bedroom', target: 'crumpledClothes' }, cleanClothes: { kind: 'stored', room: 'bedroom', target: 'cupboard' }, socks: { kind: 'stored', room: 'bedroom', target: 'drawers' } }
   });
 }
 
@@ -229,7 +229,7 @@ apartmentRooms.bedroom = {
 };
 let roomObjects = bedroomObjects;
 let transition = null;
-const channels = ['Weather: another grey morning', 'Cooking: something better than toast', 'Films: an old black-and-white favourite'];
+const channels = ['Weather: another grey morning.', 'Cooking: something better than toast.', 'Films: an old black-and-white favourite.'];
 const verbNames = { pickup: 'Pick up', place: 'Place', look: 'Look at', use: 'Use', talk: 'Talk to' };
 const displayName = value => value ? value.charAt(0).toUpperCase() + value.slice(1) : '';
 const objectDisplayName = object => displayName(object?.name || '');
@@ -255,6 +255,12 @@ const itemDefinitions = Object.freeze({
     description: 'Your apartment keys on a small metal ring.',
     source: Object.freeze({ room: 'living', target: 'keys' }),
     iconClass: 'item-keys'
+  }),
+  extensionCord: Object.freeze({
+    name: 'extension cord',
+    description: 'A five metre extension cord.',
+    source: Object.freeze({ room: 'living', target: 'entryBottomDrawer' }),
+    iconClass: 'item-extension-cord'
   }),
   crumpledClothes: Object.freeze({
     name: 'crumpled clothes',
@@ -289,9 +295,14 @@ const itemDefinitions = Object.freeze({
 });
 const placementTargets = Object.freeze({
   bedroom: Object.freeze({ crumpledClothes: 'on', drawers: 'in', cupboard: 'in' }),
-  living: Object.freeze({ toaster: 'on', keys: 'on', shoeRack: 'on', counter: 'in', fridge: 'in', freezer: 'in', entryDrawers: 'in' }),
+  living: Object.freeze({ toaster: 'on', keys: 'on', shoeRack: 'on', counter: 'in', fridge: 'in', freezer: 'in', entryDrawers: 'in', entryBottomDrawer: 'in' }),
   bathroom: Object.freeze({ sink: 'in' })
 });
+const placementRefusals = Object.freeze([
+  "That's not where it goes.",
+  "It doesn't go there.",
+  "You don't want to put it there."
+]);
 // Empty registration point for later character statistics. No stats are
 // defined or updated yet; the save envelope and developer screen can adopt
 // definitions later without another format migration.
@@ -415,10 +426,29 @@ function isContextualDoor(object) {
 function isLightSwitch(object) {
   return Boolean(object?.lightCircuit && /switch/i.test(object.name));
 }
-function fixedContextualReply(verb) {
-  if (verb === 'talk') return "You don't feel like talking to that right now.";
-  if (verb === 'pickup') return "It can't be picked up without power tools.";
-  if (verb === 'place') return "It's already there.";
+function isDrawer(object) {
+  return /\bdrawers?\b/i.test(object?.name || '');
+}
+function isExtensionCordDrawer(target, room = gameState.currentRoom) {
+  return room === 'living' && ['entryDrawers', 'entryTopDrawer', 'entrySecondDrawer', 'entryThirdDrawer', 'entryBottomDrawer'].includes(target);
+}
+function placementPreposition(target, object, room = gameState.currentRoom) {
+  return object?.placementPreposition || placementTargets[room]?.[target] ||
+    (['drawer', 'cabinet', 'cooler', 'washer', 'dryer', 'basket', 'bin', 'car'].includes(object?.kind) ? 'in' : 'on');
+}
+function itemPlacementDestination(id, target, room = gameState.currentRoom) {
+  const source = itemDefinitions[id]?.source;
+  if (!source) return null;
+  if (source.room === room && source.target === target) return source;
+  if (id === 'extensionCord' && isExtensionCordDrawer(target, room)) return source;
+  return null;
+}
+function fixedContextualReply(verb, object) {
+  if (!['talk', 'pickup', 'place'].includes(verb)) return null;
+  if (object?.interactions?.[verb]) return object.interactions[verb];
+  if (verb === 'talk') return `You have nothing to say to the ${object?.name || 'fixture'}.`;
+  if (verb === 'pickup') return `You leave the ${object?.name || 'fixture'} in place.`;
+  if (verb === 'place') return 'Choose an item from Inventory to place.';
   return null;
 }
 function itemAtTarget(room, target) {
@@ -431,6 +461,22 @@ function targetObjectName(target, object = roomObjects[target]) {
 function updateStatus(target) {
   const object = target && roomObjects[target];
   const objectName = targetObjectName(target, object);
+  const itemId = interactionSelection.itemId;
+  if (itemId && gameState.selectedVerb === 'place') {
+    if (itemId === 'extensionCord' && isExtensionCordDrawer(target)) {
+      statusText.textContent = 'Place extension cord in drawers';
+      return;
+    }
+    const preposition = placementPreposition(target, object);
+    statusText.textContent = object
+      ? `Place ${itemDefinitions[itemId].name} ${preposition} ${object.placementName || objectName}`
+      : `Place ${itemDefinitions[itemId].name} in/on _`;
+    return;
+  }
+  if (itemId && gameState.selectedVerb === 'use') {
+    statusText.textContent = `Use ${itemDefinitions[itemId].name} with ${objectName || '_'}`;
+    return;
+  }
   if (object?.garageCall) {
     statusText.textContent = gameState.selectedVerb ? `${verbNames[gameState.selectedVerb]} ${objectName}` : 'Call elevator';
     return;
@@ -461,20 +507,8 @@ function updateStatus(target) {
     statusText.textContent = `Look at ${objectName}`;
     return;
   }
-  const itemId = interactionSelection.itemId;
-  if (itemId && gameState.selectedVerb === 'use') {
-    statusText.textContent = `Use ${itemDefinitions[itemId].name} with ${objectName || '_'}`;
-    return;
-  }
-  if (itemId && gameState.selectedVerb === 'place') {
-    const preposition = target && placementTargets[gameState.currentRoom]?.[target];
-    statusText.textContent = preposition
-      ? `Place ${itemDefinitions[itemId].name} ${preposition} ${object.placementName || objectName}`
-      : `Place ${itemDefinitions[itemId].name} in/on _`;
-    return;
-  }
   const locatedItem = target && itemAtTarget(gameState.currentRoom, target);
-  if (gameState.selectedVerb === 'pickup' && locatedItem) {
+  if (gameState.selectedVerb === 'pickup' && locatedItem && !isDrawer(object)) {
     statusText.textContent = `Pick up ${itemDefinitions[locatedItem].name}`;
     return;
   }
@@ -510,9 +544,9 @@ function renderInventory() {
     const copy = document.createElement('span');
     copy.className = 'inventory-item-copy';
     const name = document.createElement('strong');
-    name.textContent = item.name[0].toUpperCase() + item.name.slice(1);
+    name.textContent = displayName(item.name);
     const description = document.createElement('span');
-    description.textContent = gameState.itemPlacements[id]?.kind === 'worn' ? 'You are wearing these' : item.description;
+    description.textContent = gameState.itemPlacements[id]?.kind === 'worn' ? 'You are wearing these.' : item.description;
     copy.appendChild(name); copy.appendChild(description);
     card.appendChild(icon); card.appendChild(copy);
     card.addEventListener('click', () => selectInventoryItem(id));
@@ -722,17 +756,38 @@ function selectInventoryItem(id) {
   updateStatus();
 }
 function pickUpItemAt(target, object = roomObjects[target]) {
+  if (isDrawer(object)) { showMessage("You don't want to pick up the drawer."); return; }
   const id = itemAtTarget(gameState.currentRoom, target);
   if (!id) { showMessage(interactionReply(target, object, 'pickup')); return; }
+  takeWorldItem(id, target);
+}
+function takeWorldItem(id, target) {
+  if (gameState.itemPlacements[id]?.kind !== 'world' || gameState.inventory.includes(id)) return;
   gameState.inventory = [...gameState.inventory, id];
   gameState.itemPlacements = { ...gameState.itemPlacements, [id]: { kind: 'inventory' } };
   syncPortableState(); syncRoom(); renderInventory(); updateStatus(target);
   showMessage(`You pick up the ${itemDefinitions[id].name}.`);
 }
 function placeInventoryItem(id, target, object) {
+  if (!itemDefinitions[id] || !gameState.inventory.includes(id)) {
+    showMessage('You are not carrying that item.');
+    return;
+  }
+  const destination = itemPlacementDestination(id, target);
+  if (!destination) {
+    showMessage(placementRefusal());
+    return;
+  }
+  if (id === 'extensionCord' && isExtensionCordDrawer(target)) {
+    gameState.inventory = gameState.inventory.filter(item => item !== id);
+    gameState.itemPlacements = { ...gameState.itemPlacements, [id]: { kind: 'world', room: 'living', target: 'entryBottomDrawer' } };
+    interactionSelection.itemId = null;
+    syncPortableState(); syncRoom(); renderInventory(); updateStatus(target);
+    showMessage('You place the extension cord in the bottom drawer.');
+    return;
+  }
   const placement = gameState.itemPlacements[id];
   if (placement?.kind === 'worn' && id === 'crumpledClothes') {
-    if (gameState.currentRoom !== 'bedroom' || target !== 'crumpledClothes') { showMessage('You need the clear patch of carpet beside the bed to take those off.'); return; }
     changeWardrobe(() => {
       gameState.outfit = 'underwear';
       gameState.inventory = gameState.inventory.filter(item => item !== id);
@@ -743,27 +798,47 @@ function placeInventoryItem(id, target, object) {
     return;
   }
   if (placement?.kind === 'worn' && id === 'cleanClothes') {
-    if (gameState.currentRoom !== 'bedroom' || target !== 'cupboard') { showMessage('The clean clothes belong back in the wardrobe.'); return; }
     putCleanClothesAway();
     return;
   }
   if (placement?.kind === 'worn' && id === 'socks') {
-    if (gameState.currentRoom !== 'bedroom' || target !== 'drawers') { showMessage('The socks belong back in the chest of drawers.'); return; }
     putSocksAway();
     return;
   }
-  const preposition = placementTargets[gameState.currentRoom]?.[target];
-  if (!preposition) { showMessage(`You cannot place the ${itemDefinitions[id].name} there.`); return; }
+  const preposition = placementTargets[destination.room]?.[destination.target];
+  if (!preposition) { showMessage(placementRefusal()); return; }
   gameState.inventory = gameState.inventory.filter(item => item !== id);
-  gameState.itemPlacements = { ...gameState.itemPlacements, [id]: { kind: 'world', room: gameState.currentRoom, target } };
+  gameState.itemPlacements = { ...gameState.itemPlacements, [id]: { kind: 'world', room: destination.room, target: destination.target } };
   interactionSelection.itemId = null;
   syncPortableState(); syncRoom(); renderInventory(); updateStatus(target);
   showMessage(`You place the ${itemDefinitions[id].name} ${preposition} the ${object.placementName || object.name}.`);
 }
 function useInventoryItem(id, target, object) {
-  showMessage(`You cannot use the ${itemDefinitions[id].name} with the ${object.name} yet.`);
+  showMessage(inventoryUseReply(id, target, object));
   interactionSelection.itemId = null;
   updateStatus(target);
+}
+function inventoryUseReply(id, target, object) {
+  const name = itemDefinitions[id].name;
+  if (id === 'extensionCord' && object === apartmentRooms.living.objects.powerOutlet) {
+    return 'The extension cord needs something to supply power to before you plug it in.';
+  } else if (id === 'keys' && object.kind === 'door') {
+    return object.locked ? 'These are your apartment keys, not the keys to this door.' : 'You do not need your keys to open this door from here.';
+  } else if (id === 'keys' && object.kind === 'car') {
+    return 'Your apartment keys do not fit this car.';
+  } else if (id === 'extensionCord' && ['appliance', 'device', 'screen'].includes(object.kind)) {
+    return `The ${object.name} already has power. You don't need the extension cord here.`;
+  } else if (object.kind === 'washer' || object.kind === 'dryer') {
+    return `You don't want to put the ${name} through a laundry cycle here.`;
+  } else if (object.kind === 'stock') {
+    return `You don't need the ${name} to inspect the shop's stock.`;
+  } else if (object.kind === 'person') {
+    return `You keep the ${name}. You can talk to ${object.speaker || object.name} instead.`;
+  }
+  return `You can't find a sensible use for the ${name} with the ${object.name}.`;
+}
+function placementRefusal() {
+  return placementRefusals[Math.floor(Math.random() * placementRefusals.length)];
 }
 
 function showMessage(text, duration = 3200) {
@@ -1087,9 +1162,9 @@ function syncRoom(options = {}) {
   curtainToggle.setAttribute('aria-expanded', String(curtainsOpen));
   curtainToggle.hidden = !bedroom;
   const summaries = {
-    bedroom: `${curtainsOpen ? 'Curtains open' : 'Curtains closed'} ? Main ${gameState.bedroomMainLightOn ? 'on' : 'off'}`,
-    living: `${curtainsOpen ? 'Curtains open' : 'Curtains closed'} ? Main ${gameState.livingMainLightOn ? 'on' : 'off'} ? Bench ${gameState.kitchenLightsOn ? 'on' : 'off'} ? Hall ${gameState.hallwayLightOn ? 'on' : 'off'}`,
-    bathroom: `${curtainsOpen ? 'Curtains open' : 'Curtains closed'} ? Main ${gameState.bathroomMainLightOn ? 'on' : 'off'}`
+    bedroom: `${curtainsOpen ? 'Curtains open' : 'Curtains closed'} · main ${gameState.bedroomMainLightOn ? 'on' : 'off'}`,
+    living: `${curtainsOpen ? 'Curtains open' : 'Curtains closed'} · main ${gameState.livingMainLightOn ? 'on' : 'off'} · bench ${gameState.kitchenLightsOn ? 'on' : 'off'} · hall ${gameState.hallwayLightOn ? 'on' : 'off'}`,
+    bathroom: `${curtainsOpen ? 'Curtains open' : 'Curtains closed'} · main ${gameState.bathroomMainLightOn ? 'on' : 'off'}`
   };
   roomLight.textContent = summaries[gameState.currentRoom] || apartmentRooms[gameState.currentRoom].name;
   const screen = document.getElementById('living-tv');
@@ -1425,7 +1500,7 @@ function interact(target, verb) {
   if (wakeup.active) return;
   if (transition || roomSwitch) return;
   const object = roomObjects[target];
-  const fixedReply = (isLightSwitch(object) || isContextualDoor(object)) && fixedContextualReply(verb);
+  const fixedReply = (isLightSwitch(object) || isContextualDoor(object)) && fixedContextualReply(verb, object);
   if (fixedReply) { showMessage(fixedReply); return; }
   if (handleAlleyTarget(target, object, verb)) return;
   if (handleStreetTarget(object, verb)) return;
@@ -1469,7 +1544,7 @@ function interact(target, verb) {
     else showMessage(interactionReply(target, { name: 'carpet', description: "It's the carpet.", floor: true }, verb));
     return;
   }
-  if (verb === 'look' || verb === 'walk') { showMessage(object.description); return; }
+  if (verb === 'look' || verb === 'walk') { showMessage(bedroomStorageDescription(target, object)); return; }
   if (target === 'crumpledClothes' && verb === 'use') {
     if (itemAtTarget('bedroom', 'crumpledClothes') === 'crumpledClothes') wearCrumpledClothes();
     else showMessage('The clothes are no longer on the carpet.');
@@ -1489,31 +1564,41 @@ function interact(target, verb) {
     toggleSocks();
   } else if (target === 'drawers' && (verb === 'open' || verb === 'close')) {
     gameState.drawersOpen = verb === 'open';
-    showMessage(gameState.drawersOpen ? 'You open the top drawer: folded T-shirts, socks, and a charging cable.' : 'You push the drawer shut.');
+    showMessage(gameState.drawersOpen ? `You open the top drawer. ${bedroomStorageDescription(target, object)}` : 'You push the drawer shut.');
   } else if (target === 'cupboard' && verb === 'use') {
     if (gameState.outfit === 'clean') putCleanClothesAway();
     else wearCleanClothes();
   } else if (target === 'cupboard') {
-    showMessage(interactionReply(target, object, verb));
+    showMessage(verb === 'open' ? `You check inside the wardrobe, then close it again. ${bedroomStorageDescription(target, object)}` : interactionReply(target, object, verb));
   } else if (verb === 'use') {
-    const responses = { bed: 'You straighten the pillow. Close enough for now.', couch: 'You test a cushion. Still the most comfortable spot in the room.', guitar: 'You pluck a quiet chord. A little out of tune.', books: 'You flick through a few pages, then put the book back.', bookshelf: 'You take down a paperback, check your old bookmark, and return it.' };
-    showMessage(responses[target] || object.description);
+    showMessage(interactionReply(target, object, verb));
   } else showMessage(interactionReply(target, object, verb));
+}
+function bedroomStorageDescription(target, object) {
+  if (target === 'drawers') {
+    const socks = gameState.itemPlacements.socks;
+    if (socks?.room !== 'bedroom' || socks.target !== 'drawers') return 'The chest at the foot of the bed holds T-shirts and a charging cable. The white socks have been taken out.';
+  }
+  if (target === 'cupboard') {
+    const clothes = gameState.itemPlacements.cleanClothes;
+    if (clothes?.room !== 'bedroom' || clothes.target !== 'cupboard') return 'The narrow wardrobe still holds folded clothes and shoes on its shelves. The clean work outfit has been taken out.';
+  }
+  return object.description;
 }
 
 const quietTalkTargets = new Set(['tv', 'console', 'channelBox', 'blueCar', 'burgundyCar', 'silverCar', 'parkedCars']);
 const liftBrieflyTargets = new Set(['books', 'guitar', 'towels', 'picture']);
-const heavyObjectPattern = /bed|couch|chair|table|drawers|fridge|freezer|stove|oven|microwave|machine|dumpster|car|bath|toilet|cabinet|bookshelf|counter|shelf|cooler|ATM/i;
-const fixedObjectPattern = /switch|door|window|curtain|sink|basin|mirror|tree|bush|fence|steps|hydrant|lawn|rug|mat|parking|footpath|alley|street|camera|extinguisher|light|terminal|display/i;
+const heavyObjectPattern = /bed|couch|chair|table|drawers?|fridge|freezer|stove|oven|microwave|machine|dumpster|car|bath|toilet|cabinet|bookshelf|counter|shelf|cooler|ATM/i;
+const fixedObjectPattern = /switch|door|window|curtain|sink|basin|mirror|tree|bush|fence|steps|hydrant|lawn|rug|mat|parking|footpath|alley|street|camera|extinguisher|light|terminal|display|outlet/i;
 
 function interactionReply(target, object, verb) {
   const custom = object.interactions?.[verb];
   if (custom) return custom;
-  const name = object.name.toLowerCase();
+  const name = object.name;
   if (verb === 'look' || verb === 'walk') return object.description;
   if (verb === 'talk') {
     if (target === 'tv' || /television|tv/i.test(name)) return "You don't feel like talking to the TV.";
-    if (['blueCar', 'burgundyCar', 'silverCar'].includes(target) || /car/i.test(name)) return "You don't feel like talking to the car.";
+    if (['blueCar', 'burgundyCar', 'silverCar'].includes(target) || /\bcar\b/i.test(name)) return "You don't feel like talking to the car.";
     if (quietTalkTargets.has(target)) return `You don't feel like talking to the ${name}.`;
     if (target === 'mirror') return 'You almost speak to your reflection, then decide the silence is easier.';
     if (target === 'plant') return 'The plant leans toward the window. It seems unfair to ask it for conversation as well.';
@@ -1521,6 +1606,7 @@ function interactionReply(target, object, verb) {
     return `There is nothing you feel like saying to the ${name}.`;
   }
   if (verb === 'pickup') {
+    if (isDrawer(object)) return "You don't want to pick up the drawer.";
     if (liftBrieflyTargets.has(target)) return `You lift the ${name} for a moment, then put it back where it was.`;
     if (heavyObjectPattern.test(name)) return `The ${name} is far too heavy to carry around.`;
     if (fixedObjectPattern.test(name) || object.floor) return `The ${name} is fixed in place, or close enough to it.`;
@@ -1547,6 +1633,18 @@ function handleTarget(target, event) {
   if (wakeup.active || transition || roomSwitch || wardrobeChanging || garageSequenceActive || worldPause.owners.size) return;
   const object = roomObjects[target];
   const verb = gameState.selectedVerb;
+  // A selected item's placement takes precedence over doors, switches and
+  // other contextual controls, so unsuitable targets give a placement reply.
+  if (verb === 'place' && interactionSelection.itemId) {
+    const id = interactionSelection.itemId;
+    walkTo(target, () => placeInventoryItem(id, target, object));
+    return;
+  }
+  if (verb === 'use' && interactionSelection.itemId) {
+    const id = interactionSelection.itemId;
+    walkTo(target, () => useInventoryItem(id, target, object));
+    return;
+  }
   const lightControl = Boolean(object?.lightCircuit);
   const switchOrDoor = Boolean(isLightSwitch(object) || isContextualDoor(object));
   if (object?.shoeRack && !interactionSelection.itemId && (verb === 'pickup' || verb === 'use')) {
@@ -1555,7 +1653,7 @@ function handleTarget(target, event) {
   }
   if (object?.garageCall) {
     if (verb === 'look') { walkTo(target, () => interact(target, 'look')); return; }
-    if (verb && verb !== 'use') { walkTo(target, () => showMessage(fixedContextualReply(verb) || interactionReply(target, object, verb))); return; }
+    if (verb && verb !== 'use') { walkTo(target, () => showMessage(fixedContextualReply(verb, object) || interactionReply(target, object, verb))); return; }
     walkTo(target, () => { if (verb === 'use') setVerb(null); beginGarageElevatorRide(); });
     return;
   }
@@ -1564,7 +1662,7 @@ function handleTarget(target, event) {
     return;
   }
   if (switchOrDoor && verb && verb !== 'use') {
-    const reply = fixedContextualReply(verb);
+    const reply = fixedContextualReply(verb, object);
     walkTo(target, () => showMessage(reply));
     return;
   }
@@ -1609,8 +1707,6 @@ function handleTarget(target, event) {
     return;
   }
   if (verb === 'pickup') { walkTo(target, () => pickUpItemAt(target, object)); return; }
-  if (verb === 'place' && itemId) { walkTo(target, () => placeInventoryItem(itemId, target, object)); return; }
-  if (verb === 'use' && itemId) { walkTo(target, () => useInventoryItem(itemId, target, object)); return; }
   if (verb === 'place' && !itemId) { walkTo(target, () => interact(target, 'place')); return; }
   if (!verb) { walkTo(target); return; }
   walkTo(target, () => interact(target, verb));
@@ -1660,6 +1756,7 @@ function loadGame() {
     } else {
       gameState.inventory = [gameState.toasterTaken && 'toaster', gameState.keysTaken && 'keys'].filter(Boolean);
       gameState.itemPlacements = {
+        extensionCord: { kind: 'world', room: 'living', target: 'entryBottomDrawer' },
         toaster: gameState.toasterTaken ? { kind: 'inventory' } : { kind: 'world', room: 'living', target: 'toaster' },
         keys: gameState.keysTaken ? { kind: 'inventory' } : { kind: 'world', room: 'living', target: 'keys' },
         crumpledClothes: { kind: 'world', room: 'bedroom', target: 'crumpledClothes' },
@@ -1720,6 +1817,13 @@ function showRoom(id) {
 }
 
 function interactApartment(target, verb, object) {
+  if (gameState.currentRoom === 'living' && target === 'entryBottomDrawer' && ['look', 'walk', 'use', 'open'].includes(verb)) {
+    const containsCord = itemAtTarget('living', target) === 'extensionCord';
+    if (verb === 'use' && containsCord) { takeWorldItem('extensionCord', target); return; }
+    const contents = containsCord ? 'The bottom drawer holds reusable shopping bags and an extension cord.' : object.description;
+    showMessage(contents);
+    return;
+  }
   if (target === 'shoeRack' && (verb === 'look' || verb === 'walk')) { showMessage(shoeRackDescription()); return; }
   if (target === 'toaster' && (verb === 'look' || verb === 'walk')) {
     showMessage(gameState.toasterTaken ? 'A clear patch of bench remains beside the stove. The toaster is elsewhere.' : object.description);
@@ -1739,13 +1843,12 @@ function interactApartment(target, verb, object) {
     showMessage(gameState.plantWatered ? 'The plant has had enough water for now.' : 'You give the drooping plant a little water.');
     gameState.plantWatered = true;
   } else if (target === 'keys' && verb === 'use') {
-    showMessage('Use Pick up to take the apartment keys from their hook.');
+    showMessage(gameState.keysTaken ? 'The key hooks are empty. Your apartment keys are already with you.' : 'Use Pick up to take the apartment keys from their hook.');
   } else if (target === 'toaster' && verb === 'use') {
-    showMessage('The toaster needs something to use it with. Pick it up, then choose Use from Inventory.');
+    showMessage(gameState.toasterTaken ? 'The toaster is in your inventory. It belongs back on this section of bench.' : 'There is no bread in the toaster. You leave it off.');
   } else if (target === 'coffee' && verb === 'use') showMessage('The machine whirrs and fills a mug with hot coffee.');
   else if (target === 'sink' && verb === 'use') showMessage('You run the tap, rinse your hands, then turn it off.');
-  else if (verb === 'open' && ['fridge','freezer','entryDrawers','counter'].includes(target)) showMessage(`You open the ${object.name}, look inside, then shut it. ${object.description}`);
-  else if (verb === 'close') showMessage(`The ${object.name} is already closed, or has nothing to close.`);
+  else if (verb === 'open' || verb === 'close') showMessage(interactionReply(target, object, verb));
   else if (verb === 'use') showMessage(object.response || interactionReply(target, object, verb));
   else showMessage(interactionReply(target, object, verb));
 }
@@ -1914,4 +2017,7 @@ setVerb(null);
 showRoom('bedroom');
 syncRoom();
 renderPlayer();
-showMessage('A quiet morning. Click the curtains to let in some light, or explore the room.', 4500);
+function showInitialMessage() {
+  showMessage('A quiet morning. Click the curtains to let in some light, or explore the room.', 4500);
+}
+showInitialMessage();

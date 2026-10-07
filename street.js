@@ -8,9 +8,9 @@ apartmentRooms.street = {
   name:'Laundry & Bluestar', image:'assets/used/street_bg_counter_v2.png', floor:[1,99,56,74],
   objects:{
     apartments:{...item('footpath back to the apartments',[0,60,4,9],[1,streetFootY(1)],'The footpath leads back to the apartment forecourt.'),streetExit:'outside'},
-    laundry:{...item('Laundry glass door',[40.3,48,4.5,17],[42.53,streetFootY(42.53)],'A glass-panelled door leads into the dollar laundry. It opens by hand when you enter.'),streetDoor:'laundry'},
+    laundry:{...item('Laundry glass door',[40.3,48,4.5,17],[42.53,streetFootY(42.53)],'A glass-panelled door leads into Dollar Laundry. It opens by hand when you enter.'),streetDoor:'laundry'},
     bluestar:{...item('Bluestar automatic doors',[61.8,48,7.4,18.5],[65.48,streetFootY(65.48)],'Bluestar’s centre-opening glass doors slide apart as you approach the entrance.'),streetDoor:'bluestar'},
-    laundryWindow:item('dollar laundry',[30.5,39,9.5,23],[36,streetFootY(36)],'Laundry. A dollar a wash; rows of washing machines turn behind the glass.'),
+    laundryWindow:item('Dollar Laundry',[30.5,39,9.5,23],[36,streetFootY(36)],'Dollar Laundry. A dollar a wash; rows of washing machines turn behind the glass.'),
     prices:item('Bluestar prices',[69.4,48,4.5,14],[72,streetFootY(72)],'Milk $3. Bread $2. The shop windows are crowded with everyday essentials.'),
     rubbish:item('rubbish bin',[74.2,58.8,3.5,9.8],[76,streetFootY(76)],'The dark bin is labelled RUBBISH.'),
     recycling:item('recycling bin',[77.7,58.8,3.5,9.8],[79.5,streetFootY(79.5)],'The blue bin is labelled RECYCLING.'),
